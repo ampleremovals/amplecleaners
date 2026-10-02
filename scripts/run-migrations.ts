@@ -16,7 +16,7 @@ if (!DB_URL) {
   process.exit(1);
 }
 
-const MIGRATION_FILES = ["0001_init.sql"];
+const MIGRATION_FILES = ["0001_init.sql", "0002_followups.sql"];
 
 async function run() {
   const client = new Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });

@@ -27,6 +27,14 @@ export async function markQuoteSent(
     console.warn("markQuoteSent status update failed:", error.message);
     return;
   }
+  try {
+    const now = new Date().toISOString();
+    await supabase.from("bookings").update({
+      quote_sent_at: now, quote_followup_last_morning_sent_on: null, quote_followup_last_evening_sent_on: null,
+    }).eq("id", bookingId);
+  } catch (e) {
+    console.warn("markQuoteSent follow-up fields skipped:", e);
+  }
   await Promise.allSettled([
     supabase.from("status_history").insert({ booking_id: bookingId, previous_status: previousStatus, new_status: "quote_sent", changed_by: "system" }),
     supabase.from("activity_log").insert({ booking_id: bookingId, action: "Quote sent to customer", metadata: { channel: "instant_quote" }, performed_by: "system" }),

@@ -127,13 +127,24 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       calc (not in this schema) — `invoices.paid_at`/`stripe_payment_intent_id`
       is enough for now. Deposit paid → `booking_confirmed` +
       deposit-confirmed email/SMS/WhatsApp; full balance paid → `paid`.
-- [ ] NOT done: 14-day follow-up reminder ladder (adapt `lib/followups/`
-      from Ample Removals — the engine is generic, only the copy needs
-      rewriting for cleaning), Klarna/pay-in-3 (cleaning deposits are small
-      enough this may not be worth building — flag to the owner before
-      doing it). Webhook is UNVERIFIED end-to-end (needs a real Stripe
-      account + `stripe listen` or a live webhook secret to test) — code
-      mirrors a working pattern from Ample Removals but hasn't fired once.
+- [x] Follow-up reminder ladder (`lib/followups/`) — adapted from Ample
+      Removals' generic engine, DELIBERATELY scoped to 7 days per sequence
+      rather than their 14 (cleaning is lower-ticket, faster-decision — a
+      tighter ladder fits better; extend later if data says otherwise).
+      Two sequences: quote-sent (not yet reserved) and deposit-invoice-sent
+      (reserved, not yet paid), each email+SMS(days 1-5)+WhatsApp(evening),
+      "pay your deposit to secure your date" tone, auto-flags a booking for
+      review after day 7 of silence. Two daily cron routes
+      (`/api/cron/followup-morning`, `-evening`), `vercel.json` added with
+      their schedules (both once/day — within Vercel Hobby's limit, unlike
+      the higher-frequency crons Ample Removals had to route through
+      Supabase pg_cron instead, per their Lesson 16).
+- [ ] NOT done: Klarna/pay-in-3 (cleaning deposits are small enough this may
+      not be worth building — flag to the owner before doing it). Stripe
+      webhook AND the follow-up cron routes are all UNVERIFIED end-to-end
+      (need a real Supabase project + Stripe account + Resend/Twilio
+      credentials to actually fire) — code mirrors working patterns from
+      Ample Removals but hasn't run once for real.
 
 **Phase 4 — Cleaner mobile app (`cleaner-app/`) + automation**
 - [ ] Scaffold Expo Router app cloned from `../Ampleremovals/driver-app`

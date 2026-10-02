@@ -43,6 +43,15 @@ export async function POST(req: NextRequest) {
       .eq("id", bookingId);
     if (updErr) return NextResponse.json({ success: false, error: "Couldn't reserve your date. Please try again." }, { status: 500 });
 
+    try {
+      await supabase.from("bookings").update({
+        deposit_followup_started_at: new Date().toISOString(),
+        deposit_followup_last_morning_sent_on: null, deposit_followup_last_evening_sent_on: null,
+      }).eq("id", bookingId);
+    } catch (e) {
+      console.warn("reserve: follow-up fields skipped (migration may not be applied yet):", e);
+    }
+
     await Promise.allSettled([
       supabase.from("status_history").insert({ booking_id: bookingId, previous_status: booking.status, new_status: "deposit_invoice_sent", changed_by: "customer" }),
       supabase.from("activity_log").insert({ booking_id: bookingId, action: "Customer reserved their date — deposit invoice sent", metadata: { total, deposit }, performed_by: "customer" }),
