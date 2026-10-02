@@ -1,0 +1,71 @@
+{
+  "expo": {
+    "name": "Ample Cleaner",
+    "slug": "ample-cleaner-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "amplecleaner",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f766e"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.amplecleaners.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Ample Cleaner uses your location to confirm you're at the job when you clock in.",
+        "NSCameraUsageDescription": "Ample Cleaner uses the camera for before/after job photos."
+      }
+    },
+    "android": {
+      "package": "com.amplecleaners.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo.png",
+          "color": "#0f766e"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Ample Cleaner uses your location to confirm you're at the job when you clock in."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ample Cleaner uses the camera for before/after job photos."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
+    "owner": "ccmendel"
+  }
+}

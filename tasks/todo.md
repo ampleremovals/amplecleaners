@@ -35,13 +35,32 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
 - [x] Admin shell: login page (Supabase auth), sidebar layout, dashboard page
       with live booking/cleaner counts (gracefully shows zeros until a real
       Supabase project is connected).
+- [x] `cleaner-app/` scaffolded (structure, not yet installed/run): Expo
+      Router + Supabase + React Query + NativeWind cloned from
+      `../Ampleremovals/driver-app` (auth pattern, offline-first query cache,
+      tab shape). Built: cleaner-only auth (sign in/out, forgot password),
+      Today/Schedule/Earnings/Profile tabs, job detail screen with task
+      checklist (tap to toggle, persists via RLS-scoped Supabase update) and
+      clock in/out. Earnings is a Phase 5 placeholder by design (no
+      invoicing/payroll data model built yet, so no real numbers to show).
+      NOT done: `npm install` in `cleaner-app/` (heavy, and nothing to test
+      against without real Supabase credentials — next session once those
+      exist), before/after photo capture (Phase 4), push notifications
+      (Phase 4), and `assets/logo.png` is a placeholder path with no actual
+      image yet — needs a real logo asset before `expo start`/any build.
 - [ ] **BLOCKED on you:** a real Supabase project, Resend domain, Twilio
-      number + WhatsApp Business profile, and Stripe account for Ample
-      Cleaners. I can't create paid third-party accounts — once you create
-      the Supabase project (or hand me a personal access token I can use to
+      number + WhatsApp Business profile, Stripe account, and an Expo/EAS
+      account (for building/publishing `cleaner-app/`) for Ample Cleaners.
+      I can't create paid third-party accounts — once you create the
+      Supabase project (or hand me a personal access token I can use to
       create one via the Supabase API), I'll run the schema, wire the real
       env vars, and deploy to Vercel myself; nothing else about this is
       manual for you.
+- [ ] **BLOCKED on you:** a real Ample Cleaners logo file (`assets/logo.png`
+      in both the web app and `cleaner-app/`) — I haven't fabricated a brand
+      mark since that's a real design decision, not a technical one. Happy to
+      generate a placeholder icon if you'd rather not wait on a designer —
+      just say the word.
 - [ ] Install dependencies (`npm install`) and verify `npm run dev` boots
       cleanly once you confirm you want that run now vs. after Phase 2.
 - [ ] First commit + push once a GitHub remote exists for this repo (needs
