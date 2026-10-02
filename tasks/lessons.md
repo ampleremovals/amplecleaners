@@ -69,3 +69,18 @@ a real Promise once awaited (or `.then()`'d); chaining `.catch()` straight off
 the builder is a type error, not a runtime no-op.
 **Rule going forward:** Wrap best-effort Supabase calls in `try { await ... }
 catch { }`, never `supabase.from(...).insert(...).catch(...)`.
+
+## Lesson 7 — Resend/Stripe SDK constructors throw at MODULE LOAD, not at send/call time, if the key is missing
+**What happened:** `next build` failed at the "Collecting page data" step
+(which imports and evaluates every route module) with `Missing API key` /
+`Neither apiKey nor config.authenticator provided` — before any real env
+vars existed for this project. Both SDKs validate their key the moment
+`new Resend(...)` / `new Stripe(...)` runs at module top level, not when you
+actually try to send/charge something — so an empty/undefined key breaks the
+BUILD, not just the feature, even for routes that never run during a build.
+**Rule going forward:** `lib/resend.ts` and `lib/stripe.ts` fall back to an
+obviously-fake placeholder string (`"re_placeholder_not_configured"` /
+`"sk_test_placeholder_not_configured"`) when the real env var is empty, so
+construction always succeeds. Every actual send/charge call site is already
+wrapped in try/catch, so a placeholder key just makes the real call fail
+gracefully at runtime instead of crashing the whole build.

@@ -8,7 +8,12 @@ type StripeConfig = NonNullable<ConstructorParameters<typeof Stripe>[1]>;
 
 const apiVersion = "2024-04-10" as StripeConfig["apiVersion"];
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+// Same build-time gotcha as lib/resend.ts: the Stripe SDK throws immediately
+// on construction if the key is empty, which breaks `next build`'s page-data
+// collection before real env vars exist for this project. A placeholder
+// satisfies the constructor; real API calls still fail gracefully until the
+// actual key is set (every call site here is wrapped in try/catch).
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder_not_configured", {
   apiVersion,
   typescript: true,
   appInfo: { name: "Ample Cleaners" },

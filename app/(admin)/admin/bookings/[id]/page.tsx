@@ -75,7 +75,15 @@ export default function BookingDetailPage() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
-      toast.success(andSend ? "Quote saved — sending isn't wired up yet (Phase 3)" : "Quote saved");
+
+      if (andSend) {
+        const sendRes = await fetch(`/api/admin/bookings/${id}/quote/send`, { method: "POST" });
+        const sendData = await sendRes.json();
+        if (!sendData.success) throw new Error(sendData.error || "Quote saved, but sending failed");
+        toast.success("Quote saved and sent to the customer");
+      } else {
+        toast.success("Quote saved");
+      }
       load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to save quote");
@@ -225,7 +233,7 @@ export default function BookingDetailPage() {
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-400">
-              &ldquo;Save &amp; send&rdquo; currently only saves — the quote-delivery email/SMS/WhatsApp flow is Phase 3.
+              Sends by email, SMS and WhatsApp — the customer pays their deposit straight from the quote page, no confirmation step first.
             </p>
           </section>
         </div>

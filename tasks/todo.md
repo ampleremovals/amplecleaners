@@ -89,24 +89,51 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
 - [x] Customer records: searchable list with booking counts.
 - [ ] NOT done: DBS document upload (toggle is manual for now, no file
       storage wired up), cleaner invite/auth-user creation (roster row
-      exists but has no login yet — needs an email-invite flow), quote
-      "Save & send" currently only saves (sending is Phase 3, deliberately
-      not duplicated here since Phase 3 clones Ample Removals' fixed,
-      no-confirm-step flow wholesale rather than building a throwaway
-      version now).
+      exists but has no login yet — needs an email-invite flow).
 
 **Phase 3 — Quote delivery + self-serve deposit payment**
-- [ ] Clone Ample Removals' `/quote/[bookingId]/[token]` flow IN ITS
-      ALREADY-FIXED, no-confirm-step form (the one shipped after their
-      "stop making customers confirm, go straight to pay deposit" rebuild) —
-      do not reintroduce the two-step confirm flow they removed.
-- [ ] Stripe Checkout (deposit) + bank transfer claim flow.
-- [ ] Quote-sent + deposit-invoice email/SMS/WhatsApp — reuse the
-      "pay your deposit to secure your date" copy pattern and tone (compelling,
-      not pushy) already proven on Ample Removals.
-- [ ] 14-day follow-up reminder ladder (adapt `lib/followups/` from Ample
-      Removals — the engine is generic, only the copy needs rewriting for
-      cleaning).
+- [x] Cloned Ample Removals' ALREADY-FIXED `/quote/[bookingId]/[token]` flow
+      — no confirm-first step, straight from "here's your price" to "Pay £Y
+      deposit to secure your date," landing on the payment method screen.
+      Simpler than the Removals version: one price, no Standard/Premium tier
+      choice (cleaning is priced per visit, not tiered).
+  - [x] `lib/tokens.ts` (signed quote-link tokens), `lib/stripe-fees.ts`
+        (card fee pass-through) — copied verbatim, fully generic.
+  - [x] `lib/bookings/booking-invoice.ts` — `getOrCreateBookingInvoice`,
+        already carrying the resync-on-reuse fix (Lesson 1) from day one.
+  - [x] `lib/bookings/quoteDelivery.ts` — quote-sent + deposit-invoice +
+        deposit-confirmed email/SMS/WhatsApp, "pay deposit to secure your
+        date" tone throughout (never "confirm your booking").
+  - [x] `/api/admin/bookings/[id]/quote/send` — admin triggers delivery;
+        wired into the booking detail page's "Save & send" button (it
+        actually sends now, not a placeholder toast).
+  - [x] `/api/quote/details`, `/api/quote/reserve` (creates the deposit
+        invoice EAGERLY at reserve time, not lazily on payment attempt —
+        closes the exact gap that silently broke Ample Removals' follow-up
+        reminders), `/api/quote/[bookingId]/pay` (Stripe Checkout),
+        `/api/deposit/claim` (bank transfer).
+  - [x] Found and fixed a NEW gotcha (not one Ample Removals hit, because it
+        always has real keys in `.env.local`): the Resend and Stripe SDKs
+        throw at module-load time if their key is empty, which broke
+        `next build`'s page-data collection before any real credentials
+        existed for this project. Fixed with placeholder fallback keys in
+        `lib/resend.ts`/`lib/stripe.ts` — see Lesson 7.
+- [x] Stripe webhook (`/api/webhooks/stripe`) — built ahead of the original
+      Phase 5 schedule, because Checkout sessions were already being
+      created with nothing to confirm them; that gap would have meant
+      every card payment appeared to succeed to the customer but never
+      actually marked the invoice/booking paid. Trimmed from Ample
+      Removals' version: no separate `payments` table or driver-earnings
+      calc (not in this schema) — `invoices.paid_at`/`stripe_payment_intent_id`
+      is enough for now. Deposit paid → `booking_confirmed` +
+      deposit-confirmed email/SMS/WhatsApp; full balance paid → `paid`.
+- [ ] NOT done: 14-day follow-up reminder ladder (adapt `lib/followups/`
+      from Ample Removals — the engine is generic, only the copy needs
+      rewriting for cleaning), Klarna/pay-in-3 (cleaning deposits are small
+      enough this may not be worth building — flag to the owner before
+      doing it). Webhook is UNVERIFIED end-to-end (needs a real Stripe
+      account + `stripe listen` or a live webhook secret to test) — code
+      mirrors a working pattern from Ample Removals but hasn't fired once.
 
 **Phase 4 — Cleaner mobile app (`cleaner-app/`) + automation**
 - [ ] Scaffold Expo Router app cloned from `../Ampleremovals/driver-app`

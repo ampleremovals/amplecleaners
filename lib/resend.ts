@@ -1,6 +1,11 @@
 import { Resend } from "resend";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+// The Resend SDK's constructor throws immediately if the key is missing/empty
+// (not just when you try to send) — which breaks `next build`'s page-data
+// collection step before any real env vars exist for this project. A
+// placeholder key satisfies the constructor; actual sends fail gracefully
+// (caught by every call site here) until the real key is set.
+export const resend = new Resend(process.env.RESEND_API_KEY || "re_placeholder_not_configured");
 
 export const resendFrom =
   process.env.RESEND_FROM_EMAIL ?? "Bookings - Ample Cleaners <bookings@amplecleaners.com>";
