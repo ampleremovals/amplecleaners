@@ -87,9 +87,19 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       availability slots (day/time, add/remove), coverage postcode areas
       (add/remove), upcoming assigned jobs.
 - [x] Customer records: searchable list with booking counts.
+- [x] Cleaner invite/auth flow (added after Phase 3, closing a real gap —
+      without it `cleaner-app` could never actually log anyone in): adding
+      a cleaner now creates their Supabase Auth login too (cleaned up if the
+      roster insert fails, so no orphaned logins), then emails a "set your
+      password" link (recovery link minted via the admin API, sent through
+      our own branded Resend email rather than Supabase's default mailer —
+      same split Ample Removals uses for drivers). `/cleaners/reset-password`
+      + `/cleaners/reset-password/update` web pages handle both the welcome
+      link and ordinary forgot-password requests; `cleaner-app`'s "Forgot
+      password?" screen already called this exact endpoint (built in the
+      mobile scaffold before the endpoint existed) — now it actually works.
 - [ ] NOT done: DBS document upload (toggle is manual for now, no file
-      storage wired up), cleaner invite/auth-user creation (roster row
-      exists but has no login yet — needs an email-invite flow).
+      storage wired up).
 
 **Phase 3 — Quote delivery + self-serve deposit payment**
 - [x] Cloned Ample Removals' ALREADY-FIXED `/quote/[bookingId]/[token]` flow
