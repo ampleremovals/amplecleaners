@@ -3,6 +3,7 @@ import { Unbounded, Manrope } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 // Unbounded — chunky, rounded, confident display face. Carries the "colourful
 // and pronounced" brand energy the homepage is built around.
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {children}
         <Toaster richColors position="top-right" />
+        <Analytics />
       </body>
     </html>
   );

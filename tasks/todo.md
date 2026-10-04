@@ -363,7 +363,7 @@ Phase 3's follow-up/payment code can be exercised for real.
 **Phase 2**
 - [x] DBS + right-to-work document upload (private `cleaner-docs` bucket, signed-URL view), pay-rate editing.
 **Phase 4**
-- [~] Migration 0003 WRITTEN, NOT YET APPLIED (the auto-mode classifier refused to run it on the live DB; needs owner go-ahead) — hardening policies, cleaner read policies, push tokens, rate limits, storage buckets/policies, clock location cols, recurrence unique index.
+- [x] Migration 0003 APPLIED to live DB (2026-10-04, owner approved) — hardening policies, cleaner read policies, push tokens, rate limits, storage buckets/policies, clock location cols, recurrence unique index.
 - [x] Server-side cleaner API (clock in/out w/ location, tasks, photos, push token, earnings) — Bearer auth.
 - [x] Default task checklists per service; seeded at booking creation.
 - [x] Auto-match engine (active + DBS-verified + coverage + availability + no clash; rank by load then rating; prefer series' regular cleaner) → on deposit paid, daily cron, admin button.
@@ -377,11 +377,11 @@ Phase 3's follow-up/payment code can be exercised for real.
 - [x] Admin Invoices page (list, mark paid for bank transfers, resend) + Reports page (Recharts).
 - [x] Recurring billing DECISION (made, flagged to owner): charge per visit after completion, no subscription.
 **Phase 6**
-- [~] Rate limiting (DB-backed, atomic RPC) on public endpoints — code deployed but INACTIVE (fails open) until migration 0003 creates `check_rate_limit`.
+- [x] Rate limiting (DB-backed, atomic RPC) on public endpoints — live, e2e-verified (allows N then blocks).
 - [x] loading/empty/error states across admin; security headers; strict TS/ESLint build.
-- [x] Mobile-first check at 375px; brand-colour sweep (emails, app). Analytics NOT done — needs owner OK for `@vercel/analytics` (CLAUDE.md: no new packages without confirmation).
+- [x] Mobile-first check at 375px; brand-colour sweep (emails, app). Analytics added (`@vercel/analytics`, owner approved).
 **Verify (no shortcuts)**
-- [ ] Real e2e against live Supabase (BLOCKED until migration 0003 is applied): cleaner login via RLS, forged-signature Stripe webhook → confirmed → auto-assigned, clock in/out, completion → invoice, recurrence, PDF.
+- [x] Real e2e against live Supabase: `scripts/e2e.ts`, 46 checks ALL PASS (RLS, cleaner login, auto-assign, clock in/out + photos, completion→invoice, PDF, forged-signature Stripe webhook + replay idempotency, deposit→confirm→assign, unmatched→flagged, recurrence idempotent, rate limiter). Test data fully cleaned up.
 - [x] tsc + lint + build clean; deployed; live smoke-tested (public pages screenshotted at 375px).
 
 ### Review (phases 2-6)
@@ -393,3 +393,6 @@ Verified for real: matching engine + earnings maths (unit tests); PDF invoice re
 - Mobile app: `tsc` clean only — no device/emulator run; camera, GPS, push and photo upload are unexercised on hardware.
 - Twilio + Stripe still unwired (no credentials): SMS/WhatsApp are skipped, card payments return a clear "not set up yet" message, bank transfer works.
 **Decisions flagged for the owner:** recurring clients billed per visit after each clean (no subscription); cleaners only auto-assigned if DBS-verified AND have coverage + availability rows; `@vercel/analytics` NOT added (new package needs your OK per CLAUDE.md).
+
+### Update — migration applied + e2e (2026-10-04)
+Migration 0003 applied; e2e proves the DB-dependent path. Still unverified: admin UI click-through (no admin account exists yet — `auth.users` is empty), mobile app on a device, SMS/WhatsApp (no Twilio), card checkout (no Stripe key). Vercel Web Analytics must also be switched on in the Vercel project dashboard for data to appear.
