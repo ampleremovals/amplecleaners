@@ -396,3 +396,18 @@ Verified for real: matching engine + earnings maths (unit tests); PDF invoice re
 
 ### Update — migration applied + e2e (2026-10-04)
 Migration 0003 applied; e2e proves the DB-dependent path. Still unverified: admin UI click-through (no admin account exists yet — `auth.users` is empty), mobile app on a device, SMS/WhatsApp (no Twilio), card checkout (no Stripe key). Vercel Web Analytics must also be switched on in the Vercel project dashboard for data to appear.
+
+## Task: Phase 7 — Onboarding & the "automate most tasks" gaps (started 2026-10-04)
+### Gaps found by walking the customer/admin journey end to end
+- A customer who books Regular Cleaning sees a price but is SENT nothing (no deposit link) until an admin manually presses "Save & send"; the admin isn't alerted of new bookings at all. Contradicts "make most tasks automated".
+- The confirmation page says "a member of the team will confirm" — no way to pay the deposit right then (lost conversions).
+- Cleaners can't register themselves (original ask: "we will register cleaners"); only an admin can add one.
+- An admin can't create a booking (phone enquiries) — only the public form creates them.
+- No Settings page (company details, review link) although the `settings` row exists.
+### Plan
+- [ ] Shared `createBooking` lib (route refactored onto it) + `afterBookingCreated` automation: admin alert email always; priced bookings (Regular Cleaning) get the quote + deposit link instantly by email/SMS/WhatsApp; others get an acknowledgement.
+- [ ] Confirmation page: "Pay £X deposit to secure your date" CTA straight to the quote page for priced bookings.
+- [ ] Admin "New booking" page (phone leads) → same lib, source `phone`, optional send-quote.
+- [ ] Cleaner applications: migration 0004 table, public `/cleaners/register` form + API (rate-limited), admin Applications page (approve → creates cleaner + login + invite; reject → polite email), nav link + dashboard attention item.
+- [ ] Admin Settings page (company name/address/phone/email, Google review link, messaging toggles).
+- [ ] e2e extended (instant quote send, application → approval, manual booking); tsc/lint/build; deploy; live check.
