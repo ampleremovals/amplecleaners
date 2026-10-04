@@ -48,14 +48,24 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       exist), before/after photo capture (Phase 4), push notifications
       (Phase 4), and `assets/logo.png` is a placeholder path with no actual
       image yet — needs a real logo asset before `expo start`/any build.
-- [ ] **BLOCKED on you:** a real Supabase project, Resend domain, Twilio
-      number + WhatsApp Business profile, Stripe account, and an Expo/EAS
-      account (for building/publishing `cleaner-app/`) for Ample Cleaners.
-      I can't create paid third-party accounts — once you create the
-      Supabase project (or hand me a personal access token I can use to
-      create one via the Supabase API), I'll run the schema, wire the real
-      env vars, and deploy to Vercel myself; nothing else about this is
-      manual for you.
+- [x] Resend API key received (2026-10-04) — stored in `.env.local`
+      (confirmed gitignored, never touched git), verified valid against the
+      Resend API (a "send-only" restricted key — the correct, least-
+      privilege type to use). Owner confirmed `amplecleaners.com` is
+      verified in Resend and `bookings@amplecleaners.com` (already the
+      configured `RESEND_FROM_EMAIL` — no change needed) is the live
+      sending address. Not independently re-checked via the API — the key
+      is send-only and can't query `/domains` — so this rests on the
+      owner's word; if a real send bounces with a domain-verification
+      error, check that first.
+- [ ] **BLOCKED on you:** a real Supabase project, Twilio number + WhatsApp
+      Business profile, Stripe account, and an Expo/EAS account (for
+      building/publishing `cleaner-app/`). I can't create paid third-party
+      accounts — once you create the Supabase project (or hand me a
+      personal access token I can use to create one via the Supabase API),
+      I'll run the schema, wire the real env vars, and deploy to Vercel
+      myself;
+      nothing else about this is manual for you.
 - [ ] **BLOCKED on you:** a real Ample Cleaners logo file (`assets/logo.png`
       in both the web app and `cleaner-app/`) — I haven't fabricated a brand
       mark since that's a real design decision, not a technical one. Happy to
