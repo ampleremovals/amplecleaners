@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
+import { defaultTasks } from "@/lib/tasks-template";
 import { generateBookingReference, normaliseUKPhone } from "@/lib/utils";
 import { DEPOSIT_PERCENTAGE } from "@/lib/deposit";
 import { REGULAR_CLEANING_MIN_HOURS, REGULAR_CLEANING_HOURLY_RATE, regularCleaningPrice } from "@/lib/pricing";
@@ -39,6 +41,8 @@ const bodySchema = z.object({
  * and sends the quote afterwards (see app/(admin)/admin/bookings).
  */
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, "booking", 8, 600);
+  if (limited) return limited;
   const supabase = createAdminClient();
   try {
     const json = await req.json();
@@ -93,6 +97,7 @@ export async function POST(req: NextRequest) {
         special_instructions: d.specialInstructions ?? null,
         status: "inquiry",
         source: "website",
+        tasks: defaultTasks(d.serviceType),
         quote_line_items: lineItems,
         quote_subtotal: total,
         quote_total: total,

@@ -14,7 +14,7 @@ function welcomeEmailHtml(firstName: string, actionLink: string): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#134e4a 0%,#0f766e 55%,#0d9488 100%);padding:36px 32px;text-align:center;">
+        <tr><td style="background:linear-gradient(135deg,#052e16 0%,#15803d 55%,#16a34a 100%);padding:36px 32px;text-align:center;">
           <div style="display:inline-block;background:rgba(255,255,255,0.14);border-radius:14px;padding:10px 18px;">
             <span style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:0.3px;">Ample Cleaners</span>
           </div>

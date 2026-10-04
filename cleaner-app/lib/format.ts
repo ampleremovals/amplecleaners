@@ -21,9 +21,10 @@ export function formatDate(date: string | Date | null | undefined): string {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
-/** Format a time as `HH:MM`. */
+/** Format a time as `HH:MM`. Accepts a Date, an ISO timestamp, or a Postgres time-of-day (`09:30:00`). */
 export function formatTime(date: string | Date | null | undefined): string {
   if (!date) return "—";
+  if (typeof date === "string" && /^\d{1,2}:\d{2}/.test(date)) return date.slice(0, 5).padStart(5, "0");
   const d = typeof date === "string" ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });

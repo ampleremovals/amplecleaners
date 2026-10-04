@@ -6,17 +6,18 @@
  * the environment — same pattern as Ample Removals' scripts/run-migrations.ts.
  */
 import { Client } from "pg";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
 const DB_URL = process.env.DATABASE_URL;
 if (!DB_URL) {
   console.error("❌  DATABASE_URL is not set.");
-  console.error("    Format: postgresql://postgres.{PROJECT_REF}:[PASSWORD]@aws-1-eu-north-1.pooler.supabase.com:5432/postgres");
+  console.error("    Format: postgresql://postgres.{PROJECT_REF}:[PASSWORD]@aws-0-eu-west-1.pooler.supabase.com:5432/postgres (use the IPv4 pooler, not db.*.supabase.co which is IPv6-only)");
   process.exit(1);
 }
 
-const MIGRATION_FILES = ["0001_init.sql", "0002_followups.sql"];
+// Every .sql file in supabase/migrations, in name order — each is idempotent.
+const MIGRATION_FILES = readdirSync(join(__dirname, "..", "supabase", "migrations")).filter((f) => f.endsWith(".sql")).sort();
 
 async function run() {
   const client = new Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });

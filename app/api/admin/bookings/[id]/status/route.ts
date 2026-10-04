@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import { processJobCompletion } from "@/lib/bookings/completion";
+import { autoAssignBooking } from "@/lib/automation/autoAssign";
+import { cancelFutureVisits } from "@/lib/automation/recurrence";
+import { todayInLondon } from "@/lib/cleaner-auth";
 import type { BookingStatus } from "@/types";
 
 const VALID_STATUSES: BookingStatus[] = [
@@ -27,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const supabase = createAdminClient();
-  const { data: booking } = await supabase.from("bookings").select("status").eq("id", params.id).maybeSingle();
+  const { data: booking } = await supabase.from("bookings").select("status, parent_booking_id").eq("id", params.id).maybeSingle();
   if (!booking) return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 });
 
   const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", params.id);
@@ -42,5 +46,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }),
   ]);
 
-  return NextResponse.json({ success: true });
+  // Same automation whether a cleaner clocks out or an admin drags the card:
+  // completing a job bills the customer; cancelling a series root cancels its future visits.
+  let invoiced = false;
+  let cancelledVisits = 0;
+  if (newStatus === "job_completed") {
+    const result = await processJobCompletion(params.id);
+    invoiced = result.done;
+  } else if (newStatus === "booking_confirmed") {
+    await autoAssignBooking(params.id, "system");
+  } else if ((newStatus === "cancelled" || newStatus === "bad_lead" || newStatus === "not_a_good_fit") && !booking.parent_booking_id) {
+    cancelledVisits = await cancelFutureVisits(params.id, todayInLondon());
+  }
+
+  return NextResponse.json({ success: true, invoiced, cancelledVisits });
 }

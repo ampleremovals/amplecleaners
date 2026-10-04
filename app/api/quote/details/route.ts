@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { verifyQuoteConfirmToken } from "@/lib/tokens";
 import { depositFor, DEPOSIT_PERCENTAGE } from "@/lib/deposit";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
@@ -22,6 +23,8 @@ const RESERVED_STATUSES = new Set([
  * token. No tiers: one price, one deposit.
  */
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, "quote-details", 60, 600);
+  if (limited) return limited;
   try {
     const { bookingId, token } = await req.json();
     if (!bookingId || !token) return NextResponse.json({ success: false, error: "Missing booking or token" }, { status: 400 });

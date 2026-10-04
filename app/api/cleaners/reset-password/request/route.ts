@@ -15,12 +15,15 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/resend";
 import { logError } from "@/lib/log-error";
+import { rateLimit } from "@/lib/rate-limit";
 
 const RESET_REDIRECT_URL = `${process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.amplecleaners.com"}/cleaners/reset-password/update`;
 
 const schema = z.object({ email: z.string().email() });
 
 export async function POST(req: Request) {
+  const limited = await rateLimit(req, "reset-password", 5, 3600);
+  if (limited) return limited;
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ success: true });
 
@@ -64,7 +67,7 @@ function resetEmailHtml(name: string, actionLink: string): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#134e4a 0%,#0f766e 55%,#0d9488 100%);padding:36px 32px;text-align:center;">
+        <tr><td style="background:linear-gradient(135deg,#052e16 0%,#15803d 55%,#16a34a 100%);padding:36px 32px;text-align:center;">
           <div style="display:inline-block;background:rgba(255,255,255,0.14);border-radius:14px;padding:10px 18px;">
             <span style="color:#ffffff;font-size:20px;font-weight:800;letter-spacing:0.3px;">Ample Cleaners</span>
           </div>
@@ -81,7 +84,7 @@ function resetEmailHtml(name: string, actionLink: string): string {
             </a>
           </td></tr></table>
           <p style="margin:0 0 8px;color:#64748b;font-size:13px;">If the button doesn't work, copy and paste this link into your browser:</p>
-          <p style="margin:0 0 28px;word-break:break-all;"><a href="${actionLink}" style="color:#0f766e;font-size:12px;text-decoration:underline;">${actionLink}</a></p>
+          <p style="margin:0 0 28px;word-break:break-all;"><a href="${actionLink}" style="color:#15803d;font-size:12px;text-decoration:underline;">${actionLink}</a></p>
           <div style="border-top:1px solid #e2e8f0;padding-top:20px;">
             <p style="margin:0;color:#94a3b8;font-size:13px;line-height:1.6;">Didn't ask for this? You can safely ignore this email.</p>
           </div>

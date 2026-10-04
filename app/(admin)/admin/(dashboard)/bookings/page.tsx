@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -8,7 +8,9 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Repeat } from "lucide-react";
+import { TableSkeleton, ErrorState } from "@/components/admin/DataState";
+import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { formatCurrency } from "@/lib/utils";
 import { SERVICE_LABELS, type ServiceType, type BookingStatus } from "@/types";
 
@@ -20,6 +22,8 @@ interface BoardBooking {
   clean_date: string | null;
   is_flexible_date: boolean;
   quote_total: number | null;
+  is_flagged: boolean;
+  parent_booking_id: string | null;
   customer: { full_name: string } | { full_name: string }[] | null;
   cleaner: { full_name: string } | { full_name: string }[] | null;
 }
@@ -53,7 +57,11 @@ function Card({ booking }: { booking: BoardBooking }) {
       className={`mb-2 cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing ${isDragging ? "opacity-40" : ""}`}
     >
       <Link href={`/admin/bookings/${booking.id}`} className="block" onClick={(e) => isDragging && e.preventDefault()}>
-        <p className="text-sm font-bold text-slate-900">{customer?.full_name ?? "Unknown"}</p>
+        <p className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
+          {customer?.full_name ?? "Unknown"}
+          {booking.is_flagged && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Needs attention" />}
+          {booking.parent_booking_id && <Repeat className="h-3.5 w-3.5 shrink-0 text-brand-sky-600" aria-label="Recurring visit" />}
+        </p>
         <p className="mt-0.5 text-xs text-slate-500">{SERVICE_LABELS[booking.service_type]} · {booking.reference}</p>
         <div className="mt-2 flex items-center justify-between">
           <span className="text-xs text-slate-400">
@@ -89,15 +97,23 @@ function Column({ col, bookings }: { col: (typeof COLUMNS)[number]; bookings: Bo
 export default function BookingsBoardPage() {
   const [bookings, setBookings] = useState<BoardBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [pendingMove, setPendingMove] = useState<{ booking: BoardBooking; target: (typeof COLUMNS)[number] } | null>(null);
+  const [moving, setMoving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
-  useEffect(() => {
-    fetch("/api/admin/bookings")
-      .then((r) => r.json())
-      .then((d) => { if (d.success) setBookings(d.bookings); })
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const d = await fetch("/api/admin/bookings").then((r) => r.json());
+      if (d.success) setBookings(d.bookings); else setLoadError(d.error ?? "Couldn't load bookings.");
+    } catch {
+      setLoadError("Network error — check your connection.");
+    }
+    setLoading(false);
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   const byColumn = useMemo(() => {
     const map = new Map<string, BoardBooking[]>();
@@ -123,6 +139,15 @@ export default function BookingsBoardPage() {
     const targetCol = COLUMNS.find((c) => c.key === over.id);
     if (!booking || !targetCol || targetCol.statuses.includes(booking.status)) return;
 
+    // Completing a job bills the customer and cancelling stops a series, so ask first.
+    if (targetCol.key === "completed" || targetCol.key === "lost") {
+      setPendingMove({ booking, target: targetCol });
+      return;
+    }
+    await moveBooking(booking, targetCol);
+  }
+
+  async function moveBooking(booking: BoardBooking, targetCol: (typeof COLUMNS)[number]) {
     const prevStatus = booking.status;
     setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, status: targetCol.dropStatus } : b)));
 
@@ -134,16 +159,23 @@ export default function BookingsBoardPage() {
     if (!res.ok) {
       setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, status: prevStatus } : b)));
       toast.error("Couldn't move booking — try again");
+      return;
     }
+    const json = await res.json().catch(() => ({}));
+    if (json.invoiced) toast.success("Moved — the customer has been invoiced automatically");
+    if (json.cancelledVisits > 0) toast.success(`${json.cancelledVisits} future recurring visit${json.cancelledVisits === 1 ? "" : "s"} cancelled`);
+    if (targetCol.key === "confirmed") load();
   }
 
   return (
-    <div className="flex h-screen flex-col p-6">
+    <div className="flex h-screen flex-col p-4 sm:p-6">
       <h1 className="font-display text-2xl font-extrabold text-slate-900">Bookings</h1>
       <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
 
       {loading ? (
-        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>
+        <div className="mt-6"><TableSkeleton rows={5} cols={4} /></div>
+      ) : loadError ? (
+        <div className="mt-6"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="mt-6 flex flex-1 gap-4 overflow-x-auto pb-4">
@@ -154,6 +186,16 @@ export default function BookingsBoardPage() {
           <DragOverlay>{activeBooking ? <Card booking={activeBooking} /> : null}</DragOverlay>
         </DndContext>
       )}
+
+      <ConfirmDialog
+        open={!!pendingMove}
+        onOpenChange={(o) => !o && setPendingMove(null)}
+        title={pendingMove?.target.key === "completed" ? "Mark this job as completed?" : "Move this booking to Lost?"}
+        description={pendingMove?.target.key === "completed" ? "The customer is invoiced and messaged automatically (email, SMS and WhatsApp). Cleaners normally trigger this by clocking out." : "The booking is cancelled. If it's a recurring series, its future visits are cancelled too."}
+        confirmLabel={pendingMove?.target.key === "completed" ? "Complete & invoice" : "Move to Lost"}
+        busy={moving}
+        onConfirm={async () => { if (!pendingMove) return; setMoving(true); await moveBooking(pendingMove.booking, pendingMove.target); setMoving(false); setPendingMove(null); }}
+      />
     </div>
   );
 }

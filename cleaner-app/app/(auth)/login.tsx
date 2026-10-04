@@ -23,7 +23,7 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1">
-      <LinearGradient colors={["#134e4a", "#0f766e", "#0d9488"]} style={{ flex: 1 }}>
+      <LinearGradient colors={["#052e16", "#14532d", "#15803d"]} style={{ flex: 1 }}>
         <SafeAreaView className="flex-1">
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 justify-center px-6">
             <View className="mb-6 items-center">
@@ -32,7 +32,7 @@ export default function LoginScreen() {
               </View>
             </View>
             <Text className="text-center text-3xl font-bold text-white">Ample Cleaner</Text>
-            <Text className="mt-1 text-center text-teal-100">Sign in to see today&apos;s jobs.</Text>
+            <Text className="mt-1 text-center text-green-100">Sign in to see today&apos;s jobs.</Text>
 
             <View className="mt-8 rounded-3xl bg-white p-6">
               <Text className="mb-1 text-sm font-medium text-slate-700">Email</Text>

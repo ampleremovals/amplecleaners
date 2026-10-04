@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import { notifyJobAssigned } from "@/lib/automation/autoAssign";
 
 /**
  * PATCH /api/admin/bookings/[id]/assign-cleaner — assign (or reassign) a
@@ -45,6 +46,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       performed_by: "admin",
     }),
   ]);
+
+  if (body.cleanerId) await notifyJobAssigned(params.id, body.cleanerId);
 
   return NextResponse.json({ success: true });
 }

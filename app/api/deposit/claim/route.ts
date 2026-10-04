@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { verifyQuoteConfirmToken } from "@/lib/tokens";
 import { sendEmail, resendAdminEmail } from "@/lib/resend";
 
@@ -12,6 +13,8 @@ const TOKEN_EXPIRY_HOURS = 24 * 30;
  * auto-marked paid — a human confirms the money actually landed.
  */
 export async function POST(req: NextRequest) {
+  const limited = await rateLimit(req, "deposit-claim", 10, 3600);
+  if (limited) return limited;
   try {
     const { bookingId, token } = await req.json();
     if (!bookingId || !token) return NextResponse.json({ success: false, error: "Missing booking or token" }, { status: 400 });

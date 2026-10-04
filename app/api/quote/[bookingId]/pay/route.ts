@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { verifyQuoteConfirmToken } from "@/lib/tokens";
 import { stripe, stripeTest } from "@/lib/stripe";
 import { cardTotalForNet } from "@/lib/stripe-fees";
@@ -15,6 +16,8 @@ const TOKEN_EXPIRY_HOURS = 24 * 30;
  * processing fee on top so the full deposit reaches us.
  */
 export async function POST(req: NextRequest, { params }: { params: { bookingId: string } }) {
+  const limited = await rateLimit(req, "quote-pay", 20, 600);
+  if (limited) return limited;
   try {
     const { token } = (await req.json()) as { token?: string };
     const bookingId = params.bookingId;

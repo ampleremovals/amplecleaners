@@ -10,7 +10,7 @@ export default function ProfileScreen() {
 
       <View className="mt-6 flex-row items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
         <View className="h-12 w-12 items-center justify-center rounded-full bg-brand-green-100">
-          <User size={22} color="#0f766e" />
+          <User size={22} color="#15803d" />
         </View>
         <View>
           <Text className="font-bold text-slate-900">Your profile</Text>

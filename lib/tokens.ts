@@ -39,3 +39,27 @@ export function verifyQuoteConfirmToken(bookingId: string, token: string, expiry
     return false;
   }
 }
+
+/**
+ * Invoice link token — a non-expiring HMAC capability for `/pay/<invoiceId>/<token>`
+ * and the PDF download. Unlike quote tokens it must outlive 48h/30d: an overdue
+ * invoice link in someone's inbox has to keep working until it's paid.
+ * Returns null if QUOTE_CONFIRM_SECRET is unset.
+ */
+export function generateInvoiceToken(invoiceId: string): string | null {
+  const secret = process.env.QUOTE_CONFIRM_SECRET;
+  if (!secret) return null;
+  return crypto.createHmac("sha256", secret).update(`invoice:${invoiceId}`).digest("hex");
+}
+
+export function verifyInvoiceToken(invoiceId: string, token: string): boolean {
+  const expected = generateInvoiceToken(invoiceId);
+  if (!expected || !token) return false;
+  try {
+    const a = Buffer.from(token, "hex");
+    const b = Buffer.from(expected, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}

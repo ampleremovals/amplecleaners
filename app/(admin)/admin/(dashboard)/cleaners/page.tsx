@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, Plus, ShieldCheck, ShieldAlert, Star } from "lucide-react";
+import { Loader2, Plus, ShieldCheck, ShieldAlert, Star, Users } from "lucide-react";
+import { TableSkeleton, ErrorState, EmptyState } from "@/components/admin/DataState";
 
 interface Cleaner {
   id: string; full_name: string; email: string; phone: string;
@@ -13,13 +14,19 @@ interface Cleaner {
 export default function CleanersPage() {
   const [cleaners, setCleaners] = useState<Cleaner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ fullName: "", email: "", phone: "", payRatePerHour: "" });
   const [submitting, setSubmitting] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/admin/cleaners").then((r) => r.json());
-    if (res.success) setCleaners(res.cleaners);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/admin/cleaners").then((r) => r.json());
+      if (res.success) setCleaners(res.cleaners); else setLoadError(res.error ?? "Couldn't load cleaners.");
+    } catch {
+      setLoadError("Network error — check your connection.");
+    }
     setLoading(false);
   }
   useEffect(() => { load(); }, []);
@@ -50,8 +57,8 @@ export default function CleanersPage() {
   }
 
   return (
-    <div className="p-6 sm:p-8">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-8">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-extrabold text-slate-900">Cleaners</h1>
           <p className="mt-1 text-sm text-slate-500">Your roster, DBS status and pay rates.</p>
@@ -74,10 +81,14 @@ export default function CleanersPage() {
       )}
 
       {loading ? (
-        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>
+        <div className="mt-6"><TableSkeleton cols={6} /></div>
+      ) : loadError ? (
+        <div className="mt-6"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>
+      ) : cleaners.length === 0 ? (
+        <div className="mt-6"><EmptyState icon={<Users className="h-8 w-8" />} title="No cleaners yet" hint="Add your first cleaner — they'll get an email to set their password and use the app." /></div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th className="px-4 py-3">Name</th>
@@ -111,9 +122,6 @@ export default function CleanersPage() {
                   </td>
                 </tr>
               ))}
-              {cleaners.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">No cleaners yet — add your first one above.</td></tr>
-              )}
             </tbody>
           </table>
         </div>

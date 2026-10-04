@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     .from("bookings")
     .select(`
       id, reference, service_type, status, clean_date, is_flexible_date, quote_total,
-      assigned_cleaner_id, created_at,
+      assigned_cleaner_id, created_at, is_flagged, parent_booking_id,
       customer:customers(full_name, email, phone),
       cleaner:cleaners(full_name)
     `)

@@ -6,6 +6,7 @@ import { View, ActivityIndicator } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, onlineManager } from "@tanstack/react-query";
+import * as Notifications from "expo-notifications";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,6 +15,7 @@ import { supabase, registerSupabaseAppStateRefresh } from "@/lib/supabase";
 import { getCleanerRecord } from "@/lib/auth";
 import { assertEnv } from "@/lib/env";
 import { useAuthStore } from "@/store/authStore";
+import { registerForPush } from "@/lib/push";
 
 // Offline-first: persist the query cache so the app opens with last-known data
 // even with a patchy connection (a cleaner's job site is often a dead spot).
@@ -45,13 +47,30 @@ function useAuthRedirect() {
   }, [initialised, session, cleanerId, segments, router]);
 }
 
+/** Register for pushes once a cleaner is signed in; tapping a push opens that job. */
+function usePushNotifications() {
+  const router = useRouter();
+  const { session, cleanerId } = useAuthStore();
+  const lastResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (session && cleanerId) registerForPush().catch(() => {});
+  }, [session, cleanerId]);
+
+  useEffect(() => {
+    const bookingId = lastResponse?.notification.request.content.data?.bookingId;
+    if (session && cleanerId && typeof bookingId === "string") router.push(`/job/${bookingId}`);
+  }, [lastResponse, session, cleanerId, router]);
+}
+
 function RootNavigator() {
   useAuthRedirect();
+  usePushNotifications();
   const { initialised } = useAuthStore();
   if (!initialised) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" }}>
-        <ActivityIndicator color="#0f766e" />
+        <ActivityIndicator color="#15803d" />
       </View>
     );
   }
@@ -60,6 +79,7 @@ function RootNavigator() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="job/[id]" options={{ headerShown: true, title: "Job" }} />
+      <Stack.Screen name="camera" options={{ headerShown: false, presentation: "fullScreenModal" }} />
     </Stack>
   );
 }

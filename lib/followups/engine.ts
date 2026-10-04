@@ -28,7 +28,7 @@ function todayISODate(): string {
 
 function wrapEmail(subject: string, bodyHtml: string): string {
   return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;">
-    <div style="background:#0f766e;padding:22px 28px;border-radius:12px 12px 0 0;">
+    <div style="background:#15803d;padding:22px 28px;border-radius:12px 12px 0 0;">
       <p style="color:#fff;margin:0;font-size:19px;font-weight:bold;">${subject}</p>
     </div>
     <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:28px;">

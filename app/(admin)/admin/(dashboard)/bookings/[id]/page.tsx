@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save, Send } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { BookingOps, FlagBanner, type OpsInvoice } from "@/components/admin/BookingOps";
+import { ErrorState } from "@/components/admin/DataState";
 import { SERVICE_LABELS, BOOKING_STATUS_LABELS, type QuoteLineItem, type BookingStatus } from "@/types";
 
 interface BookingDetail {
@@ -14,6 +16,8 @@ interface BookingDetail {
   special_instructions: string | null; quote_line_items: QuoteLineItem[] | null;
   quote_total: number | null; quote_vat_rate: number | null; deposit_required: boolean;
   assigned_cleaner_id: string | null;
+  deposit_status: "unpaid" | "claimed" | "verified"; deposit_amount: number | null;
+  is_flagged: boolean; flag_reason: string | null; clock_in_at: string | null; clock_out_at: string | null;
   customer: { id: string; full_name: string; email: string; phone: string } | null;
   address: { line_1: string; line_2: string | null; city: string | null; postcode: string } | null;
   cleaner: { id: string; full_name: string; phone: string } | null;
@@ -30,16 +34,28 @@ export default function BookingDetailPage() {
   const [cleaners, setCleaners] = useState<Cleaner[]>([]);
   const [lineItems, setLineItems] = useState<QuoteLineItem[]>([{ description: "", quantity: 1, unit_price: 0, total: 0 }]);
   const [vatRate, setVatRate] = useState(0);
+  const [invoices, setInvoices] = useState<OpsInvoice[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
-    const [bookingRes, cleanersRes] = await Promise.all([
-      fetch(`/api/admin/bookings/${id}`).then((r) => r.json()),
-      fetch("/api/admin/cleaners").then((r) => r.json()),
-    ]);
+    let bookingRes, cleanersRes;
+    try {
+      [bookingRes, cleanersRes] = await Promise.all([
+        fetch(`/api/admin/bookings/${id}`).then((r) => r.json()),
+        fetch("/api/admin/cleaners").then((r) => r.json()),
+      ]);
+    } catch {
+      setLoadError("Network error — check your connection.");
+      setLoading(false);
+      return;
+    }
+    if (!bookingRes.success) setLoadError(bookingRes.error ?? "Couldn't load this booking.");
     if (bookingRes.success) {
+      setLoadError(null);
+      setInvoices(bookingRes.invoices ?? []);
       setBooking(bookingRes.booking);
       setStatusHistory(bookingRes.statusHistory);
       setActivityLog(bookingRes.activityLog);
@@ -104,12 +120,16 @@ export default function BookingDetailPage() {
     else toast.error(data.error || "Failed to assign cleaner");
   }
 
+  if (loadError && !booking) {
+    return <div className="p-6 sm:p-8"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>;
+  }
+
   if (loading || !booking) {
     return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>;
   }
 
   return (
-    <div className="p-6 sm:p-8">
+    <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-extrabold text-slate-900">{booking.reference}</h1>
@@ -118,6 +138,8 @@ export default function BookingDetailPage() {
           </p>
         </div>
       </div>
+
+      <FlagBanner booking={booking} />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left: customer + job details */}
@@ -149,6 +171,7 @@ export default function BookingDetailPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Cleaner</h2>
             <select
+              key={booking.assigned_cleaner_id ?? "unassigned"}
               defaultValue={booking.assigned_cleaner_id ?? ""}
               onChange={(e) => assignCleaner(e.target.value)}
               className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
@@ -175,7 +198,8 @@ export default function BookingDetailPage() {
         </div>
 
         {/* Right: quote builder */}
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
+          <BookingOps booking={booking} invoices={invoices} onChange={load} />
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Quote</h2>
             <div className="mt-3 space-y-2">

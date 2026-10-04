@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { ENV } from "./env";
+import { unregisterForPush } from "./push";
 
 export interface SignInResult {
   ok: boolean;
@@ -34,6 +35,7 @@ export async function signInCleaner(email: string, password: string): Promise<Si
 }
 
 export async function signOut(): Promise<void> {
+  await unregisterForPush(); // needs the live session, so before signOut
   await supabase.auth.signOut();
 }
 
