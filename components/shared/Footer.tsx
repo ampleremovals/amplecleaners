@@ -15,6 +15,7 @@ export function Footer() {
           <Link href="/#services" className="hover:text-white">Services</Link>
           <Link href="/#pricing" className="hover:text-white">Pricing</Link>
           <Link href="/#how-it-works" className="hover:text-white">How it works</Link>
+          <Link href="/cleaners/register" className="hover:text-white">Become a cleaner</Link>
           <a href="tel:03330000000" className="hover:text-white">0333 000 0000</a>
         </nav>
       </div>

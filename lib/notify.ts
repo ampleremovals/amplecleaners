@@ -8,7 +8,8 @@
  * request — log and continue).
  */
 import { resend, resendFrom } from "@/lib/resend";
-import { sendSMS, sendWhatsApp } from "@/lib/twilio";
+import { sendSMS, sendWhatsApp, type SendResult } from "@/lib/twilio";
+import { createAdminClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log-error";
 
 export async function sendEmailSafe(params: {
@@ -27,6 +28,16 @@ export async function sendEmailSafe(params: {
   }
 }
 
+/** The admin's SMS/WhatsApp on-off switches (Settings). Defaults to ON if the row can't be read. */
+async function channelSwitches(): Promise<{ sms: boolean; whatsapp: boolean }> {
+  try {
+    const { data } = await createAdminClient().from("settings").select("customer_sms_enabled, customer_whatsapp_enabled").eq("id", 1).maybeSingle();
+    return { sms: data?.customer_sms_enabled !== false, whatsapp: data?.customer_whatsapp_enabled !== false };
+  } catch {
+    return { sms: true, whatsapp: true };
+  }
+}
+
 export interface CustomerMessage {
   context: string;
   email: string;
@@ -39,10 +50,12 @@ export interface CustomerMessage {
 
 /** "Send a message" = email + SMS + WhatsApp, all three, independently. */
 export async function notifyCustomer(m: CustomerMessage): Promise<void> {
+  const { sms: smsOn, whatsapp: whatsappOn } = await channelSwitches();
+  const skipped: SendResult = { success: false, skipped: true };
   const [email, sms, whatsapp] = await Promise.all([
     sendEmailSafe({ to: m.email, subject: m.subject, html: m.html, context: m.context }),
-    sendSMS(m.phone, m.sms),
-    sendWhatsApp(m.phone, m.whatsapp),
+    smsOn ? sendSMS(m.phone, m.sms) : skipped,
+    whatsappOn ? sendWhatsApp(m.phone, m.whatsapp) : skipped,
   ]);
   // `skipped` means Twilio isn't configured yet — expected, not an error.
   for (const [channel, r] of [["sms", sms], ["whatsapp", whatsapp]] as const) {

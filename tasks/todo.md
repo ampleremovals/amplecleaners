@@ -405,9 +405,13 @@ Migration 0003 applied; e2e proves the DB-dependent path. Still unverified: admi
 - An admin can't create a booking (phone enquiries) — only the public form creates them.
 - No Settings page (company details, review link) although the `settings` row exists.
 ### Plan
-- [ ] Shared `createBooking` lib (route refactored onto it) + `afterBookingCreated` automation: admin alert email always; priced bookings (Regular Cleaning) get the quote + deposit link instantly by email/SMS/WhatsApp; others get an acknowledgement.
-- [ ] Confirmation page: "Pay £X deposit to secure your date" CTA straight to the quote page for priced bookings.
-- [ ] Admin "New booking" page (phone leads) → same lib, source `phone`, optional send-quote.
-- [ ] Cleaner applications: migration 0004 table, public `/cleaners/register` form + API (rate-limited), admin Applications page (approve → creates cleaner + login + invite; reject → polite email), nav link + dashboard attention item.
-- [ ] Admin Settings page (company name/address/phone/email, Google review link, messaging toggles).
-- [ ] e2e extended (instant quote send, application → approval, manual booking); tsc/lint/build; deploy; live check.
+- [x] Shared `createBooking` lib (route refactored onto it) + `afterBookingCreated` automation: admin alert email always; priced bookings (Regular Cleaning) get the quote + deposit link instantly by email/SMS/WhatsApp; others get an acknowledgement.
+- [x] Confirmation page: "Pay £X deposit to secure your date" CTA straight to the quote page for priced bookings.
+- [x] Admin "New booking" page (phone leads) → same lib, source `phone`, optional send-quote.
+- [x] Cleaner applications: migration 0004 table, public `/cleaners/register` form + API (rate-limited), admin Applications page (approve → creates cleaner + login + invite; reject → polite email), nav link + dashboard attention item.
+- [x] Admin Settings page (company name/address/phone/email, Google review link, messaging toggles).
+- [x] e2e extended (instant quote send, application → approval, manual booking); tsc/lint/build; deploy; live check.
+
+### Review (phase 7)
+Built and verified (e2e now 60+ checks, all pass against the live DB; test data cleaned): shared `createBooking` + `afterBookingCreated` (admin alert; priced bookings auto-send the quote + deposit link; unpriced get an acknowledgement; public `quoteTotal` is stripped so a customer can't set their own price); confirmation page "Pay deposit" CTA (same-site path regex, no open redirect); admin New booking page; cleaner applications end-to-end (public form with honeypot + rate limit, duplicate handling, admin approve/decline, approve copies coverage areas and leaves DBS unverified); Settings page, and the SMS/WhatsApp switches now genuinely gate sending (they were stored but ignored). Migration 0004 applied.
+Not verified: emails/SMS actually landing in inboxes (Resend test addresses only prove acceptance, not rendering); mobile app on a device.

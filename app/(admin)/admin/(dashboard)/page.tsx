@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase client */
 import Link from "next/link";
-import { AlertTriangle, Calendar, CheckCircle2, Clock, Landmark, PoundSterling, UserX, Users, Inbox, Receipt } from "lucide-react";
+import { AlertTriangle, UserPlus, Calendar, CheckCircle2, Clock, Landmark, PoundSterling, UserX, Users, Inbox, Receipt } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/server";
 import { todayInLondon } from "@/lib/cleaner-auth";
 import { ErrorState } from "@/components/admin/DataState";
@@ -17,7 +17,7 @@ async function loadOverview() {
   const monthStart = `${today.slice(0, 7)}-01`;
   const count = (q: any) => q.then((r: any) => r.count ?? 0);
 
-  const [total, cleaners, inProgress, paid, open, flagged, claimed, unassigned, enquiries, todays] = await Promise.all([
+  const [total, cleaners, inProgress, paid, open, flagged, claimed, unassigned, enquiries, todays, applications] = await Promise.all([
     count(supabase.from("bookings").select("id", { count: "exact", head: true })),
     count(supabase.from("cleaners").select("id", { count: "exact", head: true }).eq("is_active", true)),
     count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "in_progress")),
@@ -28,6 +28,7 @@ async function loadOverview() {
     count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "booking_confirmed").is("assigned_cleaner_id", null)),
     count(supabase.from("bookings").select("id", { count: "exact", head: true }).eq("status", "inquiry")),
     supabase.from("bookings").select("id, reference, service_type, status, clean_time, customer:customers(full_name), cleaner:cleaners(full_name)").eq("clean_date", today).not("status", "in", "(cancelled,bad_lead,not_a_good_fit)").order("clean_time"),
+    count(supabase.from("cleaner_applications").select("id", { count: "exact", head: true }).eq("status", "new")),
   ]);
 
   return {
@@ -37,7 +38,7 @@ async function loadOverview() {
     },
     attention: {
       flagged: flagged.data ?? [],
-      claimed, unassigned, enquiries,
+      claimed, unassigned, enquiries, applications,
       overdueCount: open.data?.length ?? 0,
       overdueTotal: (open.data ?? []).reduce((s: number, i: any) => s + Number(i.total), 0),
     },
@@ -80,6 +81,7 @@ export default async function AdminDashboardPage() {
 
   const items: React.ReactNode[] = [];
   if (attention.enquiries) items.push(<AttentionItem key="enq" href="/admin/bookings" icon={Inbox} tone="sky" title={`${attention.enquiries} new enquir${attention.enquiries === 1 ? "y" : "ies"}`} hint="Build and send a quote" />);
+  if (attention.applications) items.push(<AttentionItem key="app" href="/admin/applications" icon={UserPlus} tone="sky" title={`${attention.applications} cleaner application${attention.applications === 1 ? "" : "s"} to review`} hint="Approve or decline" />);
   if (attention.claimed) items.push(<AttentionItem key="dep" href="/admin/bookings" icon={Landmark} tone="amber" title={`${attention.claimed} deposit${attention.claimed === 1 ? "" : "s"} to verify`} hint="Customer says they've paid by bank transfer" />);
   if (attention.unassigned) items.push(<AttentionItem key="una" href="/admin/bookings" icon={UserX} tone="amber" title={`${attention.unassigned} confirmed job${attention.unassigned === 1 ? "" : "s"} without a cleaner`} hint="Open it and press Auto-assign" />);
   if (attention.overdueCount) items.push(<AttentionItem key="od" href="/admin/invoices" icon={Receipt} tone="red" title={`${attention.overdueCount} overdue invoice${attention.overdueCount === 1 ? "" : "s"}`} hint={`${formatCurrency(attention.overdueTotal)} outstanding`} />);

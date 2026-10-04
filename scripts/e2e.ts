@@ -25,13 +25,16 @@ const admin = createClient(URL_, SERVICE, { auth: { persistSession: false } });
 const anon = () => createClient(URL_, ANON, { auth: { persistSession: false } });
 
 let failures = 0;
+let fwdN = Math.floor(Math.random() * 200);
+/** Distinct client IP per call, so the per-IP rate limiter does not trip the test itself. */
+const fwd = () => ({ "x-forwarded-for": `198.51.100.${++fwdN % 250}` });
 function check(name: string, ok: boolean, detail = "") {
   if (!ok) failures++;
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${!ok && detail ? `  → ${detail}` : ""}`);
 }
 
 const stamp = Date.now().toString(36);
-const ids = { auth: [] as string[], cleaners: [] as string[], customers: [] as string[], addresses: [] as string[], bookings: [] as string[], photos: [] as string[] };
+const ids = { applicationEmails: [] as string[], auth: [] as string[], cleaners: [] as string[], customers: [] as string[], addresses: [] as string[], bookings: [] as string[], photos: [] as string[] };
 
 async function makeCleaner(label: string, opts: { dbs: boolean }) {
   const email = `delivered+e2e-${label}-${stamp}@resend.dev`;
@@ -258,11 +261,92 @@ async function main() {
   console.log("— public booking route");
   const pb = await http("/api/bookings", { method: "POST", body: { serviceType: "regular_cleaning", fullName: "E2E Public", email: `delivered+e2e-pub-${stamp}@resend.dev`, phone: "07700900888", propertyType: "flat", frequency: "one_off", hours: 3, line1: "9 Test Road", postcode: "SW1A 1AA", cleanDate: todayInLondon() } });
   check("public booking accepted", pb.json.success === true && pb.json.total === 45, pb.text.slice(0, 140));
+  check("priced booking returns a quote path for the deposit CTA", typeof pb.json.quotePath === "string" && /^\/quote\/[0-9a-f-]{36}\//.test(pb.json.quotePath), String(pb.json.quotePath));
   if (pb.json.reference) {
     const { data: pub } = await admin.from("bookings").select("id, customer_id, address_id, tasks").eq("reference", pb.json.reference).single();
     if (pub) { ids.bookings.push(pub.id); ids.customers.push(pub.customer_id); ids.addresses.push(pub.address_id); }
     check("checklist seeded on creation", Array.isArray(pub?.tasks) && pub!.tasks.length > 5);
+    const { data: sent } = await admin.from("bookings").select("status").eq("reference", pb.json.reference).single();
+    check("priced booking auto-sent its quote (status quote_sent, no admin step)", sent?.status === "quote_sent", sent?.status);
   }
+
+  const deep = await http("/api/bookings", { method: "POST", body: { serviceType: "deep_cleaning", fullName: "E2E Deep", email: `delivered+e2e-deep-${stamp}@resend.dev`, phone: "07700900777", propertyType: "house", line1: "2 Test Road", postcode: "SW1A 1AA", quoteTotal: 1 } });
+  check("unpriced service: no instant quote, and a public quoteTotal is ignored", deep.json.success === true && deep.json.total === null && deep.json.quotePath === null, deep.text.slice(0, 140));
+  if (deep.json.reference) {
+    const { data: d } = await admin.from("bookings").select("id, status, customer_id, address_id, quote_total").eq("reference", deep.json.reference).single();
+    if (d) { ids.bookings.push(d.id); ids.customers.push(d.customer_id); ids.addresses.push(d.address_id); }
+    check("unpriced booking stays an inquiry with no price", d?.status === "inquiry" && d.quote_total === null);
+  }
+
+  await phase7();
+}
+
+async function phase7() {
+  console.log("— phase 7: applications, manual booking, settings");
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  if (!ADMIN_PW) { console.log("SKIP  admin checks (set E2E_ADMIN_PW)"); return; }
+  const adminClient = anon();
+  const { data: as, error: ae } = await adminClient.auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  check("admin can sign in", !ae && !!as.session, ae?.message);
+  const at = as!.session!.access_token;
+
+  // applications
+  const email = `delivered+e2e-app-${stamp}@resend.dev`;
+  ids.applicationEmails.push(email);
+  const body = { fullName: "E2E Applicant", email, phone: "07700900321", postcode: "SW1A 1AA", areas: "SW1, sw3", experienceYears: 3, hasRightToWork: true, hasDbs: false };
+  const a1 = await http("/api/cleaners/apply", { method: "POST", headers: fwd(), body });
+  check("public cleaner application accepted", a1.json.success === true, a1.text.slice(0, 120));
+  const a2 = await http("/api/cleaners/apply", { method: "POST", headers: fwd(), body });
+  const { count: appCount } = await admin.from("cleaner_applications").select("id", { count: "exact", head: true }).ilike("email", email);
+  check("duplicate pending application is not stored twice", a2.json.success === true && appCount === 1, String(appCount));
+  const bot = await http("/api/cleaners/apply", { method: "POST", headers: fwd(), body: { ...body, email: `delivered+e2e-bot-${stamp}@resend.dev`, website: "http://spam" } });
+  const { count: botCount } = await admin.from("cleaner_applications").select("id", { count: "exact", head: true }).ilike("email", `%e2e-bot-${stamp}%`);
+  check("honeypot submission silently dropped", bot.json.success === true && botCount === 0);
+  const anonRead = await anon().from("cleaner_applications").select("id").limit(1);
+  check("anon can NOT read applications", !anonRead.error && (anonRead.data ?? []).length === 0);
+  check("applications list needs admin", (await http("/api/admin/applications")).status === 401);
+  const list = await http("/api/admin/applications?status=new", { token: at });
+  const mine = (list.json.applications ?? []).find((x: { email: string }) => x.email === email);
+  check("admin sees the application", !!mine);
+  const ap = await http(`/api/admin/applications/${mine?.id}/approve`, { method: "POST", token: at, body: {} });
+  check("approve creates the cleaner", ap.status === 200 && ap.json.success, ap.text.slice(0, 140));
+  if (ap.json.cleanerId) {
+    ids.cleaners.push(ap.json.cleanerId);
+    const { data: cl } = await admin.from("cleaners").select("auth_user_id, dbs_verified, cleaner_coverage_areas(postcode_prefix)").eq("id", ap.json.cleanerId).single();
+    if (cl?.auth_user_id) ids.auth.push(cl.auth_user_id);
+    const prefixes = ((cl?.cleaner_coverage_areas ?? []) as { postcode_prefix: string }[]).map((c) => c.postcode_prefix).sort();
+    check("login created, coverage areas copied (uppercased), DBS left unverified", !!cl?.auth_user_id && cl.dbs_verified === false && prefixes.join() === "SW1,SW3", prefixes.join());
+  }
+  check("second approve is refused (409)", (await http(`/api/admin/applications/${mine?.id}/approve`, { method: "POST", token: at, body: {} })).status === 409);
+  const email2 = `delivered+e2e-app2-${stamp}@resend.dev`;
+  ids.applicationEmails.push(email2);
+  await http("/api/cleaners/apply", { method: "POST", headers: fwd(), body: { ...body, email: email2 } });
+  const l2 = await http("/api/admin/applications?status=new", { token: at });
+  const m2 = (l2.json.applications ?? []).find((x: { email: string }) => x.email === email2);
+  const rj = await http(`/api/admin/applications/${m2?.id}/reject`, { method: "POST", token: at, body: { note: "e2e" } });
+  const { data: rejRow } = await admin.from("cleaner_applications").select("status").eq("id", m2?.id).single();
+  check("reject marks it rejected", rj.json.success === true && rejRow?.status === "rejected");
+  const again = await http("/api/cleaners/apply", { method: "POST", headers: fwd(), body });
+  check("an existing cleaner cannot re-apply (409)", again.status === 409);
+
+  // manual booking
+  const mb = await http("/api/admin/bookings", { method: "POST", token: at, body: { serviceType: "end_of_tenancy", fullName: "E2E Phone", email: `delivered+e2e-phone-${stamp}@resend.dev`, phone: "07700900654", propertyType: "flat", line1: "3 Test Lane", postcode: "SW1A 1AA", quoteTotal: 220, sendQuote: false } });
+  check("admin can create a booking by hand", mb.json.success === true && mb.json.total === 220, mb.text.slice(0, 140));
+  if (mb.json.id) {
+    const { data: m } = await admin.from("bookings").select("id, source, status, customer_id, address_id, quote_total").eq("id", mb.json.id).single();
+    if (m) { ids.bookings.push(m.id); ids.customers.push(m.customer_id); ids.addresses.push(m.address_id); }
+    check("manual booking tagged source=phone, price set, quote NOT auto-sent", m?.source === "phone" && Number(m.quote_total) === 220 && m.status === "inquiry");
+  }
+  check("manual booking route needs admin", (await http("/api/admin/bookings", { method: "POST", body: {} })).status === 401);
+
+  // settings
+  const before = await http("/api/admin/settings", { token: at });
+  const orig = before.json.settings;
+  const sv = await http("/api/admin/settings", { method: "PATCH", token: at, body: { customer_sms_enabled: false, google_review_link: "https://g.page/r/e2e" } });
+  const after = await http("/api/admin/settings", { token: at });
+  check("settings save and read back", sv.json.success && after.json.settings.customer_sms_enabled === false && after.json.settings.google_review_link === "https://g.page/r/e2e");
+  check("invalid review link rejected", (await http("/api/admin/settings", { method: "PATCH", token: at, body: { google_review_link: "not a url" } })).status === 400);
+  await http("/api/admin/settings", { method: "PATCH", token: at, body: { customer_sms_enabled: orig.customer_sms_enabled, google_review_link: orig.google_review_link ?? "" } });
 }
 
 async function cleanup() {
@@ -273,6 +357,8 @@ async function cleanup() {
     await admin.from("bookings").delete().in("parent_booking_id", ids.bookings);
     await admin.from("bookings").delete().in("id", ids.bookings);
     await admin.from("customers").delete().in("id", ids.customers);
+    for (const e of ids.applicationEmails) await admin.from("cleaner_applications").delete().ilike("email", e);
+    await admin.from("cleaner_applications").delete().ilike("email", `%e2e-bot-${stamp}%`);
     await admin.from("addresses").delete().in("id", ids.addresses);
     await admin.from("cleaners").delete().in("id", ids.cleaners);
     for (const id of ids.auth) await admin.auth.admin.deleteUser(id);

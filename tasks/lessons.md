@@ -109,3 +109,11 @@ gracefully at runtime instead of crashing the whole build.
 - Regexes with backslashes written through `node -e` in bash lost their `\` once (`\d` → `d`) and silently never matched. Use the editor tool for any backslash-heavy edit and re-read the result.
 - Vercel Hobby allows 2 crons: put new daily jobs inside the existing two routes rather than adding entries.
 - `@react-pdf/renderer` can't be loaded by `tsx` (ESM subpath export); test the PDF by bundling with esbuild and running under Node CJS, which is what Next uses.
+
+## Lesson 13 — Walk the whole journey as the customer AND the admin, not just the code
+**What happened:** Phases 2-6 were "done" and tested, yet a customer who booked got no message at all until an admin manually pressed Save & send, and the admin was never told a booking arrived. Found only by reading the booking page → confirmation page → admin flow end to end.
+**Rule going forward:** For any "automate X" goal, trace one real user's path from first click to money received and list every step a human still has to do. Each must be automated or consciously kept manual.
+
+## Lesson 14 — On Windows, `pkill` does not see your servers
+**What happened:** A stale test server kept port 3120, so the new build never started and the e2e hit OLD code (15 misleading failures).
+**Rule going forward:** Check the server log for EADDRINUSE; kill by PID (`netstat -ano | grep :PORT`, `taskkill //PID n //F`), never trust `pkill` here.

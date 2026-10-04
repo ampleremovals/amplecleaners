@@ -8,7 +8,7 @@ import {
 } from "@dnd-kit/core";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { toast } from "sonner";
-import { AlertTriangle, Repeat } from "lucide-react";
+import { AlertTriangle, Plus, Repeat } from "lucide-react";
 import { TableSkeleton, ErrorState } from "@/components/admin/DataState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { formatCurrency } from "@/lib/utils";
@@ -169,8 +169,13 @@ export default function BookingsBoardPage() {
 
   return (
     <div className="flex h-screen flex-col p-4 sm:p-6">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">Bookings</h1>
-      <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-extrabold text-slate-900">Bookings</h1>
+          <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
+        </div>
+        <Link href="/admin/bookings/new" className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800"><Plus className="h-4 w-4" /> New booking</Link>
+      </div>
 
       {loading ? (
         <div className="mt-6"><TableSkeleton rows={5} cols={4} /></div>

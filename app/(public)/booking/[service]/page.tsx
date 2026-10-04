@@ -45,7 +45,8 @@ export default function BookingWizardPage() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Something went wrong.");
       const totalParam = data.total != null ? `&total=${encodeURIComponent(data.total)}` : "";
-      router.push(`/confirmation?ref=${encodeURIComponent(data.reference)}${totalParam}`);
+      const payParam = data.quotePath ? `&pay=${encodeURIComponent(data.quotePath)}` : "";
+      router.push(`/confirmation?ref=${encodeURIComponent(data.reference)}${totalParam}${payParam}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setSubmitting(false);
