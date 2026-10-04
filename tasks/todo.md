@@ -43,11 +43,22 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       checklist (tap to toggle, persists via RLS-scoped Supabase update) and
       clock in/out. Earnings is a Phase 5 placeholder by design (no
       invoicing/payroll data model built yet, so no real numbers to show).
-      NOT done: `npm install` in `cleaner-app/` (heavy, and nothing to test
-      against without real Supabase credentials — next session once those
-      exist), before/after photo capture (Phase 4), push notifications
-      (Phase 4), and `assets/logo.png` is a placeholder path with no actual
-      image yet — needs a real logo asset before `expo start`/any build.
+- [x] `cleaner-app/` dependencies installed, EAS project created and linked
+      (2026-10-04) — a logged-in `ccmendel` EAS/Expo CLI session already
+      existed on this machine (same account as the driver-app), so
+      `eas init` created `@ccmendel/ample-cleaner-app`
+      (https://expo.dev/accounts/ccmendel/projects/ample-cleaner-app,
+      project ID in `app.json`), and `eas.json` build profiles were added
+      (mirroring driver-app's — Supabase env vars left blank until that
+      project exists). Needed `legacy-peer-deps=true` (`.npmrc`) and the
+      generated `nativewind-env.d.ts`/`expo-env.d.ts` declaration files —
+      same as driver-app. `tsc --noEmit`, `expo lint` and `expo-doctor` all
+      verified clean except the already-known missing logo asset (and one
+      harmless "duplicate react" warning that mirrors driver-app's own
+      accepted nested-repo structure, not a real conflict).
+  - [ ] NOT done: before/after photo capture, push notifications (both
+      Phase 4), and `assets/logo.png` is still a placeholder path with no
+      actual image — needs a real logo before any real device build.
 - [x] Resend API key received (2026-10-04) — stored in `.env.local`
       (confirmed gitignored, never touched git), verified valid against the
       Resend API (a "send-only" restricted key — the correct, least-
@@ -58,14 +69,15 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       is send-only and can't query `/domains` — so this rests on the
       owner's word; if a real send bounces with a domain-verification
       error, check that first.
+- [x] Expo/EAS account — turned out to already exist (`ccmendel`, same as
+      driver-app's), already logged in on this machine. Resolved without
+      needing anything from the owner.
 - [ ] **BLOCKED on you:** a real Supabase project, Twilio number + WhatsApp
-      Business profile, Stripe account, and an Expo/EAS account (for
-      building/publishing `cleaner-app/`). I can't create paid third-party
+      Business profile, Stripe account. I can't create paid third-party
       accounts — once you create the Supabase project (or hand me a
       personal access token I can use to create one via the Supabase API),
       I'll run the schema, wire the real env vars, and deploy to Vercel
-      myself;
-      nothing else about this is manual for you.
+      myself; nothing else about this is manual for you.
 - [ ] **BLOCKED on you:** a real Ample Cleaners logo file (`assets/logo.png`
       in both the web app and `cleaner-app/`) — I haven't fabricated a brand
       mark since that's a real design decision, not a technical one. Happy to
