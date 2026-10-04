@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,9 +41,7 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-green-950 via-brand-green-900 to-brand-green-800 px-6">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green-700 text-white">
-            <Sparkles className="h-8 w-8" />
-          </div>
+          <Image src="/logo-icon.png" alt="Ample Cleaners" width={512} height={512} priority className="mb-4 h-16 w-16 rounded-2xl" />
           <h1 className="font-display text-2xl font-extrabold text-foreground">Ample Cleaners CRM</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to the admin dashboard</p>
         </div>

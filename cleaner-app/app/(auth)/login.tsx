@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Sparkles } from "lucide-react-native";
 import { signInCleaner } from "@/lib/auth";
 
 export default function LoginScreen() {
@@ -29,7 +28,7 @@ export default function LoginScreen() {
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 justify-center px-6">
             <View className="mb-6 items-center">
               <View className="h-16 w-16 items-center justify-center rounded-2xl bg-white/95 shadow-lg">
-                <Sparkles size={32} color="#0f766e" />
+                <Image source={require("../../assets/logo.png")} style={{ width: 48, height: 48, borderRadius: 10 }} resizeMode="cover" />
               </View>
             </View>
             <Text className="text-center text-3xl font-bold text-white">Ample Cleaner</Text>

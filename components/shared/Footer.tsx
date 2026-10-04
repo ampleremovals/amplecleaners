@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -8,9 +8,7 @@ export function Footer() {
       <div className="pointer-events-none absolute -right-24 bottom-0 h-72 w-72 rounded-full bg-brand-violet-500/20 blur-3xl" />
       <div className="container relative flex flex-col items-center gap-6 text-center sm:flex-row sm:justify-between sm:text-left">
         <div className="flex items-center gap-2.5 font-display text-lg font-extrabold text-white">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-green-400 via-brand-sky-400 to-brand-violet-400">
-            <Sparkles className="h-5 w-5 text-white" />
-          </span>
+          <Image src="/logo-icon.png" alt="" width={512} height={512} className="h-9 w-9 rounded-xl" />
           Ample Cleaners
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-5 text-sm font-medium">
