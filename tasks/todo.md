@@ -296,3 +296,51 @@ third-party accounts (Supabase, Twilio, Stripe, Resend domain, GitHub repo),
 which genuinely cannot be scripted without his account access. Next session:
 once those exist, run the migration, wire real env vars, verify `npm run dev`
 and a real end-to-end test booking, then move into Phase 2.
+
+## Task: Real brand logo integration + admin login layout bug (2026-10-04)
+### Plan
+- [x] Owner supplied the real logo (`lib/amplecleanerslogo.png`, 790x316).
+      Cropped two variants with `sharp` (temp script, deleted after use):
+      `public/logo-full.png` (wordmark, used in the navbar) and
+      `public/logo-icon.png` (square icon crop, used everywhere else).
+      Iterated the icon crop width (316 → 298 → 280) to stop a sliver of the
+      purple "A" bleeding into the icon-only version.
+- [x] Replaced the placeholder Sparkles-icon badge with the real logo in:
+      Navbar, Footer, admin login page, admin sidebar layout, `app/icon.png`
+      + `app/apple-icon.png` (favicons), and `cleaner-app`'s login screen +
+      app icon/splash (`cleaner-app/assets/logo.png`, upscaled to 1024x1024).
+- [x] Found a real bug while verifying: the admin sidebar was leaking onto
+      the unauthenticated `/admin/login` page, because the old layout.tsx
+      applied to every route under `app/(admin)/admin/`, login included.
+      Fixed by moving the dashboard routes (bookings, cleaners, customers,
+      invoices, reports, the dashboard layout itself) into a new
+      `app/(admin)/admin/(dashboard)/` route group, leaving `login/` outside
+      it so it no longer inherits the sidebar.
+- [x] Found a second real bug chasing a "logo not rendering" screenshot:
+      `next/image` defaults to `loading="lazy"`, and the image genuinely
+      wasn't painted yet by the time a screenshot was taken shortly after
+      `networkidle` — confirmed via network-response logging that the
+      request succeeded and the `<img>` tag was in the DOM, so this wasn't
+      a missing-asset bug. Fixed properly (not just for the test) by adding
+      `priority` to both above-the-fold logo usages (admin login, admin
+      sidebar) so real users never see a flash either.
+- [x] Verified visually with Playwright screenshots, both locally and
+      against live production (`https://www.amplecleaners.com`) after
+      deploying — navbar, admin login, admin sidebar all confirmed correct.
+- [x] Committed (`211dce1`) and pushed to
+      `github.com/ampleremovals/amplecleaners`, deployed to Vercel
+      production, confirmed `www.amplecleaners.com` (200), apex
+      `amplecleaners.com` (308 → www, resolving the earlier "won't open on
+      some networks" report as normal propagation, now fully settled), and
+      `/admin/login` all publicly reachable with no auth wall.
+
+### Review
+Both bugs found here (sidebar leak, lazy-load timing) were discovered
+through the "verify with a real screenshot, don't just claim done" habit
+adopted earlier this session — neither would have been caught by
+`tsc`/`lint`/`build` alone. No regressions introduced; scope stayed limited
+to logo wiring + the two bugs directly blocking it.
+
+Still outstanding, unchanged: Twilio (number + WhatsApp Business profile)
+and Stripe (account + keys) — both still needed from the owner before
+Phase 3's follow-up/payment code can be exercised for real.
