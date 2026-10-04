@@ -344,3 +344,42 @@ to logo wiring + the two bugs directly blocking it.
 Still outstanding, unchanged: Twilio (number + WhatsApp Business profile)
 and Stripe (account + keys) — both still needed from the owner before
 Phase 3's follow-up/payment code can be exercised for real.
+
+## Task: Finish Phases 2–6 (started 2026-10-04)
+### Findings that shaped the plan (audited against the LIVE database first)
+- RLS has **no SELECT policy on `cleaners`, `customers`, `addresses` for cleaners** →
+  the mobile app could never have logged a cleaner in or shown a job's address. A
+  latent bug in "done" Phase 4 (never run against a real DB). Fix + prove with a real e2e.
+- `Cleaners update own bookings` lets a cleaner overwrite ANY column (incl. price). Replace
+  with server routes that whitelist what a cleaner may change (+ writes status_history).
+- Anon INSERT policies on customers/addresses/bookings are unnecessary (public form uses the
+  service role) and let anyone POST bookings with their own price/status straight to PostgREST.
+- Direct DB host is IPv6-only → switched `DATABASE_URL` to the IPv4 session pooler
+  (`aws-0-eu-west-1`); migration runner now globs every .sql file.
+- Vercel Hobby = 2 crons max → no new cron entries; daily automation rides the existing two.
+- Admin sidebar links to /admin/invoices and /admin/reports which 404 (never built).
+
+### Plan
+**Phase 2**
+- [ ] DBS + right-to-work document upload (private `cleaner-docs` bucket, signed-URL view), pay-rate editing.
+**Phase 4**
+- [ ] Migration 0003: hardening policies, cleaner read policies, push tokens, rate limits, storage buckets/policies, clock location cols, recurrence unique index.
+- [ ] Server-side cleaner API (clock in/out w/ location, tasks, photos, push token, earnings) — Bearer auth.
+- [ ] Default task checklists per service; seeded at booking creation.
+- [ ] Auto-match engine (active + DBS-verified + coverage + availability + no clash; rank by load then rating; prefer series' regular cleaner) → on deposit paid, daily cron, admin button.
+- [ ] Recurring engine: roll weekly/fortnightly/monthly series forward 14 days ahead (idempotent).
+- [ ] Push notifications (Expo push API): assigned, day-before reminder; mobile registration + tap-to-open.
+- [ ] Mobile: before/after photo capture+upload, location-stamped clock in/out, real Earnings screen, brand colours.
+**Phase 5**
+- [ ] Job-complete automation: invoice (balance, or per-visit for recurring) + email/SMS/WhatsApp + status invoice_sent.
+- [ ] PDF invoices (@react-pdf/renderer), signed-link download for customers, admin download.
+- [ ] Customer balance payment page (card via Stripe Checkout / bank transfer) — extends quote flow.
+- [ ] Admin Invoices page (list, mark paid for bank transfers, resend) + Reports page (Recharts).
+- [ ] Recurring billing DECISION (made, flagged to owner): charge per visit after completion, no subscription.
+**Phase 6**
+- [ ] Rate limiting (DB-backed, atomic RPC) on public endpoints.
+- [ ] loading/empty/error states across admin; security headers; strict TS/ESLint build.
+- [ ] Mobile-first check at 375px; brand-colour sweep (emails/app still teal); analytics.
+**Verify (no shortcuts)**
+- [ ] Real e2e against live Supabase: cleaner login via RLS, forged-signature Stripe webhook → confirmed → auto-assigned, clock in/out, completion → invoice, recurrence, PDF.
+- [ ] tsc + lint + build clean; deploy; screenshot the live pages.
