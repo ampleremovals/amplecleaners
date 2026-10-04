@@ -74,7 +74,7 @@ export default function JobDetailScreen() {
           </View>
         )}
         {job.quote_total != null && (
-          <Text className="mt-3 text-lg font-bold text-brand-teal-700">{formatCurrency(job.quote_total)}</Text>
+          <Text className="mt-3 text-lg font-bold text-brand-green-700">{formatCurrency(job.quote_total)}</Text>
         )}
       </View>
 
@@ -89,7 +89,7 @@ export default function JobDetailScreen() {
         <Pressable
           onPress={handleClockIn}
           disabled={busy || !!job.clock_in_at}
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-teal-700 py-3.5 disabled:opacity-50"
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-brand-green-700 py-3.5 disabled:opacity-50"
         >
           <Clock size={16} color="#fff" />
           <Text className="font-bold text-white">{job.clock_in_at ? "Clocked in" : "Clock in"}</Text>
@@ -97,10 +97,10 @@ export default function JobDetailScreen() {
         <Pressable
           onPress={handleClockOut}
           disabled={busy || !job.clock_in_at || !!job.clock_out_at}
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-brand-teal-700 py-3.5 disabled:opacity-50"
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-xl border-2 border-brand-green-700 py-3.5 disabled:opacity-50"
         >
           <Clock size={16} color="#0f766e" />
-          <Text className="font-bold text-brand-teal-700">{job.clock_out_at ? "Clocked out" : "Clock out"}</Text>
+          <Text className="font-bold text-brand-green-700">{job.clock_out_at ? "Clocked out" : "Clock out"}</Text>
         </Pressable>
       </View>
 
@@ -117,7 +117,7 @@ export default function JobDetailScreen() {
               onPress={() => toggleTask.mutate(tasks.map((x) => (x.key === t.key ? { ...x, done: !x.done } : x)))}
               className="mt-2 flex-row items-center gap-3 rounded-xl border border-slate-200 bg-white p-3"
             >
-              <View className={`h-6 w-6 items-center justify-center rounded-md border-2 ${t.done ? "border-brand-teal-700 bg-brand-teal-700" : "border-slate-300"}`}>
+              <View className={`h-6 w-6 items-center justify-center rounded-md border-2 ${t.done ? "border-brand-green-700 bg-brand-green-700" : "border-slate-300"}`}>
                 {t.done && <Check size={14} color="#fff" />}
               </View>
               <View>

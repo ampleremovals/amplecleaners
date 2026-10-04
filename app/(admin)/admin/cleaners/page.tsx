@@ -56,7 +56,7 @@ export default function CleanersPage() {
           <h1 className="font-display text-2xl font-extrabold text-slate-900">Cleaners</h1>
           <p className="mt-1 text-sm text-slate-500">Your roster, DBS status and pay rates.</p>
         </div>
-        <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-2 rounded-xl bg-brand-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-teal-800">
+        <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800">
           <Plus className="h-4 w-4" /> Add cleaner
         </button>
       </div>
@@ -74,7 +74,7 @@ export default function CleanersPage() {
       )}
 
       {loading ? (
-        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-teal-600" /></div>
+        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           <table className="w-full text-sm">
@@ -91,11 +91,11 @@ export default function CleanersPage() {
             <tbody>
               {cleaners.map((c) => (
                 <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3"><Link href={`/admin/cleaners/${c.id}`} className="font-semibold text-brand-teal-700">{c.full_name}</Link></td>
+                  <td className="px-4 py-3"><Link href={`/admin/cleaners/${c.id}`} className="font-semibold text-brand-green-700">{c.full_name}</Link></td>
                   <td className="px-4 py-3 text-slate-500">{c.email}<br />{c.phone}</td>
                   <td className="px-4 py-3">
                     {c.dbs_verified ? (
-                      <span className="inline-flex items-center gap-1 text-brand-teal-700"><ShieldCheck className="h-4 w-4" /> Verified</span>
+                      <span className="inline-flex items-center gap-1 text-brand-green-700"><ShieldCheck className="h-4 w-4" /> Verified</span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-amber-600"><ShieldAlert className="h-4 w-4" /> Pending</span>
                     )}
@@ -105,7 +105,7 @@ export default function CleanersPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-500">{c.pay_rate_per_hour != null ? `£${c.pay_rate_per_hour}/hr` : "—"}</td>
                   <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.is_active ? "bg-brand-teal-100 text-brand-teal-800" : "bg-slate-100 text-slate-500"}`}>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${c.is_active ? "bg-brand-green-100 text-brand-green-800" : "bg-slate-100 text-slate-500"}`}>
                       {c.is_active ? "Active" : "Inactive"}
                     </span>
                   </td>

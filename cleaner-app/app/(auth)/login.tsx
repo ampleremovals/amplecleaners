@@ -57,12 +57,12 @@ export default function LoginScreen() {
               <Pressable
                 onPress={submit}
                 disabled={busy}
-                className="items-center rounded-xl bg-brand-teal-700 py-3.5 active:opacity-90"
+                className="items-center rounded-xl bg-brand-green-700 py-3.5 active:opacity-90"
               >
                 {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-bold text-white">Sign in</Text>}
               </Pressable>
               <Pressable onPress={() => router.push("/forgot-password")} className="mt-4 items-center py-1">
-                <Text className="text-sm font-medium text-brand-teal-700">Forgot password?</Text>
+                <Text className="text-sm font-medium text-brand-green-700">Forgot password?</Text>
               </Pressable>
             </View>
           </KeyboardAvoidingView>

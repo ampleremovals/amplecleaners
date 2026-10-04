@@ -37,10 +37,10 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-teal-950 via-brand-teal-900 to-brand-teal-800 px-6">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-green-950 via-brand-green-900 to-brand-green-800 px-6">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white p-8 shadow-2xl">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-teal-700 text-white">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green-700 text-white">
             <Sparkles className="h-8 w-8" />
           </div>
           <h1 className="font-display text-2xl font-extrabold text-foreground">Ample Cleaners CRM</h1>
@@ -57,7 +57,7 @@ function LoginForm() {
             <Input id="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           {error && <p className="text-sm font-semibold text-red-600">{error}</p>}
-          <Button type="submit" disabled={loading} className="w-full bg-brand-teal-700 hover:bg-brand-teal-800">
+          <Button type="submit" disabled={loading} className="w-full bg-brand-green-700 hover:bg-brand-green-800">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign in"}
           </Button>
         </form>

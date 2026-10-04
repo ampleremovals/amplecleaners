@@ -33,7 +33,7 @@ function JobCard({ job }: { job: JobSummary }) {
         <Clock size={14} color="#64748b" />
         <Text className="text-sm text-slate-500">{formatTime(job.clean_time ?? undefined)}</Text>
         {job.quote_total != null && (
-          <Text className="ml-auto text-sm font-bold text-brand-teal-700">{formatCurrency(job.quote_total)}</Text>
+          <Text className="ml-auto text-sm font-bold text-brand-green-700">{formatCurrency(job.quote_total)}</Text>
         )}
       </View>
     </Pressable>

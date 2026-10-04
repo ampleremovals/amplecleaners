@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
-import { Outfit, Inter } from "next/font/google";
+import { Unbounded, Manrope } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 
-const outfit = Outfit({
+// Unbounded — chunky, rounded, confident display face. Carries the "colourful
+// and pronounced" brand energy the homepage is built around.
+const unbounded = Unbounded({
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["600", "700", "800", "900"],
   variable: "--font-display",
   display: "swap",
 });
 
-const inter = Inter({
+// Manrope — warm geometric body sans, distinct from the generic Inter/Arial
+// defaults, still highly legible at small sizes.
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-body",
   display: "swap",
 });
@@ -42,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   };
 
   return (
-    <html lang="en" className={cn(outfit.variable, inter.variable)}>
+    <html lang="en" className={cn(unbounded.variable, manrope.variable)}>
       <body className="font-sans antialiased">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         {children}

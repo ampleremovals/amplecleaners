@@ -59,7 +59,7 @@ function Card({ booking }: { booking: BoardBooking }) {
           <span className="text-xs text-slate-400">
             {booking.is_flexible_date ? "Flexible" : booking.clean_date ? new Date(booking.clean_date).toLocaleDateString("en-GB") : "No date"}
           </span>
-          {booking.quote_total != null && <span className="text-xs font-bold text-brand-teal-700">{formatCurrency(booking.quote_total)}</span>}
+          {booking.quote_total != null && <span className="text-xs font-bold text-brand-green-700">{formatCurrency(booking.quote_total)}</span>}
         </div>
         {cleaner && <p className="mt-1 text-xs text-brand-sky-700">👤 {cleaner.full_name}</p>}
       </Link>
@@ -72,7 +72,7 @@ function Column({ col, bookings }: { col: (typeof COLUMNS)[number]; bookings: Bo
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-2xl border ${isOver ? "border-brand-teal-400 bg-brand-teal-50/50" : "border-slate-200 bg-slate-50"} p-3`}
+      className={`flex w-72 shrink-0 flex-col rounded-2xl border ${isOver ? "border-brand-green-400 bg-brand-green-50/50" : "border-slate-200 bg-slate-50"} p-3`}
     >
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700">{col.title}</h3>
@@ -143,7 +143,7 @@ export default function BookingsBoardPage() {
       <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
 
       {loading ? (
-        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-teal-600" /></div>
+        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="mt-6 flex flex-1 gap-4 overflow-x-auto pb-4">

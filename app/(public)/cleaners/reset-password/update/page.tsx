@@ -64,7 +64,7 @@ export default function CleanerUpdatePasswordPage() {
   }
 
   if (checkingSession) {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-950"><Loader2 className="h-8 w-8 animate-spin text-brand-teal-500" /></div>;
+    return <div className="flex min-h-screen items-center justify-center bg-slate-950"><Loader2 className="h-8 w-8 animate-spin text-brand-green-500" /></div>;
   }
 
   if (!hasSession) {
@@ -73,7 +73,7 @@ export default function CleanerUpdatePasswordPage() {
         <div className="w-full max-w-md rounded-2xl bg-slate-900 p-8 text-center">
           <h1 className="mb-2 text-2xl font-bold text-white">Link expired</h1>
           <p className="mb-6 text-slate-400">This password link is invalid or has expired. Please request a new one.</p>
-          <Link href="/cleaners/reset-password" className="inline-block rounded-xl bg-brand-teal-600 px-6 py-3 font-semibold text-white hover:bg-brand-teal-700">
+          <Link href="/cleaners/reset-password" className="inline-block rounded-xl bg-brand-green-600 px-6 py-3 font-semibold text-white hover:bg-brand-green-700">
             Request new link
           </Link>
         </div>
@@ -100,7 +100,7 @@ export default function CleanerUpdatePasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-teal-600">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green-600">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -112,14 +112,14 @@ export default function CleanerUpdatePasswordPage() {
           <label className="mb-2 block text-sm font-medium text-slate-300">New password</label>
           <input
             type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 8 characters"
-            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-teal-500 focus:outline-none focus:ring-2 focus:ring-brand-teal-500/20"
+            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-green-500 focus:outline-none focus:ring-2 focus:ring-brand-green-500/20"
           />
           <label className="mb-2 block text-sm font-medium text-slate-300">Confirm password</label>
           <input
             type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-type password"
-            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-teal-500 focus:outline-none focus:ring-2 focus:ring-brand-teal-500/20"
+            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-green-500 focus:outline-none focus:ring-2 focus:ring-brand-green-500/20"
           />
-          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-teal-600 px-6 py-3 font-semibold text-white hover:bg-brand-teal-700 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-6 py-3 font-semibold text-white hover:bg-brand-green-700 disabled:opacity-50">
             {loading ? <><Loader2 className="h-5 w-5 animate-spin" /> Updating…</> : <><ShieldCheck className="h-5 w-5" /> Set password</>}
           </button>
         </form>

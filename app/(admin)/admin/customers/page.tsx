@@ -26,11 +26,11 @@ export default function CustomersPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search by name, email or phone…"
-        className="mt-4 h-10 w-full max-w-sm rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600"
+        className="mt-4 h-10 w-full max-w-sm rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600"
       />
 
       {loading ? (
-        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-teal-600" /></div>
+        <div className="mt-10 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
           <table className="w-full text-sm">

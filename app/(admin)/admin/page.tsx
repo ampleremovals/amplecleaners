@@ -39,7 +39,7 @@ export default async function AdminDashboardPage() {
           <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-slate-500">{c.label}</span>
-              <c.icon className="h-4 w-4 text-brand-teal-600" />
+              <c.icon className="h-4 w-4 text-brand-green-600" />
             </div>
             <p className="mt-2 font-display text-2xl font-extrabold text-slate-900">{c.value}</p>
           </div>

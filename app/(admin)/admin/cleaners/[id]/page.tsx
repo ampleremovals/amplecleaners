@@ -65,7 +65,7 @@ export default function CleanerDetailPage() {
     load();
   }
 
-  if (loading || !cleaner) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-teal-600" /></div>;
+  if (loading || !cleaner) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>;
 
   return (
     <div className="p-6 sm:p-8">
@@ -76,7 +76,7 @@ export default function CleanerDetailPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-slate-900">DBS check</h2>
-            <button onClick={toggleDbs} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${cleaner.dbs_verified ? "bg-brand-teal-100 text-brand-teal-800" : "bg-amber-100 text-amber-800"}`}>
+            <button onClick={toggleDbs} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${cleaner.dbs_verified ? "bg-brand-green-100 text-brand-green-800" : "bg-amber-100 text-amber-800"}`}>
               <ShieldCheck className="h-4 w-4" /> {cleaner.dbs_verified ? "Verified" : "Mark verified"}
             </button>
           </div>
@@ -112,7 +112,7 @@ export default function CleanerDetailPage() {
             </select>
             <input type="time" value={newSlot.startTime} onChange={(e) => setNewSlot((s) => ({ ...s, startTime: e.target.value }))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
             <input type="time" value={newSlot.endTime} onChange={(e) => setNewSlot((s) => ({ ...s, endTime: e.target.value }))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <button onClick={addSlot} className="flex items-center gap-1 rounded-lg bg-brand-teal-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
+            <button onClick={addSlot} className="flex items-center gap-1 rounded-lg bg-brand-green-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
           </div>
         </section>
 
@@ -128,7 +128,7 @@ export default function CleanerDetailPage() {
           </div>
           <div className="mt-3 flex gap-2">
             <input value={newArea} onChange={(e) => setNewArea(e.target.value)} placeholder="e.g. SW1" className="w-32 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <button onClick={addArea} className="flex items-center gap-1 rounded-lg bg-brand-teal-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
+            <button onClick={addArea} className="flex items-center gap-1 rounded-lg bg-brand-green-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
           </div>
         </section>
       </div>

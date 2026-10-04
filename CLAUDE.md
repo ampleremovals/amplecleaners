@@ -95,13 +95,24 @@ those credentials (schema, RLS, env vars, Vercel sync) IS automated — see
 
 ## BRAND
 
-- **Primary colour:** Teal `#0f766e`
-- **Accent colour:** Sky blue `#0ea5e9`
+**Revised 2026-10-04 per explicit owner direction — supersedes the original
+"stay off Removals' purple/green" rationale below.** Green is now the
+dominant brand colour, with light blue and violet as secondary accents,
+deliberately colourful and glassmorphic.
+
+- **Primary colour:** Green `#16a34a` (brand.green)
+- **Accents:** Sky blue `#0ea5e9` (brand.sky) and violet `#a855f7` (brand.violet)
 - **Base:** White `#ffffff`
-- Deliberately NOT purple/green (Ample Removals' palette) — the two brands
-  must never look like the same company to a customer.
-- **Display font:** Outfit (headings) — **Body font:** Inter
-- **Feel:** Fresh, hygienic, trustworthy, fast to book.
+- **Display font:** Unbounded (headings, chunky/rounded, bold) — **Body font:** Manrope
+- **Feel:** Colourful, glassmorphic, lively, easy to scroll, fast to book.
+- Aesthetic: frosted-glass panels (`.glass` / `.glass-strong` in
+  `app/globals.css`) floating over slowly-drifting blurred colour-blob
+  backgrounds (`components/shared/GradientMesh.tsx`), staggered
+  scroll-reveal animation via Framer Motion.
+- ~~Deliberately NOT purple/green (Ample Removals' palette)~~ — superseded;
+  the owner explicitly asked for green + violet. The two brands are now
+  differentiated by fonts, layout and the specific shade of green/accent mix
+  instead, not by avoiding the colour family entirely.
 
 ---
 

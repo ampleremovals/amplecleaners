@@ -226,8 +226,8 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
 
 **Phase 5 — Invoicing & billing**
 - [ ] PDF invoice generation (`@react-pdf/renderer`, already a dependency).
-- [ ] Stripe webhook handling (deposit paid → booking_confirmed, full
-      balance paid → paid).
+- [x] Stripe webhook handling (deposit paid → booking_confirmed, full
+      balance paid → paid) — built ahead of schedule in Phase 3, see above.
 - [ ] Recurring billing for regular cleans (charge after each visit, or a
       subscription model — needs an explicit decision with the owner before
       building, since it changes the Stripe integration shape).
@@ -236,6 +236,56 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
 - [ ] Mobile-first design pass, loading/empty/error states everywhere.
 - [ ] Security review (RLS audit, rate limiting on public endpoints).
 - [ ] Production Vercel deploy + domain + analytics.
+
+## Task: Landing page redesign + Regular Cleaning pricing (2026-10-04)
+### Plan
+- [x] Rebrand: green `#16a34a` as the dominant colour (was teal), light blue
+      + violet as secondary accents, white base — per explicit owner
+      direction. Full rename of `brand-teal-*` → `brand-green-*` across
+      every file (web app + `cleaner-app/`), not just the homepage — a
+      half-renamed brand would be worse than the old one. Added a
+      `brand.violet` scale. `CLAUDE.md` brand section updated to match,
+      noting this supersedes the earlier "stay off Removals' colours"
+      rationale.
+- [x] Swapped fonts: Outfit/Inter → Unbounded (display, chunky/rounded,
+      confident) + Manrope (body) — Inter is explicitly generic/overused.
+- [x] Glassmorphism system added to `app/globals.css`: `.glass`/`.glass-strong`/
+      `.glass-nav` frosted panels, `.text-gradient-brand` (green→sky→violet),
+      float/bob/shimmer keyframes. `components/shared/GradientMesh.tsx` —
+      reusable slowly-drifting colour-blob backdrop (green/sky/violet).
+- [x] Full homepage rebuild (`app/(public)/page.tsx`): hero with staggered
+      Framer Motion reveal + floating trust pills, services grid (glass
+      cards, scroll-triggered), a dedicated pricing section (see below),
+      "how it works" with a connecting gradient line, closing CTA — all on
+      the gradient-mesh/glass system. Navbar restyled to a floating glass
+      pill bar; Footer restyled to a dark-green gradient with glowing accent
+      blobs. Deliberately did NOT fabricate customer testimonials/reviews —
+      used verifiable claims (DBS-checked, fixed price) instead of invented
+      social proof.
+- [x] **Regular Cleaning pricing — £15/hour, 3 hour minimum** (`lib/pricing.ts`,
+      the single source of truth for this rate): wired into (a) the
+      homepage pricing section (big rate display + 3/4/5-hour price
+      examples), (b) the booking wizard (hours +/- stepper, live price
+      preview, button label shows the real total), (c) `/api/bookings`
+      (computes `quote_total`/`quote_line_items` immediately at creation
+      for Regular Cleaning — the ONLY service with a deterministic rate, so
+      the customer sees a real price with no admin step in between), (d)
+      the confirmation page (shows the price when one was computed).
+- [x] Deployed to production — https://amplecleaners.vercel.app — and
+      confirmed live (homepage headline, pricing figures, gradient classes
+      all present in the served HTML).
+- [x] Typecheck, build (survived one transient `next/font` Google-Fonts
+      fetch hiccup — confirmed not a real code issue by retrying clean),
+      and lint all clean.
+
+### Review
+Scope check: deliberately did NOT change the OTHER 4 services' pricing
+model (still admin-quoted) — only Regular Cleaning has an advertised,
+formulaic rate per the owner's ask. Not done: no visual regression check
+against a real browser (no screenshot tooling available this session) —
+verified via build output + serving the live HTML, not a rendered
+screenshot; worth the owner eyeballing the live site and flagging anything
+that reads wrong on an actual device.
 
 ### Review (Phase 1)
 What shipped this session: a complete, coherent Phase 1 scaffold — brand,

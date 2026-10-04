@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Minus, Plus, Sparkles } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
+import { REGULAR_CLEANING_HOURLY_RATE, REGULAR_CLEANING_MIN_HOURS, regularCleaningPrice } from "@/lib/pricing";
 
 const VALID_SERVICES = Object.keys(SERVICE_LABELS) as ServiceType[];
+const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
 
 export default function BookingWizardPage() {
   const params = useParams();
@@ -19,6 +21,7 @@ export default function BookingWizardPage() {
     propertyType: "house" as "flat" | "house" | "studio" | "office" | "other",
     bedrooms: 2, bathrooms: 1,
     frequency: "weekly" as "one_off" | "weekly" | "fortnightly" | "monthly",
+    hours: REGULAR_CLEANING_MIN_HOURS,
     line1: "", line2: "", city: "", postcode: "",
     cleanDate: "", isFlexibleDate: false,
     specialInstructions: "",
@@ -41,7 +44,8 @@ export default function BookingWizardPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Something went wrong.");
-      router.push(`/confirmation?ref=${encodeURIComponent(data.reference)}`);
+      const totalParam = data.total != null ? `&total=${encodeURIComponent(data.total)}` : "";
+      router.push(`/confirmation?ref=${encodeURIComponent(data.reference)}${totalParam}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setSubmitting(false);
@@ -49,7 +53,7 @@ export default function BookingWizardPage() {
   };
 
   return (
-    <div className="bg-gradient-to-br from-brand-teal-50 via-white to-brand-sky-50 px-4 py-12 sm:py-16">
+    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-xl">
         <h1 className="font-display text-3xl font-extrabold text-slate-900">
           {SERVICE_LABELS[serviceType]} — get your quote
@@ -59,19 +63,19 @@ export default function BookingWizardPage() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name">
-              <input required value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input required value={form.fullName} onChange={(e) => set("fullName", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
             <Field label="Phone">
-              <input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" placeholder="07…" />
+              <input required value={form.phone} onChange={(e) => set("phone", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" placeholder="07…" />
             </Field>
           </div>
           <Field label="Email">
-            <input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+            <input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Property type">
-              <select value={form.propertyType} onChange={(e) => set("propertyType", e.target.value as typeof form.propertyType)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600">
+              <select value={form.propertyType} onChange={(e) => set("propertyType", e.target.value as typeof form.propertyType)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600">
                 <option value="flat">Flat</option>
                 <option value="house">House</option>
                 <option value="studio">Studio</option>
@@ -80,32 +84,65 @@ export default function BookingWizardPage() {
               </select>
             </Field>
             <Field label="Bedrooms">
-              <input type="number" min={0} max={10} value={form.bedrooms} onChange={(e) => set("bedrooms", Number(e.target.value))} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input type="number" min={0} max={10} value={form.bedrooms} onChange={(e) => set("bedrooms", Number(e.target.value))} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
             <Field label="Bathrooms">
-              <input type="number" min={0} max={10} value={form.bathrooms} onChange={(e) => set("bathrooms", Number(e.target.value))} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input type="number" min={0} max={10} value={form.bathrooms} onChange={(e) => set("bathrooms", Number(e.target.value))} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
           </div>
 
           {serviceType === "regular_cleaning" && (
-            <Field label="How often?">
-              <select value={form.frequency} onChange={(e) => set("frequency", e.target.value as typeof form.frequency)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600">
-                <option value="weekly">Weekly</option>
-                <option value="fortnightly">Fortnightly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </Field>
+            <>
+              <Field label="How often?">
+                <select value={form.frequency} onChange={(e) => set("frequency", e.target.value as typeof form.frequency)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600">
+                  <option value="weekly">Weekly</option>
+                  <option value="fortnightly">Fortnightly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </Field>
+
+              <Field label={`How many hours? (£${REGULAR_CLEANING_HOURLY_RATE}/hour, ${REGULAR_CLEANING_MIN_HOURS} hours minimum)`}>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => set("hours", Math.max(REGULAR_CLEANING_MIN_HOURS, form.hours - 1))}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-brand-green-400 hover:text-brand-green-700"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-900">
+                    {form.hours} {form.hours === 1 ? "hour" : "hours"}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => set("hours", form.hours + 1)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-brand-green-400 hover:text-brand-green-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </Field>
+
+              <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-brand-green-50 to-brand-sky-50 px-5 py-4">
+                <span className="flex items-center gap-2 text-sm font-semibold text-brand-green-900">
+                  <Sparkles className="h-4 w-4 text-brand-green-600" /> Your price
+                </span>
+                <span className="font-display text-2xl font-extrabold text-brand-green-700">
+                  {gbp(regularCleaningPrice(form.hours))}
+                </span>
+              </div>
+            </>
           )}
 
           <Field label="Address line 1">
-            <input required value={form.line1} onChange={(e) => set("line1", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+            <input required value={form.line1} onChange={(e) => set("line1", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Town / city">
-              <input value={form.city} onChange={(e) => set("city", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input value={form.city} onChange={(e) => set("city", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
             <Field label="Postcode">
-              <input required value={form.postcode} onChange={(e) => set("postcode", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input required value={form.postcode} onChange={(e) => set("postcode", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
           </div>
 
@@ -121,7 +158,7 @@ export default function BookingWizardPage() {
           </div>
           {!form.isFlexibleDate && (
             <Field label="Preferred date">
-              <input type="date" value={form.cleanDate} onChange={(e) => set("cleanDate", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-teal-600" />
+              <input type="date" value={form.cleanDate} onChange={(e) => set("cleanDate", e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600" />
             </Field>
           )}
 
@@ -130,7 +167,7 @@ export default function BookingWizardPage() {
               value={form.specialInstructions}
               onChange={(e) => set("specialInstructions", e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-teal-600"
+              className="w-full rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-brand-green-600"
             />
           </Field>
 
@@ -139,10 +176,10 @@ export default function BookingWizardPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-teal-700 text-base font-bold text-white shadow-lg shadow-brand-teal-200 hover:bg-brand-teal-800 disabled:opacity-60"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800 disabled:opacity-60"
           >
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            Get my free quote
+            {serviceType === "regular_cleaning" ? `Book now — ${gbp(regularCleaningPrice(form.hours))}` : "Get my free quote"}
           </button>
         </form>
       </div>

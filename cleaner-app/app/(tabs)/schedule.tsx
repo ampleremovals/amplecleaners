@@ -38,7 +38,7 @@ export default function ScheduleScreen() {
               <Text className="font-bold text-slate-900">{item.clean_date ? formatDayLabel(item.clean_date) : "Flexible date"}</Text>
               <Text className="mt-0.5 text-sm text-slate-500">{item.customer?.full_name ?? "Customer"}</Text>
             </View>
-            {item.quote_total != null && <Text className="font-bold text-brand-teal-700">{formatCurrency(item.quote_total)}</Text>}
+            {item.quote_total != null && <Text className="font-bold text-brand-green-700">{formatCurrency(item.quote_total)}</Text>}
           </Pressable>
         )}
         ListEmptyComponent={

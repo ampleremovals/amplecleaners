@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateBookingReference, normaliseUKPhone } from "@/lib/utils";
 import { DEPOSIT_PERCENTAGE } from "@/lib/deposit";
+import { REGULAR_CLEANING_MIN_HOURS, REGULAR_CLEANING_HOURLY_RATE, regularCleaningPrice } from "@/lib/pricing";
 import type { ServiceType } from "@/types";
 
 export const runtime = "nodejs";
@@ -20,6 +21,7 @@ const bodySchema = z.object({
   bedrooms: z.number().int().min(0).max(10).optional(),
   bathrooms: z.number().int().min(0).max(10).optional(),
   frequency: z.enum(["one_off", "weekly", "fortnightly", "monthly"]).optional(),
+  hours: z.number().min(REGULAR_CLEANING_MIN_HOURS).optional(),
   line1: z.string().min(2),
   line2: z.string().optional(),
   city: z.string().optional(),
@@ -64,6 +66,17 @@ export async function POST(req: NextRequest) {
 
     const reference = generateBookingReference(d.serviceType);
 
+    // Regular Cleaning has a deterministic, advertised rate (£15/hr, 3hr
+    // minimum) — compute the quote immediately instead of waiting on the
+    // admin, so the customer sees a real price right away. The other 4
+    // services vary too much by property to price automatically.
+    const isRegular = d.serviceType === "regular_cleaning";
+    const hours = isRegular ? Math.max(REGULAR_CLEANING_MIN_HOURS, d.hours ?? REGULAR_CLEANING_MIN_HOURS) : null;
+    const total = isRegular && hours ? regularCleaningPrice(hours) : null;
+    const lineItems = isRegular && hours
+      ? [{ description: `Regular cleaning — ${hours} hours @ £${REGULAR_CLEANING_HOURLY_RATE}/hr`, quantity: hours, unit_price: REGULAR_CLEANING_HOURLY_RATE, total }]
+      : [];
+
     const { data: booking, error: bookingErr } = await supabase
       .from("bookings")
       .insert({
@@ -74,12 +87,15 @@ export async function POST(req: NextRequest) {
         property_type: d.propertyType,
         bedrooms: d.bedrooms ?? null,
         bathrooms: d.bathrooms ?? null,
-        frequency: d.serviceType === "regular_cleaning" ? (d.frequency ?? "weekly") : "one_off",
+        frequency: isRegular ? (d.frequency ?? "weekly") : "one_off",
         clean_date: d.isFlexibleDate ? null : (d.cleanDate || null),
         is_flexible_date: d.isFlexibleDate ?? false,
         special_instructions: d.specialInstructions ?? null,
         status: "inquiry",
         source: "website",
+        quote_line_items: lineItems,
+        quote_subtotal: total,
+        quote_total: total,
         // Stamped at creation — see lib/deposit.ts (Lesson 18 from Ample
         // Removals: a rate that can change over time belongs on the row).
         deposit_percentage: DEPOSIT_PERCENTAGE,
@@ -97,7 +113,7 @@ export async function POST(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ success: true, reference: booking.reference });
+    return NextResponse.json({ success: true, reference: booking.reference, total });
   } catch (err) {
     try {
       await supabase.from("server_logs").insert({

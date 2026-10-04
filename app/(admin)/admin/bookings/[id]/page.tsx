@@ -105,7 +105,7 @@ export default function BookingDetailPage() {
   }
 
   if (loading || !booking) {
-    return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-teal-600" /></div>;
+    return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>;
   }
 
   return (
@@ -208,7 +208,7 @@ export default function BookingDetailPage() {
             </div>
             <button
               onClick={() => setLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, total: 0 }])}
-              className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-brand-teal-700"
+              className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-brand-green-700"
             >
               <Plus className="h-4 w-4" /> Add line
             </button>
@@ -228,7 +228,7 @@ export default function BookingDetailPage() {
               <button onClick={() => saveQuote(false)} disabled={saving} className="flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save quote
               </button>
-              <button onClick={() => saveQuote(true)} disabled={sending} className="flex items-center gap-2 rounded-xl bg-brand-teal-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-teal-800 disabled:opacity-50">
+              <button onClick={() => saveQuote(true)} disabled={sending} className="flex items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800 disabled:opacity-50">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Save &amp; send
               </button>
             </div>

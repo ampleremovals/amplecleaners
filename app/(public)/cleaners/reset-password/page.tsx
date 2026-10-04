@@ -38,7 +38,7 @@ export default function CleanerResetPasswordPage() {
           <p className="mb-6 text-slate-400">
             If an account exists for <span className="font-medium text-slate-200">{email}</span>, we&apos;ve sent a link to set your password. It expires in 1 hour.
           </p>
-          <Link href="/admin/login" className="inline-flex items-center gap-2 text-sm font-medium text-brand-teal-400 hover:text-brand-teal-300">
+          <Link href="/admin/login" className="inline-flex items-center gap-2 text-sm font-medium text-brand-green-400 hover:text-brand-green-300">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </div>
@@ -51,7 +51,7 @@ export default function CleanerResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mb-4 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-teal-600">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green-600">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
           </div>
@@ -62,9 +62,9 @@ export default function CleanerResetPasswordPage() {
           <label className="mb-2 block text-sm font-medium text-slate-300">Email</label>
           <input
             type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
-            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-teal-500 focus:outline-none focus:ring-2 focus:ring-brand-teal-500/20"
+            className="mb-4 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 focus:border-brand-green-500 focus:outline-none focus:ring-2 focus:ring-brand-green-500/20"
           />
-          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-teal-600 px-6 py-3 font-semibold text-white hover:bg-brand-teal-700 disabled:opacity-50">
+          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-green-600 px-6 py-3 font-semibold text-white hover:bg-brand-green-700 disabled:opacity-50">
             {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Send reset link"}
           </button>
         </form>

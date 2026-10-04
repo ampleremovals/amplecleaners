@@ -26,7 +26,7 @@ export default function ForgotPasswordScreen() {
       <Text className="mt-1 text-slate-500">We&apos;ll email you a link to set a new one.</Text>
 
       {sent ? (
-        <Text className="mt-6 text-brand-teal-700">
+        <Text className="mt-6 text-brand-green-700">
           Check your email for a reset link. You can close this screen.
         </Text>
       ) : (
@@ -40,14 +40,14 @@ export default function ForgotPasswordScreen() {
             className="mb-4 rounded-xl border border-slate-300 px-4 py-3 text-slate-900"
           />
           {error ? <Text className="mb-3 text-sm text-red-600">{error}</Text> : null}
-          <Pressable onPress={submit} disabled={busy} className="items-center rounded-xl bg-brand-teal-700 py-3.5 active:opacity-90">
+          <Pressable onPress={submit} disabled={busy} className="items-center rounded-xl bg-brand-green-700 py-3.5 active:opacity-90">
             {busy ? <ActivityIndicator color="#fff" /> : <Text className="text-base font-bold text-white">Send reset link</Text>}
           </Pressable>
         </View>
       )}
 
       <Pressable onPress={() => router.back()} className="mt-6 items-center py-1">
-        <Text className="text-sm font-medium text-brand-teal-700">Back to sign in</Text>
+        <Text className="text-sm font-medium text-brand-green-700">Back to sign in</Text>
       </Pressable>
     </SafeAreaView>
   );
