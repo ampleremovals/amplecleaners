@@ -72,12 +72,43 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
 - [x] Expo/EAS account — turned out to already exist (`ccmendel`, same as
       driver-app's), already logged in on this machine. Resolved without
       needing anything from the owner.
-- [ ] **BLOCKED on you:** a real Supabase project, Twilio number + WhatsApp
-      Business profile, Stripe account. I can't create paid third-party
-      accounts — once you create the Supabase project (or hand me a
-      personal access token I can use to create one via the Supabase API),
-      I'll run the schema, wire the real env vars, and deploy to Vercel
-      myself; nothing else about this is manual for you.
+- [x] Supabase project received (2026-10-04) — URL + DB password given in
+      chat, anon key + service role key given after I asked for them. All
+      stored in `.env.local` (gitignored, confirmed never touched git).
+      Verified: direct DB connection works, both API keys authenticate
+      correctly against the live project, and — important — confirmed RLS
+      is actually enforcing correctly (anon key reading `settings` came
+      back as an empty array, not an error, which is the CORRECT behaviour
+      for "RLS enabled, no policy" — initially misread this as a possible
+      security hole because the first check only looked at `error`, not
+      `data`; rechecked properly before concluding it was fine).
+      `scripts/run-migrations.ts` run against the real project — all 13
+      tables created successfully.
+- [x] GitHub auth, Vercel deploy, and production env vars — all done
+      (2026-10-04). Along the way: swapped the GitHub push identity from
+      `celebiouk` to `ampleremovals` (owner-requested) and migrated the
+      repo there; swapped the Vercel CLI session the same way via a fresh
+      browser device-code login (now `daniel@ampleremovals.com`) — the
+      device-code flow itself worked but a LOCAL CLI BUG stopped the token
+      from being readable afterward (it writes to
+      `%APPDATA%\xdg.data\com.vercel.cli\auth.json` but some commands read
+      from `%APPDATA%\com.vercel.cli\Data\auth.json` — copying the file
+      across fixed it; a stale `currentTeam`/linked-project context from
+      running commands inside the Ampleremovals folder caused a second,
+      separate "Not authorized" red herring after that). Pushed all 8
+      `.env.local` values to Vercel (production/preview/development) and
+      deployed to production: **https://amplecleaners.vercel.app** — live,
+      publicly reachable (200 OK), confirmed homepage/admin-login/booking
+      pages all load.
+  - Hit and fixed a real bug along the way: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+    silently failed to upload (my push script redirected output to
+    `/dev/null`) because Vercel now requires an explicit `--type config`
+    when a `NEXT_PUBLIC_*` name/value looks like a credential — it was
+    missing in production, which crashed `middleware.ts` on every request
+    (`MIDDLEWARE_INVOCATION_FAILED`) until caught via `vercel logs` and
+    re-added with the explicit type.
+- [ ] **BLOCKED on you:** Twilio number + WhatsApp Business profile, Stripe
+      account. Same as before — can't create paid third-party accounts.
 - [ ] **BLOCKED on you:** a real Ample Cleaners logo file (`assets/logo.png`
       in both the web app and `cleaner-app/`) — I haven't fabricated a brand
       mark since that's a real design decision, not a technical one. Happy to
