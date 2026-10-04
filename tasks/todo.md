@@ -415,3 +415,17 @@ Migration 0003 applied; e2e proves the DB-dependent path. Still unverified: admi
 ### Review (phase 7)
 Built and verified (e2e now 60+ checks, all pass against the live DB; test data cleaned): shared `createBooking` + `afterBookingCreated` (admin alert; priced bookings auto-send the quote + deposit link; unpriced get an acknowledgement; public `quoteTotal` is stripped so a customer can't set their own price); confirmation page "Pay deposit" CTA (same-site path regex, no open redirect); admin New booking page; cleaner applications end-to-end (public form with honeypot + rate limit, duplicate handling, admin approve/decline, approve copies coverage areas and leaves DBS unverified); Settings page, and the SMS/WhatsApp switches now genuinely gate sending (they were stored but ignored). Migration 0004 applied.
 Not verified: emails/SMS actually landing in inboxes (Resend test addresses only prove acceptance, not rendering); mobile app on a device.
+
+## Task: Phase 8 — Booking changes & self-service (started 2026-10-04)
+### Gaps
+- A customer cannot reschedule, skip a visit or cancel without phoning; every change is manual admin work.
+- An admin cannot edit a booking after creation (date, time, address, notes, frequency) — only the quote and the cleaner.
+- Failures that automation logs (email/SMS errors, webhook problems) are only visible in the DB — nobody would ever see them.
+- No sitemap/robots for the marketing site.
+### Plan
+- [ ] `lib/bookings/changes.ts`: reschedule / cancel logic in ONE place (unassign + re-match the cleaner, cancel a series' future visits, flag refunds, notify cleaner + customer + admin).
+- [ ] Admin: edit booking details (PATCH) using the same logic; UI panel on the booking page.
+- [ ] Customer: `/manage/[bookingId]/[token]` page + token-guarded API (view, reschedule, cancel / skip a visit / stop a series), free-change window of 48h, otherwise "call us". Non-expiring HMAC link, added to confirmation / assigned / reminder messages.
+- [ ] Admin "System log" page (server_logs, filter by level) + sidebar link, so silent failures become visible.
+- [ ] sitemap.xml + robots.txt (no admin/private routes indexed).
+- [ ] e2e extended; tsc/lint/build; deploy; live check.
