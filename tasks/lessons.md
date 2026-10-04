@@ -84,3 +84,28 @@ obviously-fake placeholder string (`"re_placeholder_not_configured"` /
 construction always succeeds. Every actual send/charge call site is already
 wrapped in try/catch, so a placeholder key just makes the real call fail
 gracefully at runtime instead of crashing the whole build.
+
+## Lesson 8 — "Built" is not "works": RLS must be tested with a real session of each role
+**What happened:** Phase 4's mobile app was marked done, but auditing the live DB showed `cleaners`, `customers` and `addresses` had NO select policy for cleaners — so no cleaner could ever have logged in or seen a job's address. Separately, the cleaner UPDATE policy had no column restriction (a cleaner could have edited their own job's price), and anon INSERT policies on bookings let anyone post a booking with any price/status straight to PostgREST.
+**Root cause:** Code and types were checked, but nothing was ever run as an authenticated cleaner against real RLS.
+**Rule going forward:** For every table a non-admin role touches, write the policy AND prove it with a real sign-in as that role (allowed read works, forbidden read/write is refused). Non-admin WRITES go through a server route that whitelists fields and writes the audit trail — never a broad UPDATE policy.
+
+## Lesson 9 — After any rename, grep the class names against the config (and hardcoded hex)
+**What happened:** The brand moved teal → green, screens were renamed to `brand-green-*`, but the mobile `tailwind.config.js` still defined `brand.teal` — so every `brand-green-*` class silently rendered nothing. Hex values (`#0f766e`) were also still teal in emails, the app and splash.
+**Rule going forward:** After a token/brand rename, grep BOTH the usages and the config for the old and new names, and grep for the old hex values.
+
+## Lesson 10 — The Resend SDK returns `{ error }`; it does not throw
+**What happened:** Customer emails used `.catch()` only, so "domain not verified" or a bad key would have been swallowed silently.
+**Rule going forward:** Send through `lib/notify.ts` (`notifyCustomer` / `sendEmailSafe`), which checks `error` and writes a `server_logs` row while still never failing the booking flow.
+
+## Lesson 11 — A Postgres `time` is not a `Date`
+**What happened:** `formatTime("09:00:00")` did `new Date("09:00:00")` → Invalid Date → "—", so a job's start time never displayed in the app.
+**Rule going forward:** Treat `TIME` columns as `HH:MM[:SS]` strings; never pass them to `new Date()`.
+
+## Lesson 12 — Environment gotchas worth remembering
+- The Supabase direct DB host (`db.<ref>.supabase.co`) is IPv6-only and fails on IPv4 networks; use the session pooler (`aws-0-eu-west-1.pooler.supabase.com`, user `postgres.<ref>`). Region found by probing.
+- `tsconfig` without `target` defaults to ES5 and rejects `for..of` over a `Map`; set `"target": "ES2017"`.
+- `incremental` tsc caches in `tsconfig.tsbuildinfo` and can report stale errors after a config change — delete it.
+- Regexes with backslashes written through `node -e` in bash lost their `\` once (`\d` → `d`) and silently never matched. Use the editor tool for any backslash-heavy edit and re-read the result.
+- Vercel Hobby allows 2 crons: put new daily jobs inside the existing two routes rather than adding entries.
+- `@react-pdf/renderer` can't be loaded by `tsx` (ESM subpath export); test the PDF by bundling with esbuild and running under Node CJS, which is what Next uses.

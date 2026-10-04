@@ -383,3 +383,13 @@ Phase 3's follow-up/payment code can be exercised for real.
 **Verify (no shortcuts)**
 - [ ] Real e2e against live Supabase: cleaner login via RLS, forged-signature Stripe webhook → confirmed → auto-assigned, clock in/out, completion → invoice, recurrence, PDF.
 - [ ] tsc + lint + build clean; deploy; screenshot the live pages.
+
+### Review (phases 2-6)
+**Built, typechecked, linted, unit-tested (13 tests), built strict, deployed, smoke-tested live:** everything in the plan above.
+Verified for real: matching engine + earnings maths (unit tests); PDF invoice renders correctly (read back); production build with enforced types/lint; CSP/HSTS headers live with zero CSP violations at 375px; every admin/cleaner/cron endpoint returns 401 unauthenticated; bad invoice token → 401 (not 500); rate limiter fails open pre-migration.
+**NOT verified (honest list):**
+- Migration 0003 is **not applied** — the whole DB-dependent path (cleaner login via RLS, auto-assign, clock in/out, completion→invoice, recurrence, storage policies, rate limiting) is untested end-to-end until it runs. A scripted e2e (`forged-signature Stripe webhook → confirmed → auto-assigned → clock in/out → invoice`) is the first thing to do once applied.
+- Admin pages (Invoices, Reports, booking ops panel, cleaner documents) were checked by tsc/lint/build, not clicked through (needs an admin login).
+- Mobile app: `tsc` clean only — no device/emulator run; camera, GPS, push and photo upload are unexercised on hardware.
+- Twilio + Stripe still unwired (no credentials): SMS/WhatsApp are skipped, card payments return a clear "not set up yet" message, bank transfer works.
+**Decisions flagged for the owner:** recurring clients billed per visit after each clean (no subscription); cleaners only auto-assigned if DBS-verified AND have coverage + availability rows; `@vercel/analytics` NOT added (new package needs your OK per CLAUDE.md).
