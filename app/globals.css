@@ -133,21 +133,23 @@
   }
 
   /* ── Glassmorphism ──────────────────────────────────────────────── */
+  /* Readability comes first — these are deliberately high-alpha ("frosted",
+     not "clear glass"). A translucent panel is only acceptable where the
+     text sitting on it still hits WCAG-ish contrast; low-alpha glass over a
+     saturated backdrop (the previous version) failed that outright. */
   .glass {
-    /* Lower alpha than you'd think — the point is the colour BEHIND shows
-       through. Too opaque and it's just a white card with a shadow. */
-    background: rgba(255, 255, 255, 0.38);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.5) inset, 0 8px 32px -12px rgba(22, 163, 74, 0.25);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.7) inset, 0 8px 28px -14px rgba(15, 23, 42, 0.12);
   }
   .glass-strong {
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(26px) saturate(200%);
-    -webkit-backdrop-filter: blur(26px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.6) inset, 0 12px 40px -14px rgba(22, 163, 74, 0.3);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.8) inset, 0 10px 32px -14px rgba(15, 23, 42, 0.14);
   }
   .glass-dark {
     background: rgba(5, 46, 22, 0.4);

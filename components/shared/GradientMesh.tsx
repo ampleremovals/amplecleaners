@@ -1,9 +1,9 @@
 /**
- * Colourful, slowly-drifting blurred blobs — the backdrop every glass panel
- * on the homepage floats over. Deliberately saturated and large enough that
- * there's rarely a plain-white gap between them; `spread` controls how tall
- * a section this instance needs to cover (use "tall" for a container that
- * wraps several sections at once).
+ * Soft, low-opacity colour accents pushed to the EDGES/CORNERS only — never
+ * directly behind a body-text column. This is the 60-30-10 rule in practice:
+ * the page is ~60% white/neutral, green is the ~30% primary, sky+violet are
+ * ~10% accent touches. A saturated colour field behind paragraph text fails
+ * basic contrast — see tasks/lessons.md.
  */
 export function GradientMesh({ variant = "default", spread = "normal" }: { variant?: "default" | "hero"; spread?: "normal" | "tall" }) {
   const big = variant === "hero";
@@ -11,25 +11,24 @@ export function GradientMesh({ variant = "default", spread = "normal" }: { varia
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
       <div
-        className={`animate-float-a absolute rounded-full bg-brand-green-400 blur-2xl ${
-          big ? "-left-32 -top-40 h-[36rem] w-[36rem] opacity-80" : "-left-24 -top-20 h-96 w-96 opacity-70"
+        className={`animate-float-a absolute rounded-full bg-brand-green-300 blur-[90px] ${
+          big ? "-left-40 -top-32 h-[28rem] w-[28rem] opacity-25 sm:opacity-30" : "-left-28 -top-16 h-72 w-72 opacity-20"
         }`}
       />
       <div
-        className={`animate-float-b absolute rounded-full bg-brand-sky-400 blur-2xl ${
-          big ? "-right-28 top-0 h-[32rem] w-[32rem] opacity-75" : "-right-20 top-4 h-80 w-80 opacity-65"
+        className={`animate-float-b absolute rounded-full bg-brand-sky-300 blur-[90px] ${
+          big ? "-right-32 -top-10 h-96 w-96 opacity-25 sm:opacity-30" : "-right-24 top-0 h-64 w-64 opacity-20"
         }`}
       />
       <div
-        className={`animate-float-c absolute rounded-full bg-brand-violet-400 blur-2xl ${
-          big ? "bottom-[-14rem] left-1/3 h-[34rem] w-[34rem] opacity-70" : "bottom-[-8rem] left-1/4 h-96 w-96 opacity-60"
+        className={`animate-float-c absolute rounded-full bg-brand-violet-300 blur-[90px] ${
+          big ? "bottom-[-12rem] left-1/3 h-96 w-96 opacity-20 sm:opacity-25" : "bottom-[-6rem] left-1/4 h-64 w-64 opacity-15"
         }`}
       />
       {tall && (
         <>
-          <div className="animate-float-b absolute left-[-6rem] top-[55%] h-96 w-96 rounded-full bg-brand-sky-300 opacity-55 blur-2xl" />
-          <div className="animate-float-a absolute right-[-8rem] top-[75%] h-[28rem] w-[28rem] rounded-full bg-brand-green-300 opacity-55 blur-2xl" />
-          <div className="animate-float-c absolute left-1/2 top-[95%] h-80 w-80 -translate-x-1/2 rounded-full bg-brand-violet-300 opacity-50 blur-2xl" />
+          <div className="animate-float-b absolute left-[-7rem] top-[60%] h-72 w-72 rounded-full bg-brand-sky-200 opacity-20 blur-[90px]" />
+          <div className="animate-float-a absolute right-[-7rem] top-[80%] h-80 w-80 rounded-full bg-brand-green-200 opacity-20 blur-[90px]" />
         </>
       )}
     </div>
