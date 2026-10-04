@@ -8,25 +8,27 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nlnigpzdilgowazbhnck.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbmlncHpkaWxnb3dhemJobmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNjg4MjYsImV4cCI6MjEwNjY0NDgyNn0.NplFgucZmbvt9yNlfV0X9NU9fEBOL0-0SQCLCTTDMRY",
         "EXPO_PUBLIC_SITE_URL": "https://www.amplecleaners.com"
       }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nlnigpzdilgowazbhnck.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbmlncHpkaWxnb3dhemJobmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNjg4MjYsImV4cCI6MjEwNjY0NDgyNn0.NplFgucZmbvt9yNlfV0X9NU9fEBOL0-0SQCLCTTDMRY",
         "EXPO_PUBLIC_SITE_URL": "https://www.amplecleaners.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nlnigpzdilgowazbhnck.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5sbmlncHpkaWxnb3dhemJobmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwNjg4MjYsImV4cCI6MjEwNjY0NDgyNn0.NplFgucZmbvt9yNlfV0X9NU9fEBOL0-0SQCLCTTDMRY",
         "EXPO_PUBLIC_SITE_URL": "https://www.amplecleaners.com"
       }
     }
