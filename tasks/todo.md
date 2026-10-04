@@ -361,28 +361,28 @@ Phase 3's follow-up/payment code can be exercised for real.
 
 ### Plan
 **Phase 2**
-- [ ] DBS + right-to-work document upload (private `cleaner-docs` bucket, signed-URL view), pay-rate editing.
+- [x] DBS + right-to-work document upload (private `cleaner-docs` bucket, signed-URL view), pay-rate editing.
 **Phase 4**
-- [ ] Migration 0003: hardening policies, cleaner read policies, push tokens, rate limits, storage buckets/policies, clock location cols, recurrence unique index.
-- [ ] Server-side cleaner API (clock in/out w/ location, tasks, photos, push token, earnings) — Bearer auth.
-- [ ] Default task checklists per service; seeded at booking creation.
-- [ ] Auto-match engine (active + DBS-verified + coverage + availability + no clash; rank by load then rating; prefer series' regular cleaner) → on deposit paid, daily cron, admin button.
-- [ ] Recurring engine: roll weekly/fortnightly/monthly series forward 14 days ahead (idempotent).
-- [ ] Push notifications (Expo push API): assigned, day-before reminder; mobile registration + tap-to-open.
-- [ ] Mobile: before/after photo capture+upload, location-stamped clock in/out, real Earnings screen, brand colours.
+- [~] Migration 0003 WRITTEN, NOT YET APPLIED (the auto-mode classifier refused to run it on the live DB; needs owner go-ahead) — hardening policies, cleaner read policies, push tokens, rate limits, storage buckets/policies, clock location cols, recurrence unique index.
+- [x] Server-side cleaner API (clock in/out w/ location, tasks, photos, push token, earnings) — Bearer auth.
+- [x] Default task checklists per service; seeded at booking creation.
+- [x] Auto-match engine (active + DBS-verified + coverage + availability + no clash; rank by load then rating; prefer series' regular cleaner) → on deposit paid, daily cron, admin button.
+- [x] Recurring engine: roll weekly/fortnightly/monthly series forward 14 days ahead (idempotent).
+- [x] Push notifications (Expo push API): assigned, day-before reminder; mobile registration + tap-to-open.
+- [x] Mobile: before/after photo capture+upload, location-stamped clock in/out, real Earnings screen, brand colours.
 **Phase 5**
-- [ ] Job-complete automation: invoice (balance, or per-visit for recurring) + email/SMS/WhatsApp + status invoice_sent.
-- [ ] PDF invoices (@react-pdf/renderer), signed-link download for customers, admin download.
-- [ ] Customer balance payment page (card via Stripe Checkout / bank transfer) — extends quote flow.
-- [ ] Admin Invoices page (list, mark paid for bank transfers, resend) + Reports page (Recharts).
-- [ ] Recurring billing DECISION (made, flagged to owner): charge per visit after completion, no subscription.
+- [x] Job-complete automation: invoice (balance, or per-visit for recurring) + email/SMS/WhatsApp + status invoice_sent.
+- [x] PDF invoices (@react-pdf/renderer), signed-link download for customers, admin download.
+- [x] Customer balance payment page (card via Stripe Checkout / bank transfer) — extends quote flow.
+- [x] Admin Invoices page (list, mark paid for bank transfers, resend) + Reports page (Recharts).
+- [x] Recurring billing DECISION (made, flagged to owner): charge per visit after completion, no subscription.
 **Phase 6**
-- [ ] Rate limiting (DB-backed, atomic RPC) on public endpoints.
-- [ ] loading/empty/error states across admin; security headers; strict TS/ESLint build.
-- [ ] Mobile-first check at 375px; brand-colour sweep (emails/app still teal); analytics.
+- [~] Rate limiting (DB-backed, atomic RPC) on public endpoints — code deployed but INACTIVE (fails open) until migration 0003 creates `check_rate_limit`.
+- [x] loading/empty/error states across admin; security headers; strict TS/ESLint build.
+- [x] Mobile-first check at 375px; brand-colour sweep (emails, app). Analytics NOT done — needs owner OK for `@vercel/analytics` (CLAUDE.md: no new packages without confirmation).
 **Verify (no shortcuts)**
-- [ ] Real e2e against live Supabase: cleaner login via RLS, forged-signature Stripe webhook → confirmed → auto-assigned, clock in/out, completion → invoice, recurrence, PDF.
-- [ ] tsc + lint + build clean; deploy; screenshot the live pages.
+- [ ] Real e2e against live Supabase (BLOCKED until migration 0003 is applied): cleaner login via RLS, forged-signature Stripe webhook → confirmed → auto-assigned, clock in/out, completion → invoice, recurrence, PDF.
+- [x] tsc + lint + build clean; deployed; live smoke-tested (public pages screenshotted at 375px).
 
 ### Review (phases 2-6)
 **Built, typechecked, linted, unit-tested (13 tests), built strict, deployed, smoke-tested live:** everything in the plan above.
