@@ -3,8 +3,9 @@
  * Creates clearly-marked throwaway data (emails @resend.dev test inboxes, refs
  * prefixed E2E) and deletes all of it at the end, pass or fail.
  *
- *   npx next build && npx next start -p 3120   (with STRIPE_WEBHOOK_SECRET=whsec_e2e_test)
- *   npx tsx --env-file=.env.local scripts/e2e.ts
+ *   npx next build
+ *   DISABLE_OUTBOUND_MESSAGES=1 STRIPE_WEBHOOK_SECRET=whsec_e2e_test npx next start -p 3120
+ *   DISABLE_OUTBOUND_MESSAGES=1 E2E_ADMIN_PW=... npx tsx --env-file=.env.local scripts/e2e.ts
  */
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -14,6 +15,12 @@ import { getOrCreateBookingInvoice } from "../lib/bookings/booking-invoice";
 import { generateInvoiceToken } from "../lib/tokens";
 import { todayInLondon } from "../lib/cleaner-auth";
 import { defaultTasks } from "../lib/tasks-template";
+
+// Safety: a test run must never email/text real people or burn the daily Resend quota.
+if (process.env.DISABLE_OUTBOUND_MESSAGES !== "1") {
+  console.error("Refusing to run: set DISABLE_OUTBOUND_MESSAGES=1 for this script AND for the `next start` server it talks to.");
+  process.exit(2);
+}
 
 const BASE = process.env.E2E_BASE ?? "http://localhost:3120";
 const WEBHOOK_SECRET = "whsec_e2e_test";
@@ -259,7 +266,7 @@ async function main() {
 
   // ── 11. Public booking route seeds checklist (and is rate-limit safe) ─
   console.log("— public booking route");
-  const pb = await http("/api/bookings", { method: "POST", body: { serviceType: "regular_cleaning", fullName: "E2E Public", email: `delivered+e2e-pub-${stamp}@resend.dev`, phone: "07700900888", propertyType: "flat", frequency: "one_off", hours: 3, line1: "9 Test Road", postcode: "SW1A 1AA", cleanDate: todayInLondon() } });
+  const pb = await http("/api/bookings", { method: "POST", headers: fwd(), body: { serviceType: "regular_cleaning", fullName: "E2E Public", email: `delivered+e2e-pub-${stamp}@resend.dev`, phone: "07700900888", propertyType: "flat", frequency: "one_off", hours: 3, line1: "9 Test Road", postcode: "SW1A 1AA", cleanDate: todayInLondon() } });
   check("public booking accepted", pb.json.success === true && pb.json.total === 45, pb.text.slice(0, 140));
   check("priced booking returns a quote path for the deposit CTA", typeof pb.json.quotePath === "string" && /^\/quote\/[0-9a-f-]{36}\//.test(pb.json.quotePath), String(pb.json.quotePath));
   if (pb.json.reference) {
@@ -270,7 +277,7 @@ async function main() {
     check("priced booking auto-sent its quote (status quote_sent, no admin step)", sent?.status === "quote_sent", sent?.status);
   }
 
-  const deep = await http("/api/bookings", { method: "POST", body: { serviceType: "deep_cleaning", fullName: "E2E Deep", email: `delivered+e2e-deep-${stamp}@resend.dev`, phone: "07700900777", propertyType: "house", line1: "2 Test Road", postcode: "SW1A 1AA", quoteTotal: 1 } });
+  const deep = await http("/api/bookings", { method: "POST", headers: fwd(), body: { serviceType: "deep_cleaning", fullName: "E2E Deep", email: `delivered+e2e-deep-${stamp}@resend.dev`, phone: "07700900777", propertyType: "house", line1: "2 Test Road", postcode: "SW1A 1AA", quoteTotal: 1 } });
   check("unpriced service: no instant quote, and a public quoteTotal is ignored", deep.json.success === true && deep.json.total === null && deep.json.quotePath === null, deep.text.slice(0, 140));
   if (deep.json.reference) {
     const { data: d } = await admin.from("bookings").select("id, status, customer_id, address_id, quote_total").eq("reference", deep.json.reference).single();
@@ -279,6 +286,103 @@ async function main() {
   }
 
   await phase7();
+  await phase8();
+}
+
+const dayShift = (n: number) => {
+  const d = new Date(`${todayInLondon()}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+async function phase8() {
+  console.log("— phase 8: booking changes & self-service");
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  const { generateBookingToken } = await import("../lib/tokens");
+  const worker = await makeCleaner("p8", { dbs: true });
+
+  // ── customer reschedule ──
+  const job = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(7) });
+  await autoAssignBooking(job.id, "system");
+  const tok = generateBookingToken(job.id)!;
+  const det = await http("/api/booking/manage/details", { method: "POST", headers: fwd(), body: { bookingId: job.id, token: tok } });
+  check("manage page details load (changeable, in free window)", det.json.success && det.json.changeable === true && det.json.withinFreeWindow === true, det.text.slice(0, 140));
+  check("manage details with a bad token → 401", (await http("/api/booking/manage/details", { method: "POST", headers: fwd(), body: { bookingId: job.id, token: "bad-bad-bad-bad" } })).status === 401);
+  check("a token for another booking does not work", (await http("/api/booking/manage/details", { method: "POST", headers: fwd(), body: { bookingId: job.id, token: generateBookingToken(ids.bookings[0])! } })).status === 401);
+  check("reschedule to a date < 2 days away is refused", (await http("/api/booking/manage/reschedule", { method: "POST", headers: fwd(), body: { bookingId: job.id, token: tok, cleanDate: dayShift(1) } })).status === 400);
+  const rs = await http("/api/booking/manage/reschedule", { method: "POST", headers: fwd(), body: { bookingId: job.id, token: tok, cleanDate: dayShift(14) } });
+  check("customer can reschedule", rs.status === 200 && rs.json.success, rs.text.slice(0, 140));
+  const { data: moved } = await admin.from("bookings").select("clean_date, status, assigned_cleaner_id").eq("id", job.id).single();
+  check("new date saved and a cleaner re-matched automatically", moved?.clean_date === dayShift(14) && moved.status === "cleaner_assigned" && !!moved.assigned_cleaner_id, JSON.stringify(moved));
+
+  // ── 48h rule is enforced server-side ──
+  const soon = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(1) });
+  const soonTok = generateBookingToken(soon.id)!;
+  const soonDet = await http("/api/booking/manage/details", { method: "POST", headers: fwd(), body: { bookingId: soon.id, token: soonTok } });
+  check("inside 48h the page says withinFreeWindow=false", soonDet.json.withinFreeWindow === false);
+  check("inside 48h: reschedule refused (409)", (await http("/api/booking/manage/reschedule", { method: "POST", headers: fwd(), body: { bookingId: soon.id, token: soonTok, cleanDate: dayShift(10) } })).status === 409);
+  check("inside 48h: cancel refused (409)", (await http("/api/booking/manage/cancel", { method: "POST", headers: fwd(), body: { bookingId: soon.id, token: soonTok } })).status === 409);
+
+  // ── customer cancel with money paid ──
+  const paidJob = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(7) });
+  await autoAssignBooking(paidJob.id, "system");
+  const { data: pj } = await admin.from("bookings").select("customer_id").eq("id", paidJob.id).single();
+  const dep = await getOrCreateBookingInvoice(admin, { bookingId: paidJob.id, customerId: pj!.customer_id, type: "deposit", net: 9, description: "E2E deposit" });
+  await admin.from("invoices").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", dep.invoiceId);
+  const open = await getOrCreateBookingInvoice(admin, { bookingId: paidJob.id, customerId: pj!.customer_id, type: "full_balance", net: 36, description: "E2E balance" });
+  const cx = await http("/api/booking/manage/cancel", { method: "POST", headers: fwd(), body: { bookingId: paidJob.id, token: generateBookingToken(paidJob.id)!, reason: "e2e" } });
+  check("customer can cancel (outside 48h)", cx.status === 200 && cx.json.success && cx.json.refundDue === 9, cx.text.slice(0, 140));
+  const { data: cxRow } = await admin.from("bookings").select("status, assigned_cleaner_id, is_flagged, flag_reason").eq("id", paidJob.id).single();
+  check("cancelled: cleaner released, refund flagged for admin", cxRow?.status === "cancelled" && cxRow.assigned_cleaner_id === null && cxRow.is_flagged === true && /refund/i.test(cxRow.flag_reason ?? ""), JSON.stringify(cxRow));
+  const { data: openAfter } = await admin.from("invoices").select("status").eq("id", open.invoiceId).single();
+  check("unpaid invoice voided on cancel", openAfter?.status === "cancelled");
+  check("cancelling twice is refused", (await http("/api/booking/manage/cancel", { method: "POST", headers: fwd(), body: { bookingId: paidJob.id, token: generateBookingToken(paidJob.id)!, } })).status === 409);
+
+  // ── stop a recurring series (the root is long finished — the normal case) ──
+  const root = await makeBooking({ frequency: "weekly", status: "paid", clean_date: dayShift(-7), assigned_cleaner_id: worker.id });
+  await generateRecurringVisits(todayInLondon());
+  const { data: kids } = await admin.from("bookings").select("id, status, clean_date").eq("parent_booking_id", root.id).order("clean_date", { ascending: false });
+  ids.bookings.push(...(kids ?? []).map((k) => k.id));
+  check("series generated upcoming visits", (kids?.length ?? 0) >= 1, String(kids?.length));
+  const stop = await http("/api/booking/manage/cancel", { method: "POST", headers: fwd(), body: { bookingId: kids![0].id, token: generateBookingToken(kids![0].id)!, scope: "series" } });
+  check("customer can stop the whole series from a visit", stop.status === 200 && stop.json.success, stop.text.slice(0, 140));
+  const { data: rootAfter } = await admin.from("bookings").select("frequency, next_occurrence_date").eq("id", root.id).single();
+  const { data: kidsAfter } = await admin.from("bookings").select("status, clean_date").eq("parent_booking_id", root.id);
+  check("root stops generating; visits ≥2 days away cancelled, those inside 48h kept", rootAfter?.frequency === "one_off" && (kidsAfter ?? []).filter((k) => k.clean_date >= dayShift(2)).every((k) => k.status === "cancelled") && (kidsAfter ?? []).filter((k) => k.clean_date <= dayShift(1)).every((k) => k.status !== "cancelled"), JSON.stringify({ rootAfter, kidsAfter }));
+  const regen = await generateRecurringVisits(todayInLondon());
+  const { count: kidCount } = await admin.from("bookings").select("id", { count: "exact", head: true }).eq("parent_booking_id", root.id);
+  check("no new visits are generated after the series is stopped", kidCount === (kids?.length ?? 0), `${kidCount} vs ${kids?.length} (created ${regen.created})`);
+
+  // ── admin side ──
+  if (!ADMIN_PW) { console.log("SKIP  admin edit checks (set E2E_ADMIN_PW)"); return; }
+  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const at = as!.session!.access_token;
+  const eb = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(7) });
+  await autoAssignBooking(eb.id, "system");
+  const ed = await http(`/api/admin/bookings/${eb.id}`, { method: "PATCH", token: at, body: { cleanDate: dayShift(14), cleanTime: "16:00", notifyCustomer: false } });
+  const { data: edRow } = await admin.from("bookings").select("clean_date, clean_time, assigned_cleaner_id, status").eq("id", eb.id).single();
+  check("admin can move a booking; cleaner is re-matched", ed.json.success && edRow?.clean_date === dayShift(14) && String(edRow.clean_time).startsWith("16:00") && edRow.status === "cleaner_assigned", ed.text.slice(0, 140) + JSON.stringify(edRow));
+  const edNotes = await http(`/api/admin/bookings/${eb.id}`, { method: "PATCH", token: at, body: { specialInstructions: "Key under the mat", bedrooms: 3 } });
+  const { data: nRow } = await admin.from("bookings").select("special_instructions, bedrooms").eq("id", eb.id).single();
+  check("admin can edit notes and rooms without touching the schedule", edNotes.json.success && nRow?.special_instructions === "Key under the mat" && nRow.bedrooms === 3);
+  const badAddr = await http(`/api/admin/bookings/${eb.id}`, { method: "PATCH", token: at, body: { address: { line1: "9 New Road", postcode: "ZZ9 9ZZ" }, notifyCustomer: false } });
+  const { data: bRow } = await admin.from("bookings").select("assigned_cleaner_id, status").eq("id", eb.id).single();
+  check("moving the address out of every cleaner's area un-assigns (no one covers ZZ9)", badAddr.json.success && bRow?.assigned_cleaner_id === null && bRow.status === "booking_confirmed", JSON.stringify(bRow));
+  const started = await makeBooking({ status: "in_progress", clean_date: todayInLondon() });
+  check("a job in progress cannot be rescheduled by admin (409)", (await http(`/api/admin/bookings/${started.id}`, { method: "PATCH", token: at, body: { cleanDate: dayShift(9) } })).status === 409);
+  check("booking edit needs admin", (await http(`/api/admin/bookings/${eb.id}`, { method: "PATCH", body: {} })).status === 401);
+
+  // admin cancel via the pipeline status route uses the same engine
+  const adminCancel = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(8) });
+  await autoAssignBooking(adminCancel.id, "system");
+  const ac = await http(`/api/admin/bookings/${adminCancel.id}/status`, { method: "PATCH", token: at, body: { status: "cancelled" } });
+  const { data: acRow } = await admin.from("bookings").select("status, assigned_cleaner_id").eq("id", adminCancel.id).single();
+  check("admin 'cancelled' releases the cleaner too", ac.json.success && acRow?.status === "cancelled" && acRow.assigned_cleaner_id === null);
+
+  // logs
+  check("system log needs admin", (await http("/api/admin/logs")).status === 401);
+  const lg = await http("/api/admin/logs?level=all&days=1", { token: at });
+  check("system log loads for admin", lg.status === 200 && Array.isArray(lg.json.logs));
 }
 
 async function phase7() {

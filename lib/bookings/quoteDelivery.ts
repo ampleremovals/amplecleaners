@@ -5,6 +5,7 @@
  * their price to paying a deposit to secure their date. One link, one CTA.
  */
 import { notifyCustomer } from "@/lib/notify";
+import { manageUrl } from "@/lib/bookings/links";
 import { formatCurrency } from "@/lib/utils";
 import { BANK_DETAILS, BANK_DETAILS_CONFIGURED, depositFor } from "@/lib/deposit";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
@@ -164,10 +165,13 @@ export interface DepositConfirmedParams {
   firstName: string;
   email: string;
   phone: string;
+  /** When given, the messages include a "manage your booking" link (change date / cancel). */
+  bookingId?: string;
 }
 
-/** Sent once the admin verifies the deposit landed. */
-export async function sendDepositConfirmedMessages({ reference, firstName, email, phone }: DepositConfirmedParams): Promise<void> {
+/** Sent once the deposit lands (card via webhook, or bank transfer verified by the admin). */
+export async function sendDepositConfirmedMessages({ reference, firstName, email, phone, bookingId }: DepositConfirmedParams): Promise<void> {
+  const manage = bookingId ? manageUrl(bookingId) : null;
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto;">
       <div style="background: #16a34a; padding: 24px; border-radius: 12px 12px 0 0;">
@@ -177,12 +181,13 @@ export async function sendDepositConfirmedMessages({ reference, firstName, email
         <p style="font-size: 16px;">Hi ${firstName},</p>
         <p style="font-size: 16px; margin: 16px 0;">Great news — your deposit is confirmed and your date is locked in. 🎉</p>
         <p style="font-size: 16px; margin: 16px 0;">We'll be in touch with the cleaner details closer to the day.</p>
+        ${manage ? `<p style="text-align:center;margin:20px 0;"><a href="${manage}" style="color:#15803d;font-weight:bold;">Need to change the date or cancel? Manage your booking</a></p>` : ""}
         <p style="font-size: 15px; margin-top: 16px;">Thank you,<br>Ample Cleaners · ${PHONE}</p>
         <p style="font-size: 13px; color: #94a3b8;">Ref: ${reference}</p>
       </div>
     </div>`;
-  const smsText = `Ample Cleaners: your deposit is confirmed and your date is locked in! Questions? Call ${PHONE}. Ref ${reference}`;
-  const whatsappText = `Hi ${firstName}, great news — your deposit is confirmed ✅ Your date is locked in. We'll be in touch with the cleaner details soon.\n\nRef: ${reference}`;
+  const smsText = `Ample Cleaners: your deposit is confirmed and your date is locked in!${manage ? ` Change or cancel: ${manage}` : ` Questions? Call ${PHONE}.`} Ref ${reference}`;
+  const whatsappText = `Hi ${firstName}, great news — your deposit is confirmed ✅ Your date is locked in. We'll be in touch with the cleaner details soon.${manage ? `\n\nNeed to change it? ${manage}` : ""}\n\nRef: ${reference}`;
 
   await notifyCustomer({ context: "deposit confirmed", email, phone, subject: `Your deposit is confirmed (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
 }

@@ -7,7 +7,7 @@
  * failing the booking flow (CLAUDE.md: messaging failures must not fail the
  * request — log and continue).
  */
-import { resend, resendFrom } from "@/lib/resend";
+import { resend, resendFrom, OUTBOUND_DISABLED } from "@/lib/resend";
 import { sendSMS, sendWhatsApp, type SendResult } from "@/lib/twilio";
 import { createAdminClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log-error";
@@ -18,6 +18,7 @@ export async function sendEmailSafe(params: {
   html: string;
   context: string;
 }): Promise<boolean> {
+  if (OUTBOUND_DISABLED) return true;
   try {
     const { error } = await resend.emails.send({ from: resendFrom, to: params.to, subject: params.subject, html: params.html });
     if (error) throw new Error(error.message);
@@ -50,7 +51,7 @@ export interface CustomerMessage {
 
 /** "Send a message" = email + SMS + WhatsApp, all three, independently. */
 export async function notifyCustomer(m: CustomerMessage): Promise<void> {
-  const { sms: smsOn, whatsapp: whatsappOn } = await channelSwitches();
+  const { sms: smsOn, whatsapp: whatsappOn } = OUTBOUND_DISABLED ? { sms: false, whatsapp: false } : await channelSwitches();
   const skipped: SendResult = { success: false, skipped: true };
   const [email, sms, whatsapp] = await Promise.all([
     sendEmailSafe({ to: m.email, subject: m.subject, html: m.html, context: m.context }),

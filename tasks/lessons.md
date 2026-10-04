@@ -117,3 +117,8 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 14 — On Windows, `pkill` does not see your servers
 **What happened:** A stale test server kept port 3120, so the new build never started and the e2e hit OLD code (15 misleading failures).
 **Rule going forward:** Check the server log for EADDRINUSE; kill by PID (`netstat -ano | grep :PORT`, `taskkill //PID n //F`), never trust `pkill` here.
+
+## Lesson 15 — Tests must never be able to send real messages
+**What happened:** Repeated end-to-end runs emailed Resend's test inboxes dozens of times and hit the account's DAILY quota (429), which would have blocked real customer emails for the rest of the day.
+**Root cause:** The test shared the production send path with no off switch, and "test addresses" still count against the quota.
+**Rule going forward:** All outbound sends go through guarded wrappers honouring `DISABLE_OUTBOUND_MESSAGES=1`; the e2e script refuses to run without it. Also: per-IP rate limits persist in the DB across runs, so tests send a distinct `x-forwarded-for` per call.

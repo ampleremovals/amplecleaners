@@ -423,9 +423,13 @@ Not verified: emails/SMS actually landing in inboxes (Resend test addresses only
 - Failures that automation logs (email/SMS errors, webhook problems) are only visible in the DB — nobody would ever see them.
 - No sitemap/robots for the marketing site.
 ### Plan
-- [ ] `lib/bookings/changes.ts`: reschedule / cancel logic in ONE place (unassign + re-match the cleaner, cancel a series' future visits, flag refunds, notify cleaner + customer + admin).
-- [ ] Admin: edit booking details (PATCH) using the same logic; UI panel on the booking page.
-- [ ] Customer: `/manage/[bookingId]/[token]` page + token-guarded API (view, reschedule, cancel / skip a visit / stop a series), free-change window of 48h, otherwise "call us". Non-expiring HMAC link, added to confirmation / assigned / reminder messages.
-- [ ] Admin "System log" page (server_logs, filter by level) + sidebar link, so silent failures become visible.
-- [ ] sitemap.xml + robots.txt (no admin/private routes indexed).
-- [ ] e2e extended; tsc/lint/build; deploy; live check.
+- [x] `lib/bookings/changes.ts`: reschedule / cancel logic in ONE place (unassign + re-match the cleaner, cancel a series' future visits, flag refunds, notify cleaner + customer + admin).
+- [x] Admin: edit booking details (PATCH) using the same logic; UI panel on the booking page.
+- [x] Customer: `/manage/[bookingId]/[token]` page + token-guarded API (view, reschedule, cancel / skip a visit / stop a series), free-change window of 48h, otherwise "call us". Non-expiring HMAC link, added to confirmation / assigned / reminder messages.
+- [x] Admin "System log" page (server_logs, filter by level) + sidebar link, so silent failures become visible.
+- [x] sitemap.xml + robots.txt (no admin/private routes indexed).
+- [x] e2e extended; tsc/lint/build; deploy; live check.
+
+### Review (phase 8)
+Built + verified (e2e: 90 checks, all pass, zero emails sent): shared change engine (`lib/bookings/changes.ts`: reschedule / cancel / stopSeries) used by customer self-service, the admin edit panel and the admin pipeline "cancelled" drop; customer `/manage/[id]/[token]` page (non-expiring HMAC link, in confirmation + assignment messages), 48h free-change rule enforced SERVER-side, refunds flagged for manual action (Stripe not wired), unpaid invoices voided, cleaners told; admin booking edit (date/time/postcode changes release and re-match the cleaner); System log page; sitemap.xml/robots.txt; NEXT_PUBLIC_SITE_URL fixed to www.amplecleaners.com (was the vercel.app URL, so every emailed link pointed there). Bug found by the tests: a series-stop would have cancelled tomorrow's visit inside the 48h window — fixed.
+**Incident:** repeated e2e runs exhausted Resend's DAILY email quota (429 daily_quota_exceeded) until 00:00 UTC. Added `DISABLE_OUTBOUND_MESSAGES=1` kill switch; e2e now refuses to run without it. If email volume grows, upgrade the Resend plan (free = 100/day).

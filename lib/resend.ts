@@ -17,6 +17,13 @@ export const resendAdminEmail =
  * Send an email using Resend. Thin wrapper kept separate from the raw SDK so
  * call sites don't need to know the default "from" address.
  */
+/**
+ * Kill switch for automated tests: with `DISABLE_OUTBOUND_MESSAGES=1` no email, SMS or
+ * WhatsApp leaves the app. (Test runs once exhausted the real daily email quota.)
+ * Never set this in production.
+ */
+export const OUTBOUND_DISABLED = process.env.DISABLE_OUTBOUND_MESSAGES === "1";
+
 export async function sendEmail(params: {
   to: string | string[];
   subject: string;
@@ -24,5 +31,6 @@ export async function sendEmail(params: {
   from?: string;
 }) {
   const { to, subject, html, from = resendFrom } = params;
+  if (OUTBOUND_DISABLED) return { data: { id: "disabled" }, error: null };
   return await resend.emails.send({ from, to, subject, html });
 }

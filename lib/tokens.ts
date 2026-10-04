@@ -63,3 +63,26 @@ export function verifyInvoiceToken(invoiceId: string, token: string): boolean {
     return false;
   }
 }
+
+/**
+ * Booking "manage" link token — non-expiring HMAC capability for
+ * `/manage/<bookingId>/<token>` (reschedule / cancel). Distinct payload prefix
+ * from the invoice token so one can never be replayed as the other.
+ */
+export function generateBookingToken(bookingId: string): string | null {
+  const secret = process.env.QUOTE_CONFIRM_SECRET;
+  if (!secret) return null;
+  return crypto.createHmac("sha256", secret).update(`booking:${bookingId}`).digest("hex");
+}
+
+export function verifyBookingToken(bookingId: string, token: string): boolean {
+  const expected = generateBookingToken(bookingId);
+  if (!expected || !token) return false;
+  try {
+    const a = Buffer.from(token, "hex");
+    const b = Buffer.from(expected, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}

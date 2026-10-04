@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Plus, Trash2, Save, Send } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { BookingOps, FlagBanner, type OpsInvoice } from "@/components/admin/BookingOps";
+import { BookingEdit } from "@/components/admin/BookingEdit";
 import { ErrorState } from "@/components/admin/DataState";
 import { SERVICE_LABELS, BOOKING_STATUS_LABELS, type QuoteLineItem, type BookingStatus } from "@/types";
 
@@ -15,7 +16,7 @@ interface BookingDetail {
   bedrooms: number | null; bathrooms: number | null; frequency: string | null;
   special_instructions: string | null; quote_line_items: QuoteLineItem[] | null;
   quote_total: number | null; quote_vat_rate: number | null; deposit_required: boolean;
-  assigned_cleaner_id: string | null;
+  assigned_cleaner_id: string | null; clean_time: string | null;
   deposit_status: "unpaid" | "claimed" | "verified"; deposit_amount: number | null;
   is_flagged: boolean; flag_reason: string | null; clock_in_at: string | null; clock_out_at: string | null;
   customer: { id: string; full_name: string; email: string; phone: string } | null;
@@ -167,6 +168,8 @@ export default function BookingDetailPage() {
               <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{booking.special_instructions}</p>
             )}
           </section>
+
+          <BookingEdit key={`${booking.clean_date}-${booking.clean_time}-${booking.address?.postcode}`} booking={booking} onSaved={load} />
 
           <section className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Cleaner</h2>

@@ -6,6 +6,7 @@ import { notifyCustomer, sendEmailSafe } from "@/lib/notify";
 import { emailShell, BRAND } from "@/lib/email-templates";
 import { resendAdminEmail } from "@/lib/resend";
 import { formatDate } from "@/lib/utils";
+import { manageUrl } from "@/lib/bookings/links";
 import {
   estimateJobHours, explainNoMatch, rankCleaners, toMinutes,
   type BusySlot, type MatchCleaner,
@@ -185,6 +186,7 @@ export async function notifyJobAssigned(bookingId: string, cleanerId: string): P
   const when = booking.clean_date ? formatDate(booking.clean_date) : "date to be confirmed";
   const time = booking.clean_time ? ` at ${String(booking.clean_time).slice(0, 5)}` : "";
   const service = SERVICE_LABELS[booking.service_type as ServiceType];
+  const manage = manageUrl(bookingId);
   const where = address ? `${address.line_1}, ${address.postcode}` : "address on the job";
 
   await Promise.allSettled([
@@ -213,8 +215,9 @@ export async function notifyJobAssigned(bookingId: string, cleanerId: string): P
             heading: "Your cleaner is confirmed ✅",
             reference: booking.reference,
             bodyHtml: `<p>Hi ${String(customer.full_name).split(" ")[0]},</p><p>Good news — <strong style="color:${BRAND.green}">${cleaner.full_name.split(" ")[0]}</strong> will be looking after your ${service.toLowerCase()} on <strong>${when}${time}</strong>.</p><p>Nothing more for you to do — we'll see you then.</p>`,
+            cta: manage ? { label: "Manage my booking", href: manage } : undefined,
           }),
-          sms: `Ample Cleaners: ${cleaner.full_name.split(" ")[0]} will be doing your ${service.toLowerCase()} on ${when}${time}. Ref ${booking.reference}`,
+          sms: `Ample Cleaners: ${cleaner.full_name.split(" ")[0]} will be doing your ${service.toLowerCase()} on ${when}${time}. Ref ${booking.reference}${manage ? ` Change or cancel: ${manage}` : ""}`,
           whatsapp: `Hi ${String(customer.full_name).split(" ")[0]}, ${cleaner.full_name.split(" ")[0]} will be looking after your ${service.toLowerCase()} on ${when}${time} ✅\n\nRef: ${booking.reference}`,
         })
       : Promise.resolve(),

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LayoutDashboard, Calendar, Users, Receipt, BarChart3, UserPlus, Settings } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, Receipt, BarChart3, UserPlus, Settings, Activity } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/invoices", label: "Invoices", icon: Receipt },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },
   { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/logs", label: "System log", icon: Activity },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

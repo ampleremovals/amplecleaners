@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { processJobCompletion } from "@/lib/bookings/completion";
 import { autoAssignBooking } from "@/lib/automation/autoAssign";
 import { cancelFutureVisits } from "@/lib/automation/recurrence";
+import { cancelBooking } from "@/lib/bookings/changes";
 import { todayInLondon } from "@/lib/cleaner-auth";
 import type { BookingStatus } from "@/types";
 
@@ -34,6 +35,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const { data: booking } = await supabase.from("bookings").select("status, parent_booking_id").eq("id", params.id).maybeSingle();
   if (!booking) return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 });
 
+  // Cancelling releases the cleaner, voids unpaid invoices, stops a series and flags refunds.
+  if (newStatus === "cancelled") {
+    const result = await cancelBooking(params.id, { actor: "admin", notifyCustomer: false });
+    if (!result.ok) return NextResponse.json({ success: false, error: result.error }, { status: result.status });
+    return NextResponse.json({ success: true, refundDue: result.refundDue ?? 0 });
+  }
+
   const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", params.id);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
@@ -55,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     invoiced = result.done;
   } else if (newStatus === "booking_confirmed") {
     await autoAssignBooking(params.id, "system");
-  } else if ((newStatus === "cancelled" || newStatus === "bad_lead" || newStatus === "not_a_good_fit") && !booking.parent_booking_id) {
+  } else if ((newStatus === "bad_lead" || newStatus === "not_a_good_fit") && !booking.parent_booking_id) {
     cancelledVisits = await cancelFutureVisits(params.id, todayInLondon());
   }
 

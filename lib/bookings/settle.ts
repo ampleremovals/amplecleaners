@@ -84,7 +84,7 @@ export async function settleInvoice(invoiceId: string, opts: SettleOptions): Pro
     const { data: customer } = await supabase.from("customers").select("full_name, email, phone").eq("id", invoice.customer_id).single();
     const firstName = String(customer?.full_name ?? "there").split(" ")[0];
     if (customer && isDeposit) {
-      await sendDepositConfirmedMessages({ reference: booking.reference, firstName, email: customer.email, phone: customer.phone });
+      await sendDepositConfirmedMessages({ reference: booking.reference, firstName, email: customer.email, phone: customer.phone, bookingId: invoice.booking_id });
     } else if (customer) {
       const { data: settings } = await supabase.from("settings").select("google_review_link").eq("id", 1).maybeSingle();
       const token = generateQuoteConfirmToken(invoice.booking_id) ?? "";
