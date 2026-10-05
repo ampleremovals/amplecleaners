@@ -143,8 +143,8 @@ function RevealView({ quote, onReserve }: { quote: QuoteData; onReserve: () => v
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-green-100">
           <Sparkles className="h-7 w-7 text-brand-green-700" />
         </div>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-green-950">Your quote is ready, {quote.firstName}</h1>
-        <p className="mt-2 text-slate-500">Fixed price, no hidden fees. Pay a small deposit today to secure your date.</p>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-green-950">{quote.firstName}, your fixed price is {gbp(quote.total)}</h1>
+        <p className="mt-2 text-slate-700">No hidden fees, ever. Secure your date with a small deposit — it comes straight off your total.</p>
       </div>
 
       <div className="rounded-2xl border-2 border-brand-green-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">
@@ -159,13 +159,19 @@ function RevealView({ quote, onReserve }: { quote: QuoteData; onReserve: () => v
             <span>Secure your date with just a <strong>{quote.depositPercentage}% deposit of {gbp(quote.deposit)}</strong> — the rest isn&apos;t due until the job&apos;s done.</span>
           </div>
           <Button onClick={onReserve} size="lg" className="mt-4 h-14 w-full rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800">
-            Pay {gbp0(quote.deposit)} deposit to secure your date
+            Pay {gbp0(quote.deposit)} deposit to secure my date
           </Button>
+          <ul className="mt-4 grid gap-1.5 text-sm font-medium text-slate-800 sm:grid-cols-2">
+            <li>✓ Price locked — it won&apos;t change on the day</li>
+            <li>✓ DBS-checked cleaner</li>
+            <li>✓ Deposit comes off your total</li>
+            <li>✓ Free changes up to 48h before</li>
+          </ul>
         </div>
       </div>
 
       <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
-        <ShieldCheck className="h-4 w-4" /> Secure payment · The rest isn&apos;t due until the job&apos;s done
+        <ShieldCheck className="h-4 w-4" /> Secure payment · Your slot is held once the deposit is paid · The rest is due after the clean
       </p>
     </motion.div>
   );

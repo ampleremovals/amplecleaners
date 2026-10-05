@@ -70,33 +70,40 @@ export async function sendQuoteMessages({
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto;">
       <div style="background: #15803d; padding: 24px; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #fff; margin: 0; font-size: 22px;">Your quote is ready 🎉</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 22px;">Your fixed price: ${amount}</h1>
       </div>
       <div style="background: #fff; padding: 32px; border: 1px solid #e2e8f0; border-top: 0; border-radius: 0 0 12px 12px;">
         <p style="font-size: 16px;">Hi ${firstName},</p>
-        <p style="font-size: 16px; margin: 16px 0;">Here's your fixed-price quote for your ${serviceLabel.toLowerCase()}.</p>
+        <p style="font-size: 16px; margin: 16px 0;">Thanks for choosing Ample Cleaners. Here's your fixed price for your ${serviceLabel.toLowerCase()} — what you see is exactly what you pay.</p>
         <div style="border: 2px solid #15803d; border-radius: 12px; padding: 18px; margin: 20px 0;">
           <table style="width:100%;"><tr>
-            <td style="font-size: 16px; font-weight: bold; color: #15803d;">${serviceLabel}</td>
-            <td style="text-align:right; font-size: 22px; font-weight: bold; color: #15803d;">${amount}</td>
+            <td style="font-size: 16px; font-weight: bold; color: #14532d;">${serviceLabel}</td>
+            <td style="text-align:right; font-size: 24px; font-weight: bold; color: #14532d;">${amount}</td>
           </tr></table>
         </div>
-        <p style="font-size: 16px; margin: 20px 0 12px;"><strong>Ready to secure your date? A small deposit does it — the rest isn't due until the job's done.</strong></p>
+        <p style="font-size: 16px; margin: 0 0 8px;"><strong>Here's what you get:</strong></p>
+        <ul style="margin: 0 0 20px; padding-left: 20px; font-size: 15px; line-height: 1.8;">
+          <li>A DBS-checked cleaner — you'll know their first name before the day</li>
+          <li>A price that never changes on the day — no extras, no travel fee</li>
+          <li>Free changes or cancellation up to 48 hours before</li>
+          <li>The balance is only due <em>after</em> the clean</li>
+        </ul>
+        <p style="font-size: 16px; margin: 20px 0 12px;">Your date is held the moment you pay a ${depositPercentage}% deposit — just <strong>${deposit}</strong>, and it comes straight off your total.</p>
         <p style="text-align: center; margin: 0 0 24px;">
-          <a href="${link}" style="background: #16a34a; color: #fff; text-decoration: none; padding: 14px 30px; border-radius: 10px; font-weight: bold; font-size: 16px; display: inline-block; width: 80%;">
-            Pay ${deposit} deposit to secure your date
+          <a href="${link}" style="background: #15803d; color: #fff; text-decoration: none; padding: 15px 30px; border-radius: 10px; font-weight: bold; font-size: 17px; display: inline-block; width: 80%;">
+            Secure my date for ${deposit}
           </a>
         </p>
-        <p style="font-size: 14px; color: #64748b;">Or open your quote any time: <a href="${link}" style="color: #15803d;">${link}</a></p>
-        <p style="font-size: 15px; margin-top: 24px;">Any questions? Just call us on ${PHONE}.<br><br>Ample Cleaners</p>
-        <p style="font-size: 13px; color: #94a3b8;">Ref: ${reference}</p>
+        <p style="font-size: 14px; color: #475569;">Not ready yet? No problem — your quote waits for you here: <a href="${link}" style="color: #15803d;">${link}</a></p>
+        <p style="font-size: 15px; margin-top: 24px;">Questions? Just reply to this email or call us on ${PHONE}.<br><br>Ample Cleaners</p>
+        <p style="font-size: 13px; color: #64748b;">Ref: ${reference}</p>
       </div>
     </div>`;
 
-  const smsText = `Hi ${firstName}, your Ample Cleaners quote for ${serviceLabel.toLowerCase()} is ${amount}. Pay a small deposit to secure your date (rest due on completion): ${link} — Ref ${reference}`;
-  const whatsappText = `Hi ${firstName}, your Ample Cleaners quote is ready 🎉\n\n*${serviceLabel}:* ${amount}\n\nA small deposit secures your date — the rest isn't due until the job's done:\n${link}\n\nRef: ${reference}`;
+  const smsText = `Hi ${firstName}, your fixed price for ${serviceLabel.toLowerCase()} is ${amount}. Secure your date for just ${deposit} (it comes off the total): ${link} Ref ${reference}`;
+  const whatsappText = `Hi ${firstName}, your fixed price is ready 🎉\n\n*${serviceLabel}: ${amount}*\n\n✅ DBS-checked cleaner\n✅ Price never changes on the day\n✅ Free changes up to 48h before\n\nSecure your date for just *${deposit}* (it comes off your total):\n${link}\n\nRef: ${reference}`;
 
-  await notifyCustomer({ context: "quote sent", email, phone, subject: `Your Ample Cleaners quote — ${amount} (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
+  await notifyCustomer({ context: "quote sent", email, phone, subject: `${firstName}, your fixed price: ${amount} — secure your date for ${deposit}`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
 }
 
 export interface DepositMessageParams {
@@ -132,11 +139,11 @@ export async function sendDepositMessages({
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto;">
       <div style="background: #15803d; padding: 24px; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #fff; margin: 0; font-size: 22px;">Secure your date 🎉</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 22px;">One step to lock in your date</h1>
       </div>
       <div style="background: #fff; padding: 32px; border: 1px solid #e2e8f0; border-top: 0; border-radius: 0 0 12px 12px;">
         <p style="font-size: 16px;">Hi ${firstName},</p>
-        <p style="font-size: 16px; margin: 16px 0;">Choose how you'd like to pay your ${amount} deposit — all options are on your booking page:</p>
+        <p style="font-size: 16px; margin: 16px 0;">Your date is held the moment your ${amount} deposit is in — and it comes off your total. Pick whichever's easiest:</p>
         <div style="background: #f0fdf4; border-left: 4px solid #15803d; padding: 16px; margin: 16px 0; border-radius: 4px;">
           <p style="margin: 0 0 6px; font-size: 15px;">💳 <strong>Pay ${amount} by card</strong> — instant, secures your date.</p>
           <p style="margin: 0; font-size: 15px;">🏦 <strong>Pay ${amount} by bank transfer</strong> — no card fee:</p>
@@ -157,7 +164,7 @@ export async function sendDepositMessages({
   const smsText = `Ample Cleaners: pay your ${amount} deposit by card or bank transfer to secure your date: ${link} (Ref ${reference})`;
   const whatsappText = `Hi ${firstName}, pay your ${amount} deposit to secure your date 🎉\n\n💳 Card or 🏦 bank transfer, your choice:\n${link}\n\nRef: ${reference}`;
 
-  await notifyCustomer({ context: "deposit instructions", email, phone, subject: `Pay your deposit to secure your date (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
+  await notifyCustomer({ context: "deposit instructions", email, phone, subject: `Lock in your date — ${amount} deposit (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
 }
 
 export interface DepositConfirmedParams {
@@ -175,19 +182,23 @@ export async function sendDepositConfirmedMessages({ reference, firstName, email
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto;">
       <div style="background: #16a34a; padding: 24px; border-radius: 12px 12px 0 0;">
-        <h1 style="color: #fff; margin: 0; font-size: 22px;">Your deposit is confirmed ✅</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 22px;">You're booked ✅</h1>
       </div>
       <div style="background: #fff; padding: 32px; border: 1px solid #e2e8f0; border-top: 0; border-radius: 0 0 12px 12px;">
         <p style="font-size: 16px;">Hi ${firstName},</p>
-        <p style="font-size: 16px; margin: 16px 0;">Great news — your deposit is confirmed and your date is locked in. 🎉</p>
-        <p style="font-size: 16px; margin: 16px 0;">We'll be in touch with the cleaner details closer to the day.</p>
+        <p style="font-size: 16px; margin: 16px 0;">Your deposit is in and your date is locked. Nothing more to do — here's what happens next:</p>
+        <ol style="margin: 0 0 16px; padding-left: 20px; font-size: 15px; line-height: 1.8;">
+          <li>We match you with a DBS-checked cleaner and tell you their first name.</li>
+          <li>The day before, we send you a reminder.</li>
+          <li>After the clean we invoice the balance — your deposit is already taken off.</li>
+        </ol>
         ${manage ? `<p style="text-align:center;margin:20px 0;"><a href="${manage}" style="color:#15803d;font-weight:bold;">Need to change the date or cancel? Manage your booking</a></p>` : ""}
         <p style="font-size: 15px; margin-top: 16px;">Thank you,<br>Ample Cleaners · ${PHONE}</p>
         <p style="font-size: 13px; color: #94a3b8;">Ref: ${reference}</p>
       </div>
     </div>`;
-  const smsText = `Ample Cleaners: your deposit is confirmed and your date is locked in!${manage ? ` Change or cancel: ${manage}` : ` Questions? Call ${PHONE}.`} Ref ${reference}`;
-  const whatsappText = `Hi ${firstName}, great news — your deposit is confirmed ✅ Your date is locked in. We'll be in touch with the cleaner details soon.${manage ? `\n\nNeed to change it? ${manage}` : ""}\n\nRef: ${reference}`;
+  const smsText = `Ample Cleaners: you're booked! Your date is locked in and we're matching you with a DBS-checked cleaner.${manage ? ` Change or cancel: ${manage}` : ` Questions? Call ${PHONE}.`} Ref ${reference}`;
+  const whatsappText = `Hi ${firstName}, you're booked ✅ Your date is locked in. Next: we match you with a DBS-checked cleaner and tell you their name.${manage ? `\n\nNeed to change it? ${manage}` : ""}\n\nRef: ${reference}`;
 
-  await notifyCustomer({ context: "deposit confirmed", email, phone, subject: `Your deposit is confirmed (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
+  await notifyCustomer({ context: "deposit confirmed", email, phone, subject: `You're booked ✅ Here's what happens next (${reference})`, html: emailHtml, sms: smsText, whatsapp: whatsappText });
 }

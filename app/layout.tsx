@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { getPricing } from "@/lib/pricing-config";
 
 // Both are variable fonts, so no `weight` list is needed — one file per script subset covers every weight.
 // Unbounded — chunky, rounded, confident display face. Carries the "colourful
@@ -22,18 +23,25 @@ const manrope = Manrope({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "Ample Cleaners — Professional Cleaning Services UK",
-    template: "%s | Ample Cleaners",
-  },
-  description:
-    "Professional cleaning services across the UK. Regular cleaning, deep cleaning, end of tenancy, office and after-builders cleaning. Get a fixed-price quote in minutes.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  robots: { index: true, follow: true },
-  openGraph: { type: "website", siteName: "Ample Cleaners", locale: "en_GB" },
-  twitter: { card: "summary_large_image" },
-};
+/**
+ * Search-result and link-preview copy. Leads with the strongest specific offer
+ * (a real "from" price, DBS-checked, pay-later) rather than a generic tagline,
+ * and uses the LIVE pricing from Settings so it never goes stale.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { hourlyRate, minHours, depositPercentage } = await getPricing();
+  const from = Math.round(hourlyRate * minHours * 100) / 100;
+  const title = "Ample Cleaners — Fixed-Price House Cleaning, Booked in 2 Minutes";
+  const description = `DBS-checked cleaners. See your exact price instantly — regular cleaning from £${from} (${minHours} hours at £${hourlyRate}/hr). Pay just ${depositPercentage}% to book, the rest after the clean. Free changes up to 48 hours before.`;
+  return {
+    title: { default: title, template: "%s | Ample Cleaners" },
+    description,
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+    robots: { index: true, follow: true },
+    openGraph: { type: "website", siteName: "Ample Cleaners", locale: "en_GB", title, description },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.amplecleaners.com";
@@ -41,7 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
     name: "Ample Cleaners",
-    description: "Professional regular, deep, end of tenancy, office and after-builders cleaning across the UK.",
+    description: "DBS-checked regular, deep, end of tenancy, office and after-builders cleaning with fixed prices, across the UK.",
     url: site,
     areaServed: "United Kingdom",
     priceRange: "££",

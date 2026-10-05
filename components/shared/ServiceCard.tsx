@@ -11,12 +11,14 @@ const GRADIENTS = [
 ];
 
 export function ServiceCard({
-  icon: Icon, title, description, href, index = 0,
+  icon: Icon, title, description, href, cta = "Get a quote", index = 0,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
   href: string;
+  /** Button label — benefit-led and specific beats a generic "Get a quote". */
+  cta?: string;
   index?: number;
 }) {
   const gradient = GRADIENTS[index % GRADIENTS.length];
@@ -36,9 +38,9 @@ export function ServiceCard({
           <Icon className="h-6 w-6" />
         </span>
         <h3 className="font-display text-lg font-bold text-slate-900">{title}</h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600">{description}</p>
+        <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-700">{description}</p>
         <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-brand-green-700">
-          Get a quote
+          {cta}
           <span className="transition-transform group-hover:translate-x-1">→</span>
         </span>
       </Link>

@@ -16,7 +16,7 @@ export default function BookingWizardPage() {
   const service = params.service as string;
   const valid = VALID_SERVICES.includes(service as ServiceType);
   const serviceType = valid ? (service as ServiceType) : "regular_cleaning";
-  const { hourlyRate, minHours, price } = usePricing();
+  const { hourlyRate, minHours, depositPercentage, price } = usePricing();
 
   const [form, setForm] = useState({
     fullName: "", email: "", phone: "",
@@ -30,6 +30,8 @@ export default function BookingWizardPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const isRegular = serviceType === "regular_cleaning";
+  const deposit = Math.round(price(form.hours) * depositPercentage) / 100;
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -59,9 +61,9 @@ export default function BookingWizardPage() {
     <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-xl">
         <h1 className="font-display text-3xl font-extrabold text-slate-900">
-          {SERVICE_LABELS[serviceType]} — get your quote
+          {isRegular ? "See your exact price in 2 minutes" : `Get your fixed price for ${SERVICE_LABELS[serviceType].toLowerCase()}`}
         </h1>
-        <p className="mt-2 text-slate-500">Takes under a minute. No card needed to get your price.</p>
+        <p className="mt-2 text-slate-700">{isRegular ? "Choose your hours and tell us where — your total appears instantly. No card needed, no obligation." : "Tell us about the property and we'll send a fixed price. No card needed, no obligation, no pressure."}</p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -128,10 +130,11 @@ export default function BookingWizardPage() {
 
               <div className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-brand-green-50 to-brand-sky-50 px-5 py-4">
                 <span className="flex items-center gap-2 text-sm font-semibold text-brand-green-900">
-                  <Sparkles className="h-4 w-4 text-brand-green-600" /> Your price
+                  <Sparkles className="h-4 w-4 text-brand-green-600" /> Your fixed price
                 </span>
-                <span className="font-display text-2xl font-extrabold text-brand-green-700">
-                  {gbp(price(form.hours))}
+                <span className="text-right">
+                  <span className="block font-display text-2xl font-extrabold text-brand-green-800">{gbp(price(form.hours))}</span>
+                  <span className="block text-xs font-semibold text-brand-green-900">Secure your date for just {gbp(deposit)}</span>
                 </span>
               </div>
             </>
@@ -182,8 +185,13 @@ export default function BookingWizardPage() {
             className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800 disabled:opacity-60"
           >
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            {serviceType === "regular_cleaning" ? `Book now — ${gbp(price(form.hours))}` : "Get my free quote"}
+            {isRegular ? "Get my price & secure my slot" : "Get my fixed price"}
           </button>
+          <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs font-semibold text-slate-700">
+            <li>✓ DBS-checked cleaners</li>
+            <li>✓ Price never changes on the day</li>
+            <li>✓ Free changes up to 48h before</li>
+          </ul>
           <p className="text-center text-xs text-slate-500">By booking you agree to our <Link href="/terms" className="font-semibold text-brand-green-700 hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-brand-green-700 hover:underline">Privacy Policy</Link>. Change or cancel free up to 48 hours before.</p>
         </form>
       </div>

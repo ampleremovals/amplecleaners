@@ -61,8 +61,8 @@ export default function CleanerRegisterPage() {
   return (
     <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-12 sm:py-16">
       <div className="mx-auto w-full max-w-xl">
-        <h1 className="font-display text-3xl font-extrabold text-brand-green-950">Join the Ample Cleaners team</h1>
-        <p className="mt-2 text-slate-500">Flexible local work, paid every job. Tell us a little about you — it takes two minutes.</p>
+        <h1 className="font-display text-3xl font-extrabold text-brand-green-950">Clean on your terms. We bring the customers.</h1>
+        <p className="mt-2 text-slate-500">You choose your hours and your areas. We find the customers, match you to jobs near you and handle the booking — you just turn up and do what you do best. Tell us about yourself in two minutes.</p>
 
         <form onSubmit={submit} className="mt-8 space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/60">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -97,7 +97,7 @@ export default function CleanerRegisterPage() {
 
           {error && <p role="alert" className="text-sm font-semibold text-red-600">{error}</p>}
           <button type="submit" disabled={busy} className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800 disabled:opacity-60">
-            {busy && <Loader2 className="h-5 w-5 animate-spin" />} Send my application
+            {busy && <Loader2 className="h-5 w-5 animate-spin" />} Apply to join the team
           </button>
           <p className="text-center text-xs text-slate-500">We use your details only to assess your application — see our <Link href="/privacy" className="font-semibold text-brand-green-700 hover:underline">Privacy Policy</Link>.</p>
         </form>

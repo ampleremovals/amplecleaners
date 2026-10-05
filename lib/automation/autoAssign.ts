@@ -214,7 +214,7 @@ export async function notifyJobAssigned(bookingId: string, cleanerId: string): P
           phone: customer.phone,
           subject: `Your cleaner is confirmed (${booking.reference})`,
           html: emailShell({
-            heading: "Your cleaner is confirmed ✅",
+            heading: `Meet ${cleaner.full_name.split(" ")[0]} — your cleaner ✅`,
             reference: booking.reference,
             bodyHtml: `<p>Hi ${String(customer.full_name).split(" ")[0]},</p><p>Good news — <strong style="color:${BRAND.green}">${cleaner.full_name.split(" ")[0]}</strong> will be looking after your ${service.toLowerCase()} on <strong>${when}${time}</strong>.</p><p>Nothing more for you to do — we'll see you then.</p>`,
             cta: manage ? { label: "Manage my booking", href: manage } : undefined,

@@ -474,3 +474,10 @@ Built + verified (e2e 141 checks all pass, no messages sent): privacy policy + t
 1. **Next.js security upgrade:** `npm audit` reports a critical Next 14.2.35 advisory set; 14.2.35 is the last 14.x, fixes exist only in 15.5.x+ (React 19, async `params` in ~40 routes). CLAUDE.md pins Next 14, so NOT done unilaterally. Mitigated what can be (AVIF off, no remote images). Recommend a dedicated upgrade session. tailwind/postcss/braces findings are build-time tooling only.
 2. **Legal text is a DRAFT** written from what the system does — have a solicitor/the owner confirm (esp. deposit retention inside 48h, re-clean promise, company details/number).
 3. The OG share card could not render on Windows locally (next/og font-path bug); verify on the live site.
+
+## Task: Conversion copywriting pass (2026-10-05)
+Rewrote the customer-facing copy to direct-response principles (specific benefit-led headline with a real "from £" price, objection handling, risk reversal, one clear CTA per screen, honest urgency):
+homepage (new hero, "Sound familiar?" problem section, benefit-led service cards, "£15 an hour. That's the whole price.", 3-step flow, 6-question FAQ + FAQPage JSON-LD, "Get your weekends back" CTA), booking form, confirmation page, quote page, quote/deposit/confirmed/assigned emails + SMS + WhatsApp, both 7-day follow-up sequences, cleaner recruitment page, Google/link-preview metadata + share card (all use LIVE pricing from Settings).
+**Honesty fixes (removed claims the system can't back):** "we're fully insured", "popular slots fill up", "get your full deposit back", "most people pay within a day or two". Urgency now rests on a true fact: a date is only held once the deposit is paid.
+**Not "data-tested":** no traffic exists yet, so this applies proven principles but is NOT validated. Next step = A/B-test the hero headline/CTA once there is traffic (record the variant on the booking and compare conversion in Reports).
+**Owner to confirm:** the re-clean/"put it right within 24h" promise and "free changes up to 48h" are now headline claims — they must be honoured in practice (terms are draft, see Phase 10).
