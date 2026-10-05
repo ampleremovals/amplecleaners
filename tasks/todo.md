@@ -107,7 +107,7 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
     missing in production, which crashed `middleware.ts` on every request
     (`MIDDLEWARE_INVOCATION_FAILED`) until caught via `vercel logs` and
     re-added with the explicit type.
-- [x] **BLOCKED on you:** Twilio number + WhatsApp Business profile, Stripe
+- [ ] **BLOCKED on you:** Twilio number + WhatsApp Business profile, Stripe
       account. Same as before — can't create paid third-party accounts.
 - [x] **BLOCKED on you:** a real Ample Cleaners logo file (`assets/logo.png`
       in both the web app and `cleaner-app/`) — I haven't fabricated a brand
@@ -202,7 +202,7 @@ cleaner mobile app (cloned shape from Ample Removals' `driver-app/`).
       their schedules (both once/day — within Vercel Hobby's limit, unlike
       the higher-frequency crons Ample Removals had to route through
       Supabase pg_cron instead, per their Lesson 16).
-- [x] NOT done: Klarna/pay-in-3 (cleaning deposits are small enough this may
+- [ ] NOT done: Klarna/pay-in-3 (cleaning deposits are small enough this may
       not be worth building — flag to the owner before doing it). Stripe
       webhook AND the follow-up cron routes are all UNVERIFIED end-to-end
       (need a real Supabase project + Stripe account + Resend/Twilio
@@ -521,7 +521,7 @@ Owner request: a landing page for each of ~50 places around Barking & Dagenham (
 - [x] `/cleaning/[area]` (static, ISR) with unique title/description/canonical, Service + FAQPage + Breadcrumb JSON-LD; `/cleaning` hub grouped by area; unknown slug → 404.
 - [x] Booking CTA carries `utm_content=area-<slug>` → stored on the booking; booking form pre-fills the town.
 - [x] Tracker allowlist for `/cleaning/*`; sitemap entries; footer + homepage "Areas we cover" links.
-- [x] e2e: all 50 pages 200, unique titles/H1, JSON-LD parses, sitemap lists them, 404, attribution; tsc/lint/build; push; live spot-check.
+- [ ] e2e: all 50 pages 200, unique titles/H1, JSON-LD parses, sitemap lists them, 404, attribution; tsc/lint/build; push; live spot-check (local checks done; live check blocked by Vercel bot protection).
 
 ### Scope update (owner, same day): "SEO powerful — rank #1 for ALL cleaning services in ALL these locations"
 => a SERVICE × AREA matrix, not just 50 pages. URL scheme (keyword-first, human-readable):
