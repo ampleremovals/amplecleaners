@@ -1,5 +1,9 @@
 import type { SeoServiceSlug } from "@/lib/seo/services";
 import { MORE_GUIDES } from "@/lib/seo/guides-more";
+import { KITCHEN_BATH_GUIDES } from "@/lib/seo/guides-kitchen-bath";
+import { LIVING_GUIDES } from "@/lib/seo/guides-living";
+import { HABITS_GUIDES } from "@/lib/seo/guides-habits";
+import { PROPERTY_GUIDES } from "@/lib/seo/guides-property";
 
 /**
  * Cleaning guides (the blog). Written to be genuinely useful and shareable:
@@ -179,7 +183,7 @@ const CORE_GUIDES: Guide[] = [
   },
 ];
 
-export const GUIDES: Guide[] = [...CORE_GUIDES, ...MORE_GUIDES];
+export const GUIDES: Guide[] = [...CORE_GUIDES, ...MORE_GUIDES, ...KITCHEN_BATH_GUIDES, ...LIVING_GUIDES, ...HABITS_GUIDES, ...PROPERTY_GUIDES];
 
 const BY_SLUG = new Map(GUIDES.map((g) => [g.slug, g]));
 export const getGuide = (slug: string): Guide | undefined => BY_SLUG.get(slug);
