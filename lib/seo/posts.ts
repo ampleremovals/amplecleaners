@@ -111,6 +111,59 @@ export const POSTS: Post[] = [
     ],
     relatedGuides: ["how-to-choose-a-cleaning-company", "how-much-does-a-cleaner-cost-london"],
   },
+  {
+    slug: "before-your-cleaner-arrives",
+    title: "Before Your Cleaner Arrives: 7 Things That Make the Clean Better",
+    description: "Seven simple things to do before a cleaner arrives, from clearing surfaces to leaving clear notes, so every hour of the clean is spent cleaning.",
+    summary: "Seven small things that make every hour of a clean count.",
+    category: "tips", published: "2026-10-05", minutes: 3,
+    intro: "A cleaner can only clean what they can reach. A few minutes of preparation means their time goes on cleaning rather than tidying.",
+    sections: [
+      { h: "The seven things", ol: ["Clear surfaces and put away small items, especially in the kitchen and bathroom", "Pick clothes and toys up off the floors", "Tell your cleaner about priorities, such as the oven or a particular room", "Leave clear access instructions, such as a key safe code, and let them know about pets", "Point out anything delicate or valuable, and anything that should not be moved", "Mention surfaces that need special care, such as natural stone or a wooden floor", "Put out any products you would like used, or note any you would like avoided"] },
+      { h: "You do not need to tidy everything", p: ["Cleaners are used to normal homes. The goal is clear surfaces and clear notes, not a spotless house before the clean starts."] },
+    ],
+    relatedGuides: ["cleaning-routine-for-busy-working-people", "how-to-choose-a-cleaning-company"],
+  },
+  {
+    slug: "regular-clean-vs-deep-clean-which-do-you-need",
+    title: "Regular Clean or Deep Clean: Which Do You Need?",
+    description: "The difference between a regular clean and a deep clean, what each includes, and how to decide which one your home needs right now.",
+    summary: "What each includes, and how to choose.",
+    category: "tips", published: "2026-10-05", minutes: 3,
+    intro: "Both keep a home clean, but they do different jobs. A regular clean maintains, and a deep clean resets.",
+    sections: [
+      { h: "A regular clean is for", ul: ["Homes that are already in good shape", "Keeping kitchens, bathrooms and floors fresh week to week", "Households that want a fixed day and the same cleaner each time"] },
+      { h: "A deep clean is for", ul: ["A home that has not been cleaned thoroughly for a while", "A fresh start before moving in, or before starting a regular clean", "Appliances, grout, windows, frames and the places a regular clean skips", "Preparing a home for a sale or a letting"] },
+      { h: "A good combination", p: ["Many households book a deep clean first, and then a weekly or fortnightly regular clean. The deep clean does the heavy lifting once, and the regular clean keeps it that way."] },
+    ],
+    relatedGuides: ["deep-cleaning-checklist", "how-often-should-you-clean-every-room"],
+  },
+  {
+    slug: "for-letting-agents-and-landlords-working-with-ample-cleaners",
+    title: "For Letting Agents and Landlords: Working With Ample Cleaners",
+    description: "How letting agents and landlords can use Ample Cleaners for end of tenancy and between-tenancy cleans: fixed prices, vetted cleaners and online booking.",
+    summary: "Fixed prices, vetted cleaners and simple booking for turnarounds.",
+    category: "landlords", published: "2026-10-05", minutes: 2,
+    intro: "A fast, predictable turnaround keeps void periods short. Here is what agents and landlords can expect when booking an end of tenancy or between-tenancy clean with us.",
+    sections: [
+      { h: "What you get", ul: ["A fixed price before you commit, so you can plan costs", "DBS-checked cleaners, and we are fully insured", "Cleaning to a check-out standard, in one visit", "Online booking, and free changes up to 48 hours before the clean"] },
+      { h: "Covering east London", p: ["We work across Barking, Dagenham, Romford, Hornchurch, Ilford and the surrounding areas. Each area has its own page with local information."] },
+    ],
+    relatedGuides: ["landlord-guide-cleaning-between-tenants", "what-letting-agents-check-at-check-out"],
+  },
+  {
+    slug: "book-your-move-out-clean-early",
+    title: "Moving Out at the End of the Month? Book Your Clean Early",
+    description: "Why booking your end of tenancy clean early matters, how the busiest days work, and a simple timeline for booking around your move.",
+    summary: "Popular slots fill up, and a simple timeline to book around your move.",
+    category: "tenants", published: "2026-10-05", minutes: 2,
+    intro: "Most tenancies end on the same few days each month, so the most popular cleaning slots fill up first. Booking early gives you the most choice.",
+    sections: [
+      { h: "A simple timeline", ol: ["As soon as your move-out date is confirmed, request a quote for an end of tenancy clean", "Pick a day after the removals and before the check-out, if you can", "Keep your check-in inventory handy, and tell us anything the agent has flagged", "On the day, leave access sorted and take your own dated photos afterwards"] },
+      { h: "Flexible on the date?", p: ["If you can move out mid-week or mid-month, you will usually have more choice of times."] },
+    ],
+    relatedGuides: ["moving-out-checklist-last-week", "end-of-tenancy-cleaning-checklist"],
+  },
 ];
 
 POSTS.sort((a, b) => b.published.localeCompare(a.published));

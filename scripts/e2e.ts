@@ -325,6 +325,9 @@ async function phase12() {
   check("blog feed is RSS listing every post", /<rss/.test(bp[1].text) && POSTS.every((p) => bp[1].text.includes(`/blog/${p.slug}`)));
   check("blog posts are in the sitemap", POSTS.every((p) => sm.text.includes(`/blog/${p.slug}`)));
   check("unknown post and category return 404", (await http("/blog/nope", { headers: fwd() })).status === 404 && (await http("/blog/category/nope", { headers: fwd() })).status === 404);
+  const ar = await http("/areas", { headers: fwd() });
+  check("areas hub lists every area", ar.status === 200 && AREAS.every((a) => ar.text.includes(`/cleaning-services/${a.slug}`)));
+  check("areas hub is in the sitemap", sm.text.includes("/areas<"));
   check("static pages still win over the dynamic service route", (await http("/privacy", { headers: fwd() })).status === 200);
 }
 

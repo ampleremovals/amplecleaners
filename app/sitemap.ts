@@ -17,6 +17,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE}/blog`, lastModified: new Date(POSTS[0].published), changeFrequency: "weekly", priority: 0.7 },
     ...POSTS.map((p) => ({ url: `${SITE}/blog/${p.slug}`, lastModified: new Date(p.published), changeFrequency: "monthly" as const, priority: 0.6 })),
     ...(Object.keys(POST_CATEGORIES) as (keyof typeof POST_CATEGORIES)[]).filter((c) => POSTS.some((p) => p.category === c)).map((c) => ({ url: `${SITE}/blog/category/${c}`, lastModified: new Date(POSTS[0].published), changeFrequency: "weekly" as const, priority: 0.4 })),
+    { url: `${SITE}/areas`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE}/guides`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     ...GUIDES.map((g) => ({ url: `${SITE}/guides/${g.slug}`, lastModified: new Date(g.published), changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },

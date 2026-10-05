@@ -19,7 +19,7 @@ const SEO_SERVICE_SLUGS = new Set<string>(SEO_SERVICES.map((s) => s.slug));
 const SEO_AREA_SLUGS = new Set<string>(AREAS.map((a) => a.slug));
 
 const GUIDE_PATHS = new Set<string>([
-  "/guides", ...GUIDES.map((g) => `/guides/${g.slug}`),
+  "/guides", "/areas", ...GUIDES.map((g) => `/guides/${g.slug}`),
   "/blog", ...POSTS.map((p) => `/blog/${p.slug}`), ...Object.keys(POST_CATEGORIES).map((c) => `/blog/category/${c}`),
 ]);
 

@@ -12,6 +12,7 @@ export function AreasSection() {
         <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm font-bold">
           {SPECIALIST_SERVICES.map((s) => <li key={s.slug}><Link href={`/${s.slug}`} className="text-brand-green-800 hover:underline">{s.name}</Link></li>)}
         </ul>
+        <p className="mt-4 text-sm"><Link href="/areas" className="font-bold text-brand-green-800 hover:underline">See every area and service</Link></p>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {AREA_GROUPS.map((g) => (
             <div key={g}>
