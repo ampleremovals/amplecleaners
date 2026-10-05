@@ -484,3 +484,20 @@ homepage (new hero, "Sound familiar?" problem section, benefit-led service cards
 
 ### Update — owner-confirmed claims restored (2026-10-05)
 The owner stated these are TRUE and must be used: "we're fully insured", "popular slots fill up", "get your full deposit back" (end of tenancy), "most people pay within a day or two". Restored in the follow-up sequences, homepage (trust pill, FAQ, service card, how-it-works), quote email and Terms. Recorded in memory so they are not removed again. Still do NOT invent other claims (review counts, statistics, fake deadlines).
+
+## Task: Phase 11 — Marketing measurement & A/B testing (started 2026-10-05)
+### Gaps
+- No idea which channel (Google/Facebook/WhatsApp/organic) or which headline produces bookings. `bookings.utm_*/gclid/fbclid/referrer/landing_page` columns exist but nothing fills them.
+- The copy rewrite can't be "data-tested" — there is no experiment mechanism or funnel data.
+### Design (privacy-first: nothing stored on the visitor's device, so no cookie banner)
+- Variant assignment happens in middleware from a stable hash of IP+User-Agent (never stored); variant B is served by a REWRITE of `/` → `/lp/b` (URL unchanged). Bots/Lighthouse always get A.
+- Events (`site_events`) store only a DAILY-rotating hashed visitor id (can't be linked across days), path, variant, source — no IPs.
+- Attribution rides on the URL (utm_*, gclid, fbclid) through CTA links into the booking form, and is stored on the booking with the variant.
+### Plan
+- [ ] Migration 0006: `site_events`, `bookings.copy_variant`.
+- [ ] `lib/experiments.ts` (variant assignment, daily visitor hash, hero copy per variant) + `lib/stats.ts` (two-proportion z-test) with unit tests.
+- [ ] Middleware rewrite for `/`; HomeView shared by `/` and `/lp/b` (B = outcome-led hero + different CTA).
+- [ ] `/api/track` (bot-filtered, rate-limited, fail-open) + client Tracker.
+- [ ] Attribution captured on links → booking form → `createBooking`.
+- [ ] Reports: sources/campaigns (bookings + revenue) and Experiments card (visitors → booking-page views → bookings per variant, significance + "need more traffic" guidance).
+- [ ] Privacy policy updated; e2e extended; tsc/lint/build; push; live check.
