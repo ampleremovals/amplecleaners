@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Minus, Plus, Sparkles } from "lucide-react";
@@ -29,6 +29,13 @@ export default function BookingWizardPage() {
     cleanDate: "", isFlexibleDate: false,
     specialInstructions: "",
   });
+  // Arriving from a local page (utm_content=area-<slug>): pre-fill the town so the customer has one less field to type.
+  useEffect(() => {
+    const content = readAttribution().utm_content;
+    if (!content?.startsWith("area-")) return;
+    const town = content.slice(5).split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    setForm((f) => (f.city ? f : { ...f, city: town }));
+  }, []);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const isRegular = serviceType === "regular_cleaning";

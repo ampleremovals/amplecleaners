@@ -1,5 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
+import { SEO_SERVICES } from "@/lib/seo/services";
+
+/** A handful of the biggest areas, linked site-wide; every area is reachable from the service hub pages. */
+const FEATURED = ["barking", "dagenham", "romford", "hornchurch", "ilford", "upminster", "stratford", "chadwell-heath"];
 
 export function Footer() {
   return (
@@ -17,6 +21,20 @@ export function Footer() {
           <Link href="/#how-it-works" className="hover:text-white">How it works</Link>
           <Link href="/cleaners/register" className="hover:text-white">Become a cleaner</Link>
           <a href="tel:03330000000" className="hover:text-white">0333 000 0000</a>
+        </nav>
+      </div>
+      <div className="container relative mt-8 grid gap-6 border-t border-white/10 pt-6 text-center text-sm sm:grid-cols-2 sm:text-left">
+        <nav aria-label="Cleaning services">
+          <p className="font-bold text-white">Our cleaning services</p>
+          <ul className="mt-2 space-y-1">
+            {SEO_SERVICES.map((s) => <li key={s.slug}><Link href={`/${s.slug}`} className="hover:text-white">{s.name}</Link></li>)}
+          </ul>
+        </nav>
+        <nav aria-label="Areas we cover">
+          <p className="font-bold text-white">Areas we cover</p>
+          <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 sm:justify-start">
+            {FEATURED.map((a) => <li key={a}><Link href={`/cleaning-services/${a}`} className="capitalize hover:text-white">{a.replace("-", " ")}</Link></li>)}
+          </ul>
         </nav>
       </div>
       <div className="container relative mt-8 flex flex-col items-center gap-2 border-t border-white/10 pt-6 text-center text-xs text-slate-400 sm:flex-row sm:justify-between">

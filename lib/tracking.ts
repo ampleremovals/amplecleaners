@@ -3,6 +3,8 @@ import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/server";
 import { clientIp } from "@/lib/rate-limit";
 import { isBot, variantFor } from "@/lib/experiments";
+import { AREAS } from "@/lib/seo/areas";
+import { SEO_SERVICES } from "@/lib/seo/services";
 
 /**
  * Only these public paths are ever recorded. Tokenised links (/quote, /pay,
@@ -10,7 +12,15 @@ import { isBot, variantFor } from "@/lib/experiments";
  */
 const ALLOWED_PATH = /^\/(booking\/[a-z_]+|terms|privacy|confirmation|cleaners\/register)?$/;
 
-export const isTrackablePath = (path: string) => ALLOWED_PATH.test(path);
+/** The local SEO pages, matched against the real service/area lists (never a loose pattern that could admit a tokenised link). */
+const SEO_SERVICE_SLUGS = new Set<string>(SEO_SERVICES.map((s) => s.slug));
+const SEO_AREA_SLUGS = new Set<string>(AREAS.map((a) => a.slug));
+
+export const isTrackablePath = (path: string) => {
+  if (ALLOWED_PATH.test(path)) return true;
+  const [, service, area, extra] = path.split("/");
+  return SEO_SERVICE_SLUGS.has(service ?? "") && extra === undefined && (area === undefined || SEO_AREA_SLUGS.has(area));
+};
 
 /**
  * A pseudonymous visitor id that ROTATES EVERY DAY (the salt includes the UTC

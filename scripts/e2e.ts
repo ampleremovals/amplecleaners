@@ -290,6 +290,31 @@ async function main() {
   await phase9();
   await phase10();
   await phase11();
+  await phase12();
+}
+
+async function phase12() {
+  console.log("— phase 12: local SEO pages");
+  const { AREAS } = await import("../lib/seo/areas");
+  const { SEO_SERVICES } = await import("../lib/seo/services");
+  const urls = SEO_SERVICES.flatMap((s) => AREAS.map((a) => `/${s.slug}/${a.slug}`));
+  const titles = new Set<string>();
+  let bad = 0;
+  for (let i = 0; i < urls.length; i += 20) {
+    const batch = await Promise.all(urls.slice(i, i + 20).map((u) => http(u, { headers: fwd() })));
+    batch.forEach((r, j) => {
+      const title = /<title>([^<]*)<\/title>/.exec(r.text)?.[1] ?? "";
+      const ld = [...r.text.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/g)].every((m) => { try { JSON.parse(m[1]); return true; } catch { return false; } });
+      if (r.status !== 200 || !title || !ld || titles.has(title)) { bad++; console.log("   bad:", urls[i + j], r.status, title); }
+      titles.add(title);
+    });
+  }
+  check(`all ${urls.length} service × area pages load with unique titles and valid JSON-LD`, bad === 0, `${bad} bad`);
+  check("service hub pages load", (await Promise.all(SEO_SERVICES.map((s) => http(`/${s.slug}`, { headers: fwd() })))).every((r) => r.status === 200));
+  check("unknown area / service return 404", (await http("/house-cleaning/atlantis", { headers: fwd() })).status === 404 && (await http("/not-a-service", { headers: fwd() })).status === 404);
+  const sm = await http("/sitemap.xml", { headers: fwd() });
+  check("sitemap lists every area page", urls.every((u) => sm.text.includes(u)));
+  check("static pages still win over the dynamic service route", (await http("/privacy", { headers: fwd() })).status === 200);
 }
 
 async function phase11() {

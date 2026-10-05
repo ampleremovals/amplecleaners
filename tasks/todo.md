@@ -522,3 +522,17 @@ Owner request: a landing page for each of ~50 places around Barking & Dagenham (
 - [ ] Booking CTA carries `utm_content=area-<slug>` → stored on the booking; booking form pre-fills the town.
 - [ ] Tracker allowlist for `/cleaning/*`; sitemap entries; footer + homepage "Areas we cover" links.
 - [ ] e2e: all 50 pages 200, unique titles/H1, JSON-LD parses, sitemap lists them, 404, attribution; tsc/lint/build; push; live spot-check.
+
+### Scope update (owner, same day): "SEO powerful — rank #1 for ALL cleaning services in ALL these locations"
+=> a SERVICE × AREA matrix, not just 50 pages. URL scheme (keyword-first, human-readable):
+`/house-cleaning/romford`, `/deep-cleaning/romford`, `/end-of-tenancy-cleaning/romford`, `/office-cleaning/romford`, `/after-builders-cleaning/romford`, plus `/cleaning-services/romford` (all services) and a hub per service (`/end-of-tenancy-cleaning`, …) = ~300 static pages.
+Uniqueness engine: area data (postcodes, tags, about/homes/tip, stations, nearby) × service data (checklist from the real task templates, audience, FAQs) × tag-keyed sentence variants; unit tests enforce a similarity ceiling between pages.
+Honest limits to tell the owner: nobody can guarantee #1 — rankings also depend on off-site authority (Google Business Profile, reviews, citations, backlinks) and time. The on-page/technical foundation is what I can build. The phone number (0333 000 0000) is still a placeholder and there is no business address: both matter for local SEO (NAP consistency) and must be real.
+
+### Review — local area pages
+- 50 areas × 6 page types (house, deep, end of tenancy, office, after builders, all-services) = 300 pages, plus 6 service hubs, all statically generated and in the sitemap (315 URLs total).
+- Each page is built from per-area facts (about, homes, local tip, postcodes, nearby areas, station only where certain) plus tag-matched service angles, so pages differ in substance, not just place name. A unit test fails the build if two same-service pages get too similar.
+- JSON-LD: Service + FAQPage + BreadcrumbList. No fake ratings, no address.
+- Booking CTA carries utm_source=seo & utm_content=area-<slug>; the booking form pre-fills the town; analytics only records real SEO paths (checked against the real slug lists).
+- Tests: 32 unit + full e2e (incl. phase 12) pass. Lesson: e2e server must start with STRIPE_WEBHOOK_SECRET=whsec_e2e_test (documented in the e2e header).
+- Not code, still needed for rankings: Google Business Profile, real reviews, citations, backlinks, a real phone number and address.
