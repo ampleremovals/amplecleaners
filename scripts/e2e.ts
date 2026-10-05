@@ -288,6 +288,80 @@ async function main() {
   await phase7();
   await phase8();
   await phase9();
+  await phase10();
+}
+
+async function phase10() {
+  console.log("— phase 10: launch readiness");
+  const text = async (path: string, headers: Record<string, string> = {}) => {
+    const res = await fetch(`${BASE}${path}`, { headers });
+    // React inserts <!-- --> markers between adjacent text nodes; strip them so text assertions are readable.
+    return { status: res.status, type: res.headers.get("content-type") ?? "", body: (await res.text()).replace(/<!-- -->/g, "") };
+  };
+
+  const health = await http("/api/health");
+  check("health endpoint reports the database up", health.status === 200 && health.json.ok === true && health.json.database === "up", health.text.slice(0, 120));
+  const privacy = await text("/privacy");
+  const terms = await text("/terms");
+  check("privacy policy page is served", privacy.status === 200 && /Privacy Policy/.test(privacy.body) && /ico\.org\.uk/.test(privacy.body));
+  check("terms page is served with the live pricing and the 48-hour rule", terms.status === 200 && /48 hours/.test(terms.body) && /£15 per hour/.test(terms.body));
+  const missing = await text("/definitely-not-a-page");
+  check("unknown URLs get the branded 404", missing.status === 404 && /couldn&#x27;t find that page|couldn&apos;t find that page|couldn't find that page/.test(missing.body));
+  const sitemap = await text("/sitemap.xml");
+  check("sitemap lists the legal pages and no admin URLs", /\/privacy</.test(sitemap.body) && /\/terms</.test(sitemap.body) && !/\/admin/.test(sitemap.body));
+  const robots = await text("/robots.txt");
+  check("robots.txt blocks admin, api and tokenised pages", /Disallow: \/admin/.test(robots.body) && /Disallow: \/api/.test(robots.body) && /Disallow: \/manage\//.test(robots.body));
+  if (process.platform === "win32") {
+    console.log("SKIP  social share card render (next/og cannot load its font from a Windows path; verified on the live Linux site instead)");
+  } else {
+    const og = await fetch(`${BASE}/opengraph-image`);
+    check("social share card is a PNG", og.status === 200 && (og.headers.get("content-type") ?? "").includes("image/png"));
+  }
+  const home = await text("/");
+  check("homepage advertises the share card + twitter card", /og:image/.test(home.body) && /summary_large_image/.test(home.body));
+  const img = await fetch(`${BASE}/_next/image?url=%2Flogo-full.png&w=640&q=75`, { headers: { Accept: "image/avif,image/webp,*/*" } });
+  check("image optimiser never serves AVIF (advisory mitigation)", img.status === 200 && !(img.headers.get("content-type") ?? "").includes("avif"), img.headers.get("content-type") ?? "");
+  const csp = (await fetch(`${BASE}/`)).headers.get("content-security-policy") ?? "";
+  check("CSP header present", /default-src 'self'/.test(csp));
+
+  // ── erase personal data ──
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  if (!ADMIN_PW) { console.log("SKIP  erase checks (set E2E_ADMIN_PW)"); return; }
+  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const at = as!.session!.access_token;
+
+  const done = await makeBooking({ status: "paid", special_instructions: "Key is under the blue pot, dog is friendly", clean_date: dayShift(-3) });
+  const { data: dRow } = await admin.from("bookings").select("customer_id, address_id").eq("id", done.id).single();
+  await admin.from("addresses").update({ line_1: "42 Secret Lane", city: "Londontown", postcode: "SW1A 1AA" }).eq("id", dRow!.address_id);
+  const photo = `${done.id}/before-${stamp}.jpg`;
+  await admin.storage.from("job-photos").upload(photo, Buffer.from("/9j/4AAQSkZJRgAB", "base64"), { contentType: "image/jpeg" });
+  await admin.from("bookings").update({ before_photos: [photo] }).eq("id", done.id);
+  const inv = await getOrCreateBookingInvoice(admin, { bookingId: done.id, customerId: dRow!.customer_id, type: "full_balance", net: 45, description: "E2E" });
+  await admin.from("invoices").update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", inv.invoiceId);
+
+  check("customer detail needs admin", (await http(`/api/admin/customers/${dRow!.customer_id}`)).status === 401);
+  const detail = await http(`/api/admin/customers/${dRow!.customer_id}`, { token: at });
+  check("customer detail shows history and lifetime spend", detail.json.success && detail.json.stats.bookings === 1 && detail.json.stats.paid === 45, detail.text.slice(0, 140));
+  check("erase needs admin", (await http(`/api/admin/customers/${dRow!.customer_id}/erase`, { method: "POST" })).status === 401);
+
+  const live = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(9) });
+  const { data: lRow } = await admin.from("bookings").select("customer_id").eq("id", live.id).single();
+  const blocked = await http(`/api/admin/customers/${lRow!.customer_id}/erase`, { method: "POST", token: at });
+  check("erase is refused while a booking is still live (409, names it)", blocked.status === 409 && (blocked.json.blockedBy ?? []).includes(live.reference), blocked.text.slice(0, 140));
+
+  const er = await http(`/api/admin/customers/${dRow!.customer_id}/erase`, { method: "POST", token: at });
+  check("erase succeeds for a finished customer", er.status === 200 && er.json.success && er.json.photosDeleted === 1, er.text.slice(0, 140));
+  const { data: cAfter } = await admin.from("customers").select("full_name, email, phone").eq("id", dRow!.customer_id).single();
+  const { data: aAfter } = await admin.from("addresses").select("line_1, city, postcode").eq("id", dRow!.address_id).single();
+  const { data: bAfter } = await admin.from("bookings").select("special_instructions, before_photos").eq("id", done.id).single();
+  check("name/email/phone anonymised", cAfter?.full_name === "Erased customer" && /^erased\+/.test(cAfter.email) && cAfter.phone === "erased", JSON.stringify(cAfter));
+  check("address erased, only the outward postcode kept", aAfter?.line_1 === "Erased" && aAfter.city === null && aAfter.postcode === "SW1A", JSON.stringify(aAfter));
+  check("notes cleared and photo list emptied", bAfter?.special_instructions === null && (bAfter?.before_photos ?? []).length === 0);
+  const { data: files } = await admin.storage.from("job-photos").list(done.id);
+  check("the photo file itself is deleted from storage", (files ?? []).length === 0);
+  const { data: invAfter } = await admin.from("invoices").select("total, status").eq("id", inv.invoiceId).single();
+  check("the invoice (a legal record) is kept untouched", Number(invAfter?.total) === 45 && invAfter?.status === "paid");
+  check("erasing twice is refused", (await http(`/api/admin/customers/${dRow!.customer_id}/erase`, { method: "POST", token: at })).status === 409);
 }
 
 async function signInAs(c: { email: string; password: string }) {

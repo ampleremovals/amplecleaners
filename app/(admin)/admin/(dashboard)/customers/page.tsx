@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Users } from "lucide-react";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { TableSkeleton, ErrorState, EmptyState } from "@/components/admin/DataState";
@@ -54,7 +55,7 @@ export default function CustomersPage() {
               <tbody>
                 {filtered.map((c) => (
                   <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-slate-900">{c.full_name}</td>
+                    <td className="px-4 py-3 font-semibold"><Link href={`/admin/customers/${c.id}`} className="text-brand-green-700 hover:underline">{c.full_name}</Link></td>
                     <td className="px-4 py-3 text-slate-500">{c.email}</td>
                     <td className="px-4 py-3 text-slate-500">{c.phone}</td>
                     <td className="px-4 py-3 text-slate-500">{c.booking_count}</td>

@@ -127,7 +127,7 @@ export default function ManageBookingPage() {
           {d.cleanerFirstName && <li className="flex items-center gap-2.5"><User className="h-4 w-4 shrink-0 text-brand-green-600" /> {d.cleanerFirstName} is your cleaner</li>}
           {d.frequency && <li className="flex items-center gap-2.5"><Repeat className="h-4 w-4 shrink-0 text-brand-green-600" /> Repeats {d.frequency}</li>}
         </ul>
-        <p className="mt-4 border-t border-dashed border-slate-200 pt-3 text-xs text-slate-400">Ref {d.reference}</p>
+        <p className="mt-4 border-t border-dashed border-slate-200 pt-3 text-xs text-slate-500">Ref {d.reference}</p>
       </div>
 
       {!d.changeable ? (
@@ -179,7 +179,7 @@ export default function ManageBookingPage() {
         </div>
       )}
 
-      <p className="mt-6 text-center text-xs text-slate-400">Changes are free up to {d.freeChangeHours} hours before your clean.</p>
+      <p className="mt-6 text-center text-xs text-slate-500">Changes are free up to {d.freeChangeHours} hours before your clean.</p>
     </motion.div>,
   );
 }

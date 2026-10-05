@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 const inputCls = "h-11 w-full rounded-xl border border-slate-200 px-3.5 text-sm outline-none focus:border-brand-green-600";
@@ -10,7 +11,7 @@ function Field({ label, children, hint }: { label: string; children: React.React
     <label className="block">
       <span className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-slate-400">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
     </label>
   );
 }
@@ -98,6 +99,7 @@ export default function CleanerRegisterPage() {
           <button type="submit" disabled={busy} className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800 disabled:opacity-60">
             {busy && <Loader2 className="h-5 w-5 animate-spin" />} Send my application
           </button>
+          <p className="text-center text-xs text-slate-500">We use your details only to assess your application — see our <Link href="/privacy" className="font-semibold text-brand-green-700 hover:underline">Privacy Policy</Link>.</p>
         </form>
       </div>
     </div>

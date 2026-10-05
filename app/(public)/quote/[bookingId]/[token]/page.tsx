@@ -164,7 +164,7 @@ function RevealView({ quote, onReserve }: { quote: QuoteData; onReserve: () => v
         </div>
       </div>
 
-      <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+      <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
         <ShieldCheck className="h-4 w-4" /> Secure payment · The rest isn&apos;t due until the job&apos;s done
       </p>
     </motion.div>
@@ -233,7 +233,7 @@ function DepositView({
             <span className="block font-display text-base font-bold text-brand-green-950">Pay deposit by bank transfer</span>
             <span className="block text-sm text-slate-500">Send {gbp(deposit)} manually — no card fee.</span>
           </span>
-          <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${showBank ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${showBank ? "rotate-180" : ""}`} />
         </button>
       </div>
 
@@ -257,7 +257,7 @@ function DepositView({
         )}
       </AnimatePresence>
 
-      <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+      <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500">
         <ShieldCheck className="h-4 w-4" /> Secure payment · Card handled by Stripe
       </p>
     </motion.div>

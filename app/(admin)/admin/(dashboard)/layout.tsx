@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-screen bg-slate-50">
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white sm:flex sm:flex-col">
         <div className="flex h-16 items-center gap-2 border-b border-slate-200 px-5 font-display text-lg font-extrabold text-brand-green-800">
-          <Image src="/logo-icon.png" alt="" width={512} height={512} priority className="h-8 w-8 rounded-lg" />
+          <Image src="/logo-icon.png" alt="" width={64} height={64} priority className="h-8 w-8 rounded-lg" />
           Ample Cleaners
         </div>
         <nav className="flex-1 space-y-1 p-3">

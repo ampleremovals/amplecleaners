@@ -5,11 +5,11 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
 
+// Both are variable fonts, so no `weight` list is needed — one file per script subset covers every weight.
 // Unbounded — chunky, rounded, confident display face. Carries the "colourful
 // and pronounced" brand energy the homepage is built around.
 const unbounded = Unbounded({
   subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
   variable: "--font-display",
   display: "swap",
 });
@@ -18,7 +18,6 @@ const unbounded = Unbounded({
 // defaults, still highly legible at small sizes.
 const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   variable: "--font-body",
   display: "swap",
 });
@@ -32,6 +31,8 @@ export const metadata: Metadata = {
     "Professional cleaning services across the UK. Regular cleaning, deep cleaning, end of tenancy, office and after-builders cleaning. Get a fixed-price quote in minutes.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   robots: { index: true, follow: true },
+  openGraph: { type: "website", siteName: "Ample Cleaners", locale: "en_GB" },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

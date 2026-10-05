@@ -72,7 +72,7 @@ export default function CleanerUpdatePasswordPage() {
       <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
         <div className="w-full max-w-md rounded-2xl bg-slate-900 p-8 text-center">
           <h1 className="mb-2 text-2xl font-bold text-white">Link expired</h1>
-          <p className="mb-6 text-slate-400">This password link is invalid or has expired. Please request a new one.</p>
+          <p className="mb-6 text-slate-500">This password link is invalid or has expired. Please request a new one.</p>
           <Link href="/cleaners/reset-password" className="inline-block rounded-xl bg-brand-green-600 px-6 py-3 font-semibold text-white hover:bg-brand-green-700">
             Request new link
           </Link>
@@ -89,7 +89,7 @@ export default function CleanerUpdatePasswordPage() {
             <ShieldCheck className="h-8 w-8 text-green-400" />
           </div>
           <h1 className="mb-2 text-2xl font-bold text-white">Password set!</h1>
-          <p className="text-slate-400">You can now sign in from the Ample Cleaner app.</p>
+          <p className="text-slate-500">You can now sign in from the Ample Cleaner app.</p>
         </div>
       </div>
     );
@@ -105,7 +105,7 @@ export default function CleanerUpdatePasswordPage() {
             </div>
           </div>
           <h1 className="mt-4 text-3xl font-bold text-white">Set your password</h1>
-          <p className="mt-2 text-slate-400">Choose a strong password for your account</p>
+          <p className="mt-2 text-slate-500">Choose a strong password for your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-2xl bg-slate-900 p-6">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Minus, Plus, Sparkles } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
@@ -183,6 +184,7 @@ export default function BookingWizardPage() {
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
             {serviceType === "regular_cleaning" ? `Book now — ${gbp(price(form.hours))}` : "Get my free quote"}
           </button>
+          <p className="text-center text-xs text-slate-500">By booking you agree to our <Link href="/terms" className="font-semibold text-brand-green-700 hover:underline">Terms</Link> and <Link href="/privacy" className="font-semibold text-brand-green-700 hover:underline">Privacy Policy</Link>. Change or cancel free up to 48 hours before.</p>
         </form>
       </div>
     </div>

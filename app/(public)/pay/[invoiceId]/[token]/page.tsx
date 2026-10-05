@@ -130,7 +130,7 @@ export default function PayInvoicePage() {
                   <span className="font-display text-lg font-bold text-brand-green-950">Amount due</span>
                   <span className="font-display text-3xl font-extrabold tabular-nums text-brand-green-900">{formatCurrency(invoice.total)}</span>
                 </div>
-                {invoice.dueDate && <p className="mt-1 text-right text-xs text-slate-400">Due {formatDate(invoice.dueDate)}</p>}
+                {invoice.dueDate && <p className="mt-1 text-right text-xs text-slate-500">Due {formatDate(invoice.dueDate)}</p>}
               </div>
 
               <div className="mt-4 space-y-3">
@@ -149,7 +149,7 @@ export default function PayInvoicePage() {
                     <span className="block font-display text-base font-bold text-brand-green-950">Pay by bank transfer</span>
                     <span className="block text-sm text-slate-500">No card fee.</span>
                   </span>
-                  <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${showBank ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${showBank ? "rotate-180" : ""}`} />
                 </button>
               </div>
 
@@ -176,7 +176,7 @@ export default function PayInvoicePage() {
                 )}
               </AnimatePresence>
 
-              <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400"><ShieldCheck className="h-4 w-4" /> Secure payment · Card handled by Stripe</p>
+              <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-500"><ShieldCheck className="h-4 w-4" /> Secure payment · Card handled by Stripe</p>
             </motion.div>
           )}
 

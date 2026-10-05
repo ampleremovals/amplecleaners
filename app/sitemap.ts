@@ -10,6 +10,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...Object.keys(SERVICE_LABELS).map((service) => ({
       url: `${SITE}/booking/${service}`, lastModified: now, changeFrequency: "monthly" as const, priority: service === "regular_cleaning" ? 0.9 : 0.7,
     })),
+    { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE}/cleaners/register`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
 }

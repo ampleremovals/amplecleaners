@@ -29,14 +29,9 @@ const nextConfig = {
   },
 
   images: {
-    formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/**",
-      },
-    ],
+    // AVIF is disabled on purpose: Next 14.2.35 has an unpatched image-optimiser RCE advisory that only triggers for AVIF.
+    formats: ["image/webp"],
+    // No remotePatterns: every next/image source is a local file, so the optimiser never fetches remote URLs.
   },
 
   async headers() {

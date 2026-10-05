@@ -460,10 +460,17 @@ Not verified: the new mobile screens on a device (tsc only; needs a new EAS buil
 - No branded 404 / error pages; no social-share (Open Graph) card; no health endpoint for uptime monitoring.
 - Admin cannot open a customer (history, lifetime value) and there is no way to honour a UK-GDPR erasure request.
 ### Plan
-- [ ] Security: `npm audit fix` (non-breaking only); drop AVIF from image formats (mitigates the image-optimiser RCE advisory); document the Next 15 path.
-- [ ] Legal pages (/privacy, /terms incl. cancellation & refunds), footer links, consent line on the booking + cleaner forms. FLAG for solicitor review.
-- [ ] Branded not-found + error boundary; Open Graph / Twitter card image.
-- [ ] `/api/health` (DB check) for uptime monitors.
-- [ ] Admin customer detail page (bookings, spend) + "Erase personal data" (anonymise PII, keep financial records) with confirm dialog.
-- [ ] Lighthouse accessibility/performance pass on public pages, fix findings.
-- [ ] e2e extended; tsc/lint/build; push; live check.
+- [x] Security: `npm audit fix` (non-breaking only); drop AVIF from image formats (mitigates the image-optimiser RCE advisory); document the Next 15 path.
+- [x] Legal pages (/privacy, /terms incl. cancellation & refunds), footer links, consent line on the booking + cleaner forms. FLAG for solicitor review.
+- [x] Branded not-found + error boundary; Open Graph / Twitter card image.
+- [x] `/api/health` (DB check) for uptime monitors.
+- [x] Admin customer detail page (bookings, spend) + "Erase personal data" (anonymise PII, keep financial records) with confirm dialog.
+- [x] Lighthouse accessibility/performance pass on public pages, fix findings.
+- [x] e2e extended; tsc/lint/build; push; live check.
+
+### Review (phase 10)
+Built + verified (e2e 141 checks all pass, no messages sent): privacy policy + terms (terms render the LIVE price/deposit from Settings; cancellation text matches the implemented 48h rule) with footer links and consent lines; branded 404 + error boundary; Open Graph/Twitter card; `/api/health`; admin customer page (history, lifetime spend) + GDPR-style "Erase personal data" (anonymises PII, deletes home photos, keeps invoices for tax; refuses while a booking is live); sitemap/robots updated; AVIF disabled + remotePatterns removed (image-optimiser advisory mitigation); logos right-sized; low-contrast text fixed. Lighthouse (mobile, prod build): accessibility 100, SEO 100, best-practices 96 (only local-server analytics 404), performance 84-85 (LCP 4.4s lab — the hero heading re-renders when the brand font swaps in).
+**Owner decisions / not done:**
+1. **Next.js security upgrade:** `npm audit` reports a critical Next 14.2.35 advisory set; 14.2.35 is the last 14.x, fixes exist only in 15.5.x+ (React 19, async `params` in ~40 routes). CLAUDE.md pins Next 14, so NOT done unilaterally. Mitigated what can be (AVIF off, no remote images). Recommend a dedicated upgrade session. tailwind/postcss/braces findings are build-time tooling only.
+2. **Legal text is a DRAFT** written from what the system does — have a solicitor/the owner confirm (esp. deposit retention inside 48h, re-clean promise, company details/number).
+3. The OG share card could not render on Windows locally (next/og font-path bug); verify on the live site.

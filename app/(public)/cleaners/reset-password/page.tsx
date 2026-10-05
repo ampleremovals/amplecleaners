@@ -35,7 +35,7 @@ export default function CleanerResetPasswordPage() {
             <MailCheck className="h-8 w-8 text-green-400" />
           </div>
           <h1 className="mb-2 text-2xl font-bold text-white">Check your email</h1>
-          <p className="mb-6 text-slate-400">
+          <p className="mb-6 text-slate-500">
             If an account exists for <span className="font-medium text-slate-200">{email}</span>, we&apos;ve sent a link to set your password. It expires in 1 hour.
           </p>
           <Link href="/admin/login" className="inline-flex items-center gap-2 text-sm font-medium text-brand-green-400 hover:text-brand-green-300">
@@ -56,7 +56,7 @@ export default function CleanerResetPasswordPage() {
             </div>
           </div>
           <h1 className="mt-4 text-3xl font-bold text-white">Reset your password</h1>
-          <p className="mt-2 text-slate-400">We&apos;ll email you a link to set a new one.</p>
+          <p className="mt-2 text-slate-500">We&apos;ll email you a link to set a new one.</p>
         </div>
         <form onSubmit={handleSubmit} className="rounded-2xl bg-slate-900 p-6">
           <label className="mb-2 block text-sm font-medium text-slate-300">Email</label>
