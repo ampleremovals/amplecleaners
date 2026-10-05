@@ -452,3 +452,18 @@ Built + verified (e2e: 90 checks, all pass, zero emails sent): shared change eng
 ### Review (phase 9)
 Built + verified (e2e: 121 checks, all pass, no messages sent): owner-editable pricing (rate, minimum hours, deposit %) in Settings — website, booking creation and the admin new-booking form all read it; deposit % is stamped per booking so only NEW bookings change (proven: old booking kept 20%/£45, new one 25%/£80); public pages get live pricing via a server-fetched provider (ISR 60s), no flash. Matcher now respects time off and declines (unit-tested, 20 tests). Cleaner API: decline a job (re-matched, never back to the same cleaner), time off (releases + re-matches affected jobs), weekly availability get/replace with server validation; RLS read policies for the app. Mobile: "I can't make this job" sheet, Profile screen (DBS/rating/areas, availability editor, time off with a dependency-free date strip). Admin cleaner page shows time off + 30-day decline count. Homepage shows an average rating pill ONLY once there are ≥5 real reviews.
 Not verified: the new mobile screens on a device (tsc only; needs a new EAS build — the installed APK predates Phase 8/9); the rating pill with real data (no reviews exist yet).
+
+## Task: Phase 10 — Launch readiness (started 2026-10-05)
+### Findings
+- `npm audit` (prod): 1 critical (Next 14.2.35 — the LAST 14.x; fixes exist only in 15.5.x+, a major upgrade needing React 19 + async `params`, and CLAUDE.md pins Next 14) + tailwind/postcss/braces chain (build-time tooling). Decision for the owner — see Review.
+- No privacy policy / terms / cancellation policy pages (we collect personal data, take deposits, and now promise a 48h free-change rule).
+- No branded 404 / error pages; no social-share (Open Graph) card; no health endpoint for uptime monitoring.
+- Admin cannot open a customer (history, lifetime value) and there is no way to honour a UK-GDPR erasure request.
+### Plan
+- [ ] Security: `npm audit fix` (non-breaking only); drop AVIF from image formats (mitigates the image-optimiser RCE advisory); document the Next 15 path.
+- [ ] Legal pages (/privacy, /terms incl. cancellation & refunds), footer links, consent line on the booking + cleaner forms. FLAG for solicitor review.
+- [ ] Branded not-found + error boundary; Open Graph / Twitter card image.
+- [ ] `/api/health` (DB check) for uptime monitors.
+- [ ] Admin customer detail page (bookings, spend) + "Erase personal data" (anonymise PII, keep financial records) with confirm dialog.
+- [ ] Lighthouse accessibility/performance pass on public pages, fix findings.
+- [ ] e2e extended; tsc/lint/build; push; live check.
