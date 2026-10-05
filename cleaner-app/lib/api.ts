@@ -151,3 +151,68 @@ export async function registerPushToken(token: string, platform: "ios" | "androi
 export async function unregisterPushToken(token: string): Promise<void> {
   await authed("/api/cleaner/push-token", { method: "DELETE", body: { token, platform: undefined } });
 }
+
+/** "I can't make it" — the job goes back to the office and is re-matched automatically. */
+export async function declineJob(jobId: string, reason: string): Promise<{ reassigned: boolean }> {
+  const res = await authed<{ reassigned: boolean }>(`/api/cleaner/jobs/${jobId}/decline`, { method: "POST", body: { reason } });
+  return { reassigned: !!res.reassigned };
+}
+
+export interface AvailabilitySlot {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
+export async function getAvailability(): Promise<AvailabilitySlot[]> {
+  return (await authed<{ slots: AvailabilitySlot[] }>("/api/cleaner/availability")).slots;
+}
+
+export async function saveAvailability(slots: AvailabilitySlot[]): Promise<void> {
+  await authed("/api/cleaner/availability", { method: "PUT", body: { slots } });
+}
+
+export interface TimeOff {
+  id: string;
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+}
+
+export async function getTimeOff(): Promise<TimeOff[]> {
+  return (await authed<{ timeOff: TimeOff[] }>("/api/cleaner/time-off")).timeOff;
+}
+
+export async function addTimeOff(startDate: string, endDate: string, reason?: string): Promise<{ released: number; reassigned: number }> {
+  const res = await authed<{ released: number; reassigned: number }>("/api/cleaner/time-off", { method: "POST", body: { startDate, endDate, reason } });
+  return { released: res.released ?? 0, reassigned: res.reassigned ?? 0 };
+}
+
+export async function deleteTimeOff(id: string): Promise<void> {
+  await authed(`/api/cleaner/time-off?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
+export interface CleanerProfile {
+  full_name: string;
+  email: string;
+  phone: string;
+  dbs_verified: boolean;
+  rating_avg: number | null;
+  areas: string[];
+}
+
+/** The signed-in cleaner's own row (RLS limits this to them) plus their coverage areas. */
+export async function getProfile(cleanerId: string): Promise<CleanerProfile | null> {
+  const { data } = await supabase
+    .from("cleaners")
+    .select("full_name, email, phone, dbs_verified, rating_avg, cleaner_coverage_areas(postcode_prefix)")
+    .eq("id", cleanerId)
+    .maybeSingle();
+  if (!data) return null;
+  const row = data as unknown as Omit<CleanerProfile, "areas"> & { cleaner_coverage_areas: { postcode_prefix: string }[] | null };
+  return {
+    full_name: row.full_name, email: row.email, phone: row.phone, dbs_verified: row.dbs_verified,
+    rating_avg: row.rating_avg == null ? null : Number(row.rating_avg),
+    areas: (row.cleaner_coverage_areas ?? []).map((a) => a.postcode_prefix),
+  };
+}

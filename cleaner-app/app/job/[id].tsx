@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Image, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert, Image, Linking, Modal } from "react-native";
+import { useRouter as useAppRouter } from "expo-router";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, MapPin, Phone, Clock, Camera } from "lucide-react-native";
-import { getJob, updateTasks, clockIn, clockOut, signPhotos, type CleanerTask } from "@/lib/api";
+import { getJob, updateTasks, clockIn, clockOut, signPhotos, declineJob, type CleanerTask } from "@/lib/api";
 import { getLocationStamp } from "@/lib/location";
 import { formatCurrency, formatDayLabel, formatTime } from "@/lib/format";
 
@@ -49,6 +50,8 @@ export default function JobDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const [declineOpen, setDeclineOpen] = useState(false);
+  const appRouter = useAppRouter();
 
   const { data: job, isLoading, isError, refetch } = useQuery({
     queryKey: ["job", id],
@@ -98,6 +101,26 @@ export default function JobDetailScreen() {
       ]);
     } catch (e) {
       Alert.alert("Something went wrong", e instanceof Error ? e.message : "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canDecline = job.status === "cleaner_assigned" && !job.clock_in_at;
+
+  async function handleDecline(reason: string) {
+    setDeclineOpen(false);
+    setBusy(true);
+    try {
+      const r = await declineJob(id, reason);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["today-jobs"] }),
+        queryClient.invalidateQueries({ queryKey: ["upcoming-jobs"] }),
+      ]);
+      Alert.alert("Job given back", r.reassigned ? "Thanks for letting us know — it's been passed to another cleaner." : "Thanks for letting us know — the office will find cover.");
+      appRouter.back();
+    } catch (e) {
+      Alert.alert("Couldn't give the job back", e instanceof Error ? e.message : "Please try again.");
     } finally {
       setBusy(false);
     }
@@ -177,6 +200,25 @@ export default function JobDetailScreen() {
           </Pressable>
         </View>
       )}
+
+      {canDecline && (
+        <Pressable onPress={() => setDeclineOpen(true)} disabled={busy} className="mt-3 items-center rounded-xl border-2 border-slate-200 bg-white py-3 disabled:opacity-50">
+          <Text className="font-semibold text-slate-600">I can't make this job</Text>
+        </Pressable>
+      )}
+
+      <Modal visible={declineOpen} transparent animationType="slide" onRequestClose={() => setDeclineOpen(false)}>
+        <View className="flex-1 justify-end bg-black/50">
+          <View className="rounded-t-3xl bg-white p-5 pb-8">
+            <Text className="text-lg font-bold text-slate-900">Why can't you make it?</Text>
+            <Text className="mt-1 text-sm text-slate-500">We'll pass the job to another cleaner straight away. Please give as much notice as you can.</Text>
+            {["I'm unwell", "Family emergency", "Transport problem", "I'm double-booked", "Another reason"].map((r) => (
+              <Pressable key={r} onPress={() => handleDecline(r)} className="mt-3 rounded-xl border border-slate-200 px-4 py-3.5"><Text className="font-medium text-slate-800">{r}</Text></Pressable>
+            ))}
+            <Pressable onPress={() => setDeclineOpen(false)} className="mt-4 items-center py-2"><Text className="font-semibold text-brand-green-700">Keep the job</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
 
       <View className="mt-6">
         <Text className="font-bold text-slate-900">

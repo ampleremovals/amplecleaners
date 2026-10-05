@@ -440,11 +440,15 @@ Built + verified (e2e: 90 checks, all pass, zero emails sent): shared change eng
 - A cleaner who can't make a job has to phone the office; there is no decline, no holiday/time-off, and they can't manage their own weekly availability (admin does it for them).
 - Real customer ratings exist but are never shown (social proof must stay honest — show only when real).
 ### Plan
-- [ ] Migration 0005: settings pricing columns; `cleaner_time_off`; `booking_declines`; cleaner read policies for own availability/areas/time-off.
-- [ ] Pricing from Settings (rate / min hours / deposit %) via a server config + provider so pages render it with no flash; booking creation uses it; deposit % still stamped per booking (new bookings only).
-- [ ] Matcher respects time off and declines (unit-tested).
-- [ ] Cleaner API: decline a job, time off (auto-releases + re-matches affected jobs), weekly availability get/replace.
-- [ ] Mobile: "Can't make it" on a job, Profile with availability editor + time off + DBS/rating.
-- [ ] Admin: cleaner page shows time off + recent declines; Settings page edits pricing.
-- [ ] Homepage shows real rating only once there are enough reviews.
-- [ ] e2e extended (kill switch ON); tsc/lint/build; push (auto-deploy); live check.
+- [x] Migration 0005: settings pricing columns; `cleaner_time_off`; `booking_declines`; cleaner read policies for own availability/areas/time-off.
+- [x] Pricing from Settings (rate / min hours / deposit %) via a server config + provider so pages render it with no flash; booking creation uses it; deposit % still stamped per booking (new bookings only).
+- [x] Matcher respects time off and declines (unit-tested).
+- [x] Cleaner API: decline a job, time off (auto-releases + re-matches affected jobs), weekly availability get/replace.
+- [x] Mobile: "Can't make it" on a job, Profile with availability editor + time off + DBS/rating.
+- [x] Admin: cleaner page shows time off + recent declines; Settings page edits pricing.
+- [x] Homepage shows real rating only once there are enough reviews.
+- [x] e2e extended (kill switch ON); tsc/lint/build; push (auto-deploy); live check.
+
+### Review (phase 9)
+Built + verified (e2e: 121 checks, all pass, no messages sent): owner-editable pricing (rate, minimum hours, deposit %) in Settings — website, booking creation and the admin new-booking form all read it; deposit % is stamped per booking so only NEW bookings change (proven: old booking kept 20%/£45, new one 25%/£80); public pages get live pricing via a server-fetched provider (ISR 60s), no flash. Matcher now respects time off and declines (unit-tested, 20 tests). Cleaner API: decline a job (re-matched, never back to the same cleaner), time off (releases + re-matches affected jobs), weekly availability get/replace with server validation; RLS read policies for the app. Mobile: "I can't make this job" sheet, Profile screen (DBS/rating/areas, availability editor, time off with a dependency-free date strip). Admin cleaner page shows time off + 30-day decline count. Homepage shows an average rating pill ONLY once there are ≥5 real reviews.
+Not verified: the new mobile screens on a device (tsc only; needs a new EAS build — the installed APK predates Phase 8/9); the rating pill with real data (no reviews exist yet).

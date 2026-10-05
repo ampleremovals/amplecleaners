@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Settings {
   company_name: string; company_address: string | null; company_phone: string | null; company_email: string | null;
   google_review_link: string | null; customer_sms_enabled: boolean; customer_whatsapp_enabled: boolean;
+  hourly_rate: number; min_hours: number; deposit_percentage: number;
 }
 interface Response { success: boolean; error?: string; settings: Settings }
 
@@ -70,6 +71,17 @@ export default function SettingsPage() {
                 <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Phone</span><input className={inputCls} value={form.company_phone ?? ""} onChange={(e) => set("company_phone", e.target.value)} /></label>
                 <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Email</span><input type="email" className={inputCls} value={form.company_email ?? ""} onChange={(e) => set("company_email", e.target.value)} /></label>
                 <label className="block sm:col-span-2"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Google review link</span><input type="url" placeholder="https://g.page/r/…" className={inputCls} value={form.google_review_link ?? ""} onChange={(e) => set("google_review_link", e.target.value)} /><span className="mt-1 block text-xs text-slate-400">Added to the thank-you email after a customer pays.</span></label>
+              </section>
+
+              <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-3">
+                <div className="sm:col-span-3">
+                  <h2 className="font-bold text-slate-900">Regular Cleaning pricing</h2>
+                  <p className="text-xs text-slate-400">Shown on the website and used for every new booking. The deposit % applies to NEW bookings only — existing bookings keep the rate they were made at.</p>
+                </div>
+                <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Hourly rate (£)</span><input type="number" min={5} max={200} step={0.5} required className={inputCls} value={form.hourly_rate} onChange={(e) => set("hourly_rate", Number(e.target.value))} /></label>
+                <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Minimum hours</span><input type="number" min={1} max={12} step={0.5} required className={inputCls} value={form.min_hours} onChange={(e) => set("min_hours", Number(e.target.value))} /></label>
+                <label className="block"><span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Deposit (%)</span><input type="number" min={5} max={100} step={1} required className={inputCls} value={form.deposit_percentage} onChange={(e) => set("deposit_percentage", Number(e.target.value))} /></label>
+                <p className="text-sm text-slate-500 sm:col-span-3">Example: {form.min_hours} hours = <strong className="text-slate-800">£{(form.hourly_rate * form.min_hours).toFixed(2)}</strong>, deposit <strong className="text-slate-800">£{(form.hourly_rate * form.min_hours * form.deposit_percentage / 100).toFixed(2)}</strong>.</p>
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-white px-5 py-2">

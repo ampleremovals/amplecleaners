@@ -18,6 +18,8 @@ export interface MatchCleaner {
   ratingAvg: number | null;
   coveragePrefixes: string[];
   availability: { dayOfWeek: number; startMin: number; endMin: number }[];
+  /** Inclusive date ranges (YYYY-MM-DD) the cleaner is away. */
+  timeOff?: { start: string; end: string }[];
 }
 
 export interface BusySlot {
@@ -33,6 +35,8 @@ export interface MatchJob {
   hours: number;
   postcode: string;
   preferredCleanerId?: string | null;
+  /** Cleaners who already declined THIS job — never offered it again. */
+  declinedBy?: string[];
 }
 
 /** "09:30" / "09:30:00" → 570. Null for empty/invalid. */
@@ -74,12 +78,15 @@ export function estimateJobHours(service: ServiceType, lineItems: { quantity?: n
   return DEFAULT_HOURS[service] ?? 3;
 }
 
-export type Rejection = "not_dbs_verified" | "outside_area" | "unavailable" | "clash";
+export type Rejection = "not_dbs_verified" | "declined" | "outside_area" | "time_off" | "unavailable" | "clash";
 
 /** Why a cleaner can't take the job, or null if they can. */
 export function rejectionFor(job: MatchJob, c: MatchCleaner, busy: BusySlot[]): Rejection | null {
   if (!c.dbsVerified) return "not_dbs_verified";
+  if (job.declinedBy?.includes(c.id)) return "declined";
   if (!c.coveragePrefixes.some((p) => postcodeMatchesPrefix(job.postcode, p))) return "outside_area";
+
+  if (c.timeOff?.some((t) => job.cleanDate >= t.start && job.cleanDate <= t.end)) return "time_off";
 
   const start = job.startMin ?? DEFAULT_START_MIN;
   const end = start + job.hours * 60;
@@ -120,14 +127,16 @@ export function rankCleaners(job: MatchJob, cleaners: MatchCleaner[], busy: Busy
 /** Human-readable reason nobody matched — shown to the admin on the flagged booking. */
 export function explainNoMatch(job: MatchJob, cleaners: MatchCleaner[], busy: BusySlot[]): string {
   if (!cleaners.length) return "there are no active cleaners on the roster";
-  const counts: Record<Rejection, number> = { not_dbs_verified: 0, outside_area: 0, unavailable: 0, clash: 0 };
+  const counts: Record<Rejection, number> = { not_dbs_verified: 0, declined: 0, outside_area: 0, time_off: 0, unavailable: 0, clash: 0 };
   for (const c of cleaners) {
     const r = rejectionFor(job, c, busy);
     if (r) counts[r]++;
   }
   const parts: string[] = [];
   if (counts.not_dbs_verified) parts.push(`${counts.not_dbs_verified} not DBS-verified`);
+  if (counts.declined) parts.push(`${counts.declined} already declined it`);
   if (counts.outside_area) parts.push(`${counts.outside_area} don't cover ${job.postcode.toUpperCase()}`);
+  if (counts.time_off) parts.push(`${counts.time_off} on time off`);
   if (counts.unavailable) parts.push(`${counts.unavailable} not available at that time`);
   if (counts.clash) parts.push(`${counts.clash} already booked`);
   return `${cleaners.length} active cleaner${cleaners.length === 1 ? "" : "s"}: ${parts.join(", ")}`;

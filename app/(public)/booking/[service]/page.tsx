@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Minus, Plus, Sparkles } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
-import { REGULAR_CLEANING_HOURLY_RATE, REGULAR_CLEANING_MIN_HOURS, regularCleaningPrice } from "@/lib/pricing";
+import { usePricing } from "@/components/shared/PricingProvider";
 
 const VALID_SERVICES = Object.keys(SERVICE_LABELS) as ServiceType[];
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
@@ -15,13 +15,14 @@ export default function BookingWizardPage() {
   const service = params.service as string;
   const valid = VALID_SERVICES.includes(service as ServiceType);
   const serviceType = valid ? (service as ServiceType) : "regular_cleaning";
+  const { hourlyRate, minHours, price } = usePricing();
 
   const [form, setForm] = useState({
     fullName: "", email: "", phone: "",
     propertyType: "house" as "flat" | "house" | "studio" | "office" | "other",
     bedrooms: 2, bathrooms: 1,
     frequency: "weekly" as "one_off" | "weekly" | "fortnightly" | "monthly",
-    hours: REGULAR_CLEANING_MIN_HOURS,
+    hours: minHours,
     line1: "", line2: "", city: "", postcode: "",
     cleanDate: "", isFlexibleDate: false,
     specialInstructions: "",
@@ -102,11 +103,11 @@ export default function BookingWizardPage() {
                 </select>
               </Field>
 
-              <Field label={`How many hours? (£${REGULAR_CLEANING_HOURLY_RATE}/hour, ${REGULAR_CLEANING_MIN_HOURS} hours minimum)`}>
+              <Field label={`How many hours? (£${hourlyRate}/hour, ${minHours} hours minimum)`}>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => set("hours", Math.max(REGULAR_CLEANING_MIN_HOURS, form.hours - 1))}
+                    onClick={() => set("hours", Math.max(minHours, form.hours - 1))}
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-brand-green-400 hover:text-brand-green-700"
                   >
                     <Minus className="h-4 w-4" />
@@ -129,7 +130,7 @@ export default function BookingWizardPage() {
                   <Sparkles className="h-4 w-4 text-brand-green-600" /> Your price
                 </span>
                 <span className="font-display text-2xl font-extrabold text-brand-green-700">
-                  {gbp(regularCleaningPrice(form.hours))}
+                  {gbp(price(form.hours))}
                 </span>
               </div>
             </>
@@ -180,7 +181,7 @@ export default function BookingWizardPage() {
             className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand-green-700 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800 disabled:opacity-60"
           >
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            {serviceType === "regular_cleaning" ? `Book now — ${gbp(regularCleaningPrice(form.hours))}` : "Get my free quote"}
+            {serviceType === "regular_cleaning" ? `Book now — ${gbp(price(form.hours))}` : "Get my free quote"}
           </button>
         </form>
       </div>

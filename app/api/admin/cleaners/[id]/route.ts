@@ -7,11 +7,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!auth.ok) return auth.response;
 
   const supabase = createAdminClient();
-  const [{ data: cleaner, error }, { data: availability }, { data: coverage }, { data: upcomingJobs }] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const [{ data: cleaner, error }, { data: availability }, { data: coverage }, { data: upcomingJobs }, { data: timeOff }, { count: declines30d }] = await Promise.all([
     supabase.from("cleaners").select("*").eq("id", params.id).maybeSingle(),
     supabase.from("cleaner_availability").select("*").eq("cleaner_id", params.id).order("day_of_week"),
     supabase.from("cleaner_coverage_areas").select("*").eq("cleaner_id", params.id),
-    supabase.from("bookings").select("id, reference, clean_date, status").eq("assigned_cleaner_id", params.id).gte("clean_date", new Date().toISOString().slice(0, 10)).order("clean_date"),
+    supabase.from("bookings").select("id, reference, clean_date, status").eq("assigned_cleaner_id", params.id).gte("clean_date", today).order("clean_date"),
+    supabase.from("cleaner_time_off").select("id, start_date, end_date, reason").eq("cleaner_id", params.id).gte("end_date", today).order("start_date"),
+    supabase.from("booking_declines").select("id", { count: "exact", head: true }).eq("cleaner_id", params.id).gte("created_at", since),
   ]);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   if (!cleaner) return NextResponse.json({ success: false, error: "Cleaner not found" }, { status: 404 });
@@ -22,6 +26,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     availability: availability ?? [],
     coverage: coverage ?? [],
     upcomingJobs: upcomingJobs ?? [],
+    timeOff: timeOff ?? [],
+    declines30d: declines30d ?? 0,
   });
 }
 

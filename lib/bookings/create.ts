@@ -2,8 +2,8 @@
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateBookingReference, normaliseUKPhone, formatDate } from "@/lib/utils";
-import { DEPOSIT_PERCENTAGE } from "@/lib/deposit";
-import { REGULAR_CLEANING_MIN_HOURS, REGULAR_CLEANING_HOURLY_RATE, regularCleaningPrice } from "@/lib/pricing";
+import { regularCleaningPrice } from "@/lib/pricing";
+import { getPricing } from "@/lib/pricing-config";
 import { defaultTasks } from "@/lib/tasks-template";
 import { generateQuoteConfirmToken } from "@/lib/tokens";
 import { markQuoteSent, sendQuoteMessages } from "@/lib/bookings/quoteDelivery";
@@ -23,7 +23,7 @@ export const bookingInputSchema = z.object({
   bedrooms: z.number().int().min(0).max(10).optional(),
   bathrooms: z.number().int().min(0).max(10).optional(),
   frequency: z.enum(["one_off", "weekly", "fortnightly", "monthly"]).optional(),
-  hours: z.number().min(REGULAR_CLEANING_MIN_HOURS).optional(),
+  hours: z.number().min(1).max(24).optional(), // the minimum is enforced from Settings in createBooking
   line1: z.string().trim().min(2),
   line2: z.string().optional(),
   city: z.string().optional(),
@@ -45,7 +45,7 @@ export interface CreatedBooking {
 
 /**
  * Creates customer (reused by email), address and booking, with the audit
- * trail. Regular Cleaning is priced instantly (£15/hr, 3h min); any other
+ * trail. Regular Cleaning is priced instantly from Settings (rate, min hours); any other
  * service only gets a price when an admin supplies `quoteTotal`.
  * The deposit % is stamped on the row at creation (Lesson 18).
  */
@@ -65,13 +65,14 @@ export async function createBooking(input: BookingInput, source: string, actor: 
     .single();
   if (addrErr || !address) throw new Error(`Address insert failed: ${addrErr?.message}`);
 
+  const cfg = await getPricing();
   const isRegular = input.serviceType === "regular_cleaning";
-  const hours = isRegular ? Math.max(REGULAR_CLEANING_MIN_HOURS, input.hours ?? REGULAR_CLEANING_MIN_HOURS) : null;
+  const hours = isRegular ? Math.max(cfg.minHours, input.hours ?? cfg.minHours) : null;
   let total: number | null = null;
   let lineItems: { description: string; quantity: number; unit_price: number; total: number }[] = [];
   if (isRegular && hours && input.quoteTotal == null) {
-    total = regularCleaningPrice(hours);
-    lineItems = [{ description: `Regular cleaning — ${hours} hours @ £${REGULAR_CLEANING_HOURLY_RATE}/hr`, quantity: hours, unit_price: REGULAR_CLEANING_HOURLY_RATE, total }];
+    total = regularCleaningPrice(hours, cfg);
+    lineItems = [{ description: `Regular cleaning — ${hours} hours @ £${cfg.hourlyRate}/hr`, quantity: hours, unit_price: cfg.hourlyRate, total }];
   } else if (input.quoteTotal != null) {
     total = Math.round(input.quoteTotal * 100) / 100;
     lineItems = [{ description: SERVICE_LABELS[input.serviceType], quantity: 1, unit_price: total, total }];
@@ -99,7 +100,7 @@ export async function createBooking(input: BookingInput, source: string, actor: 
       quote_line_items: lineItems,
       quote_subtotal: total,
       quote_total: total,
-      deposit_percentage: DEPOSIT_PERCENTAGE,
+      deposit_percentage: cfg.depositPercentage,
     })
     .select("id, reference")
     .single();

@@ -287,6 +287,104 @@ async function main() {
 
   await phase7();
   await phase8();
+  await phase9();
+}
+
+async function signInAs(c: { email: string; password: string }) {
+  const client = anon();
+  const { data } = await client.auth.signInWithPassword({ email: c.email, password: c.password });
+  return { client, token: data.session!.access_token };
+}
+
+async function phase9() {
+  console.log("— phase 9: pricing settings, decline, time off, availability");
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+
+  // ── cleaners: decline ──
+  const a = await makeCleaner("p9a", { dbs: true });
+  const b = await makeCleaner("p9b", { dbs: true });
+  const sa = await signInAs(a);
+  const sb = await signInAs(b);
+  const job = await makeBooking({ status: "cleaner_assigned", clean_date: dayShift(21), clean_time: "13:00", assigned_cleaner_id: a.id });
+
+  check("decline needs a reason", (await http(`/api/cleaner/jobs/${job.id}/decline`, { method: "POST", token: sa.token, body: {} })).status === 400);
+  check("another cleaner can NOT decline someone else's job (404)", (await http(`/api/cleaner/jobs/${job.id}/decline`, { method: "POST", token: sb.token, body: { reason: "nope nope" } })).status === 404);
+  const dec = await http(`/api/cleaner/jobs/${job.id}/decline`, { method: "POST", token: sa.token, body: { reason: "I'm unwell" } });
+  check("cleaner can decline a job", dec.status === 200 && dec.json.success, dec.text.slice(0, 140));
+  const { data: afterDec } = await admin.from("bookings").select("status, assigned_cleaner_id").eq("id", job.id).single();
+  check("declined job is re-matched to a DIFFERENT cleaner", !!afterDec?.assigned_cleaner_id && afterDec.assigned_cleaner_id !== a.id && afterDec.status === "cleaner_assigned", JSON.stringify(afterDec));
+  const { data: declineRow } = await admin.from("booking_declines").select("reason").eq("booking_id", job.id).eq("cleaner_id", a.id).maybeSingle();
+  check("decline recorded with reason", declineRow?.reason === "I'm unwell");
+  check("declining the same job again is refused (it isn't theirs any more)", (await http(`/api/cleaner/jobs/${job.id}/decline`, { method: "POST", token: sa.token, body: { reason: "again again" } })).status === 404);
+  const started = await makeBooking({ status: "in_progress", clean_date: todayInLondon(), assigned_cleaner_id: a.id });
+  check("a started job can't be declined (409)", (await http(`/api/cleaner/jobs/${started.id}/decline`, { method: "POST", token: sa.token, body: { reason: "too late" } })).status === 409);
+
+  // ── time off ──
+  const past = await http("/api/cleaner/time-off", { method: "POST", token: sb.token, body: { startDate: dayShift(-2), endDate: dayShift(1) } });
+  check("time off can't start in the past", past.status === 400);
+  check("end before start is refused", (await http("/api/cleaner/time-off", { method: "POST", token: sb.token, body: { startDate: dayShift(30), endDate: dayShift(29) } })).status === 400);
+  check("over 90 days is refused", (await http("/api/cleaner/time-off", { method: "POST", token: sb.token, body: { startDate: dayShift(30), endDate: dayShift(130) } })).status === 400);
+  check("time off needs a login", (await http("/api/cleaner/time-off")).status === 401);
+
+  const away = await makeBooking({ status: "cleaner_assigned", clean_date: dayShift(28), clean_time: "13:00", assigned_cleaner_id: b.id });
+  const safe = await makeBooking({ status: "cleaner_assigned", clean_date: dayShift(35), clean_time: "13:00", assigned_cleaner_id: b.id });
+  const to = await http("/api/cleaner/time-off", { method: "POST", token: sb.token, body: { startDate: dayShift(27), endDate: dayShift(29), reason: "Holiday" } });
+  check("time off booked; the job inside it is released", to.status === 200 && to.json.success && to.json.released === 1, to.text.slice(0, 140));
+  const { data: awayRow } = await admin.from("bookings").select("assigned_cleaner_id").eq("id", away.id).single();
+  const { data: safeRow } = await admin.from("bookings").select("assigned_cleaner_id").eq("id", safe.id).single();
+  check("released job is NOT given back to the cleaner who is away", awayRow?.assigned_cleaner_id !== b.id);
+  check("a job outside the time off is untouched", safeRow?.assigned_cleaner_id === b.id);
+  const listed = await http("/api/cleaner/time-off", { token: sb.token });
+  check("time off is listed", (listed.json.timeOff ?? []).length === 1 && listed.json.timeOff[0].reason === "Holiday");
+  const ownRead = await sb.client.from("cleaner_time_off").select("id");
+  const otherRead = await sa.client.from("cleaner_time_off").select("id");
+  check("RLS: a cleaner reads only their OWN time off", (ownRead.data ?? []).length === 1 && (otherRead.data ?? []).length === 0);
+  const offId = listed.json.timeOff[0].id;
+  await http(`/api/cleaner/time-off?id=${offId}`, { method: "DELETE", token: sa.token });
+  const { count: stillThere } = await admin.from("cleaner_time_off").select("id", { count: "exact", head: true }).eq("id", offId);
+  check("another cleaner can't delete your time off", stillThere === 1);
+  await http(`/api/cleaner/time-off?id=${offId}`, { method: "DELETE", token: sb.token });
+  const { count: gone } = await admin.from("cleaner_time_off").select("id", { count: "exact", head: true }).eq("id", offId);
+  check("you can delete your own time off", gone === 0);
+
+  // ── weekly availability ──
+  const slots = [{ dayOfWeek: 1, startTime: "08:00", endTime: "12:00" }, { dayOfWeek: 1, startTime: "14:00", endTime: "18:00" }, { dayOfWeek: 3, startTime: "09:00", endTime: "17:00" }];
+  const put = await http("/api/cleaner/availability", { method: "PUT", token: sa.token, body: { slots } });
+  const get = await http("/api/cleaner/availability", { token: sa.token });
+  check("availability saved and read back (HH:MM)", put.json.success && JSON.stringify(get.json.slots) === JSON.stringify(slots), get.text.slice(0, 160));
+  check("overlapping slots are refused", (await http("/api/cleaner/availability", { method: "PUT", token: sa.token, body: { slots: [{ dayOfWeek: 2, startTime: "09:00", endTime: "13:00" }, { dayOfWeek: 2, startTime: "12:00", endTime: "16:00" }] } })).status === 400);
+  check("slots under an hour are refused", (await http("/api/cleaner/availability", { method: "PUT", token: sa.token, body: { slots: [{ dayOfWeek: 2, startTime: "09:00", endTime: "09:30" }] } })).status === 400);
+  const unchanged = await http("/api/cleaner/availability", { token: sa.token });
+  check("a refused save leaves the old availability intact", JSON.stringify(unchanged.json.slots) === JSON.stringify(slots));
+  check("availability needs a login", (await http("/api/cleaner/availability")).status === 401);
+  const ownAvail = await sa.client.from("cleaner_availability").select("id");
+  check("RLS: a cleaner reads their own availability in the app", (ownAvail.data ?? []).length === 3);
+
+  // ── admin pricing settings ──
+  if (!ADMIN_PW) { console.log("SKIP  admin pricing checks (set E2E_ADMIN_PW)"); return; }
+  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const at = as!.session!.access_token;
+  const detail = await http(`/api/admin/cleaners/${a.id}`, { token: at });
+  check("admin sees the decline count on the cleaner", detail.json.success && detail.json.declines30d === 1, String(detail.json.declines30d));
+
+  const orig = (await http("/api/admin/settings", { token: at })).json.settings;
+  check("pricing columns present in settings", orig.hourly_rate !== undefined && orig.min_hours !== undefined && orig.deposit_percentage !== undefined);
+  check("absurd pricing is refused", (await http("/api/admin/settings", { method: "PATCH", token: at, body: { hourly_rate: 1 } })).status === 400 && (await http("/api/admin/settings", { method: "PATCH", token: at, body: { deposit_percentage: 500 } })).status === 400);
+  const before = await http("/api/bookings", { method: "POST", headers: fwd(), body: { serviceType: "regular_cleaning", fullName: "E2E Price", email: `delivered+e2e-price1-${stamp}@resend.dev`, phone: "07700900111", propertyType: "flat", frequency: "one_off", hours: 3, line1: "1 Price St", postcode: "SW1A 1AA", cleanDate: dayShift(40) } });
+  const sv = await http("/api/admin/settings", { method: "PATCH", token: at, body: { hourly_rate: 20, min_hours: 4, deposit_percentage: 25 } });
+  check("owner can change rate, minimum hours and deposit", sv.json.success === true);
+  const after = await http("/api/bookings", { method: "POST", headers: fwd(), body: { serviceType: "regular_cleaning", fullName: "E2E Price", email: `delivered+e2e-price2-${stamp}@resend.dev`, phone: "07700900112", propertyType: "flat", frequency: "one_off", hours: 3, line1: "2 Price St", postcode: "SW1A 1AA", cleanDate: dayShift(41) } });
+  for (const r of [before.json.reference, after.json.reference]) {
+    const { data: row } = await admin.from("bookings").select("id, customer_id, address_id").eq("reference", r).maybeSingle();
+    if (row) { ids.bookings.push(row.id); ids.customers.push(row.customer_id); ids.addresses.push(row.address_id); }
+  }
+  check("new booking uses the new rate and enforces the new 4h minimum (3h asked → 4h × £20 = £80)", after.json.total === 80, String(after.json.total));
+  const { data: oldRow } = await admin.from("bookings").select("deposit_percentage, quote_total").eq("reference", before.json.reference).single();
+  const { data: newRow } = await admin.from("bookings").select("deposit_percentage, quote_total").eq("reference", after.json.reference).single();
+  check("old booking keeps its price and 20% deposit; new one stamps 25%", Number(oldRow?.quote_total) === 45 && Number(oldRow?.deposit_percentage) === 20 && Number(newRow?.deposit_percentage) === 25, JSON.stringify({ oldRow, newRow }));
+  await http("/api/admin/settings", { method: "PATCH", token: at, body: { hourly_rate: Number(orig.hourly_rate), min_hours: Number(orig.min_hours), deposit_percentage: Number(orig.deposit_percentage) } });
+  const restored = (await http("/api/admin/settings", { token: at })).json.settings;
+  check("pricing restored after the test", Number(restored.hourly_rate) === Number(orig.hourly_rate) && Number(restored.deposit_percentage) === Number(orig.deposit_percentage));
 }
 
 const dayShift = (n: number) => {

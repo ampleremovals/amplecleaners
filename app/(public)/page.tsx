@@ -8,7 +8,7 @@ import {
 import { ServiceCard } from "@/components/shared/ServiceCard";
 import { GradientMesh } from "@/components/shared/GradientMesh";
 import { SERVICE_LABELS } from "@/types";
-import { REGULAR_CLEANING_HOURLY_RATE, REGULAR_CLEANING_MIN_HOURS, regularCleaningPrice } from "@/lib/pricing";
+import { usePricing } from "@/components/shared/PricingProvider";
 
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 0 }).format(n);
 
@@ -35,6 +35,7 @@ const fadeUp = {
 };
 
 export default function HomePage() {
+  const { hourlyRate, minHours, price, rating } = usePricing();
   return (
     <div className="page-wash overflow-x-clip">
       {/* One continuous colourful backdrop spanning hero → services → pricing,
@@ -77,7 +78,7 @@ export default function HomePage() {
                 className="mx-auto mt-6 max-w-xl text-lg text-slate-700"
               >
                 Fixed price, no hidden fees. Regular cleaning from just{" "}
-                <strong className="text-brand-green-700">£{REGULAR_CLEANING_HOURLY_RATE}/hour</strong> — pay a small
+                <strong className="text-brand-green-700">£{hourlyRate}/hour</strong> — pay a small
                 deposit to secure your slot, the rest isn&apos;t due until the job&apos;s done.
               </motion.p>
 
@@ -116,6 +117,12 @@ export default function HomePage() {
                     {pill.label}
                   </span>
                 ))}
+                {rating && (
+                  <span className="glass-strong flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-slate-800">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    {rating.average.toFixed(1)} from {rating.count} customer reviews
+                  </span>
+                )}
               </motion.div>
             </motion.div>
           </div>
@@ -180,21 +187,21 @@ export default function HomePage() {
 
               <div className="relative flex flex-col items-center text-center">
                 <span className="flex items-center gap-2 rounded-full bg-brand-green-600/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-brand-green-800">
-                  <Timer className="h-3.5 w-3.5" /> {REGULAR_CLEANING_MIN_HOURS} hour minimum booking
+                  <Timer className="h-3.5 w-3.5" /> {minHours} hour minimum booking
                 </span>
                 <div className="mt-6 flex items-end gap-2">
                   <span className="font-display text-6xl font-extrabold tabular-nums text-brand-green-700 sm:text-7xl">
-                    £{REGULAR_CLEANING_HOURLY_RATE}
+                    £{hourlyRate}
                   </span>
                   <span className="mb-2 font-display text-xl font-bold text-slate-500">/ hour</span>
                 </div>
                 <p className="mt-2 text-slate-600">Every visit — no deep-clean upcharge, no travel fee, no VAT surprises.</p>
 
                 <div className="mt-8 grid w-full gap-3 sm:grid-cols-3">
-                  {[3, 4, 5].map((h) => (
+                  {[minHours, minHours + 1, minHours + 2].map((h) => (
                     <div key={h} className="glass rounded-2xl p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">{h} hours</p>
-                      <p className="mt-1 font-display text-2xl font-extrabold text-slate-900">{gbp(regularCleaningPrice(h))}</p>
+                      <p className="mt-1 font-display text-2xl font-extrabold text-slate-900">{gbp(price(h))}</p>
                     </div>
                   ))}
                 </div>

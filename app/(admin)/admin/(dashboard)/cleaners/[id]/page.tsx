@@ -12,6 +12,7 @@ interface Cleaner { id: string; full_name: string; email: string; phone: string;
 interface Slot { id: string; day_of_week: number; start_time: string; end_time: string; }
 interface Area { id: string; postcode_prefix: string; }
 interface Job { id: string; reference: string; clean_date: string | null; status: string; }
+interface TimeOff { id: string; start_date: string; end_date: string; reason: string | null; }
 
 export default function CleanerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,8 @@ export default function CleanerDetailPage() {
   const [availability, setAvailability] = useState<Slot[]>([]);
   const [coverage, setCoverage] = useState<Area[]>([]);
   const [upcomingJobs, setUpcomingJobs] = useState<Job[]>([]);
+  const [timeOff, setTimeOff] = useState<TimeOff[]>([]);
+  const [declines30d, setDeclines30d] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [payRate, setPayRate] = useState("");
@@ -43,6 +46,8 @@ export default function CleanerDetailPage() {
       setAvailability(res.availability);
       setCoverage(res.coverage);
       setUpcomingJobs(res.upcomingJobs);
+      setTimeOff(res.timeOff ?? []);
+      setDeclines30d(res.declines30d ?? 0);
     }
     setLoading(false);
   }, [id]);
@@ -163,6 +168,20 @@ export default function CleanerDetailPage() {
               </div>
             ))}
             {upcomingJobs.length === 0 && <p className="text-sm text-slate-400">No upcoming jobs assigned.</p>}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <h2 className="font-bold text-slate-900">Time off &amp; reliability</h2>
+          <p className={`mt-2 text-sm ${declines30d >= 3 ? "font-semibold text-amber-700" : "text-slate-600"}`}>Jobs declined in the last 30 days: <strong>{declines30d}</strong>{declines30d >= 3 ? " — worth a chat" : ""}</p>
+          <div className="mt-3 space-y-1.5">
+            {timeOff.map((t) => (
+              <div key={t.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-1.5 text-sm">
+                <span>{new Date(t.start_date).toLocaleDateString("en-GB")} – {new Date(t.end_date).toLocaleDateString("en-GB")}</span>
+                <span className="text-slate-400">{t.reason ?? ""}</span>
+              </div>
+            ))}
+            {timeOff.length === 0 && <p className="text-sm text-slate-400">No time off booked.</p>}
           </div>
         </section>
 

@@ -92,6 +92,7 @@ export async function autoAssignBooking(bookingId: string, actor: "system" | "ad
     hours: estimateJobHours(booking.service_type, booking.quote_line_items),
     postcode,
     preferredCleanerId: sibling?.assigned_cleaner_id ?? null,
+    declinedBy: ((await supabase.from("booking_declines").select("cleaner_id").eq("booking_id", booking.id)).data ?? []).map((d: any) => d.cleaner_id as string),
   };
 
   const ranked = rankCleaners(job, cleaners, busy, load);
@@ -130,7 +131,7 @@ export async function autoAssignBooking(bookingId: string, actor: "system" | "ad
 async function loadMatchCleaners(supabase: any): Promise<MatchCleaner[]> {
   const { data } = await supabase
     .from("cleaners")
-    .select("id, full_name, dbs_verified, rating_avg, cleaner_coverage_areas(postcode_prefix), cleaner_availability(day_of_week, start_time, end_time)")
+    .select("id, full_name, dbs_verified, rating_avg, cleaner_coverage_areas(postcode_prefix), cleaner_availability(day_of_week, start_time, end_time), cleaner_time_off(start_date, end_date)")
     .eq("is_active", true);
   return (data ?? []).map((c: any): MatchCleaner => ({
     id: c.id,
@@ -138,6 +139,7 @@ async function loadMatchCleaners(supabase: any): Promise<MatchCleaner[]> {
     dbsVerified: !!c.dbs_verified,
     ratingAvg: c.rating_avg == null ? null : Number(c.rating_avg),
     coveragePrefixes: (c.cleaner_coverage_areas ?? []).map((a: any) => a.postcode_prefix),
+    timeOff: (c.cleaner_time_off ?? []).map((t: any) => ({ start: t.start_date, end: t.end_date })),
     availability: (c.cleaner_availability ?? []).flatMap((a: any) => {
       const startMin = toMinutes(a.start_time);
       const endMin = toMinutes(a.end_time);

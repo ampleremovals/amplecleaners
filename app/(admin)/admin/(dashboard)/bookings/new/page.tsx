@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
-import { REGULAR_CLEANING_HOURLY_RATE, REGULAR_CLEANING_MIN_HOURS, regularCleaningPrice } from "@/lib/pricing";
+import { DEFAULT_PRICING, regularCleaningPrice, type PricingConfig } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
 
 const inputCls = "h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-green-600";
@@ -23,19 +23,29 @@ function Field({ label, children, className = "" }: { label: string; children: R
 export default function NewBookingPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  const [cfg, setCfg] = useState<PricingConfig>(DEFAULT_PRICING);
   const [form, setForm] = useState({
     serviceType: "regular_cleaning" as ServiceType,
     fullName: "", email: "", phone: "",
     propertyType: "house", bedrooms: 2, bathrooms: 1,
-    frequency: "weekly", hours: REGULAR_CLEANING_MIN_HOURS, quoteTotal: "",
+    frequency: "weekly", hours: DEFAULT_PRICING.minHours, quoteTotal: "",
     line1: "", city: "", postcode: "",
     cleanDate: "", cleanTime: "", specialInstructions: "",
     sendQuote: true,
   });
+  useEffect(() => {
+    fetch("/api/admin/settings").then((r) => r.json()).then((j) => {
+      if (j.success && j.settings) {
+        const next = { hourlyRate: Number(j.settings.hourly_rate), minHours: Number(j.settings.min_hours), depositPercentage: Number(j.settings.deposit_percentage) };
+        setCfg(next);
+        setForm((f) => ({ ...f, hours: Math.max(f.hours, next.minHours) }));
+      }
+    }).catch(() => {});
+  }, []);
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
   const isRegular = form.serviceType === "regular_cleaning";
   const manualPrice = Number(form.quoteTotal);
-  const price = manualPrice > 0 ? manualPrice : isRegular ? regularCleaningPrice(form.hours) : null;
+  const price = manualPrice > 0 ? manualPrice : isRegular ? regularCleaningPrice(form.hours, cfg) : null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,13 +110,13 @@ export default function NewBookingPage() {
                   {["one_off", "weekly", "fortnightly", "monthly"].map((f) => <option key={f} value={f}>{f.replace("_", " ")}</option>)}
                 </select>
               </Field>
-              <Field label={`Hours (£${REGULAR_CLEANING_HOURLY_RATE}/hr, min ${REGULAR_CLEANING_MIN_HOURS})`}>
-                <input type="number" min={REGULAR_CLEANING_MIN_HOURS} step={0.5} className={inputCls} value={form.hours} onChange={(e) => set("hours", Number(e.target.value))} />
+              <Field label={`Hours (£${cfg.hourlyRate}/hr, min ${cfg.minHours})`}>
+                <input type="number" min={cfg.minHours} step={0.5} className={inputCls} value={form.hours} onChange={(e) => set("hours", Number(e.target.value))} />
               </Field>
             </>
           )}
           <Field label={isRegular ? "Override price (£, optional)" : "Agreed price (£, optional)"}>
-            <input type="number" min={0} step={0.01} className={inputCls} value={form.quoteTotal} onChange={(e) => set("quoteTotal", e.target.value)} placeholder={isRegular ? "Leave blank to use £15/hr" : "Leave blank to quote later"} />
+            <input type="number" min={0} step={0.01} className={inputCls} value={form.quoteTotal} onChange={(e) => set("quoteTotal", e.target.value)} placeholder={isRegular ? `Leave blank to use £${cfg.hourlyRate}/hr` : "Leave blank to quote later"} />
           </Field>
           <Field label="Date"><input type="date" className={inputCls} value={form.cleanDate} onChange={(e) => set("cleanDate", e.target.value)} /></Field>
           <Field label="Start time"><input type="time" className={inputCls} value={form.cleanTime} onChange={(e) => set("cleanTime", e.target.value)} /></Field>

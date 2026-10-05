@@ -86,3 +86,24 @@ test("explainNoMatch is specific", () => {
   assert.match(msg, /1 don't cover SW1A 1AA/);
   assert.equal(explainNoMatch(job(), [], []), "there are no active cleaners on the roster");
 });
+
+test("time off blocks the dates inside the (inclusive) range only", () => {
+  const away = cleaner({ timeOff: [{ start: "2026-10-05", end: "2026-10-07" }] });
+  assert.equal(rejectionFor(job({ cleanDate: "2026-10-05" }), away, []), "time_off");
+  assert.equal(rejectionFor(job({ cleanDate: "2026-10-07" }), away, []), "time_off");
+  // Monday 12 Oct is outside the range, and the cleaner works Mondays
+  assert.equal(rejectionFor(job({ cleanDate: "2026-10-12" }), away, []), null);
+});
+
+test("a cleaner who declined a job is never offered it again", () => {
+  assert.equal(rejectionFor(job({ declinedBy: ["c1"] }), cleaner(), []), "declined");
+  assert.equal(rejectionFor(job({ declinedBy: ["someone-else"] }), cleaner(), []), null);
+  const ranked = rankCleaners(job({ declinedBy: ["a"] }), [cleaner({ id: "a" }), cleaner({ id: "b", fullName: "B" })], [], new Map());
+  assert.deepEqual(ranked.map((r) => r.cleaner.id), ["b"]);
+});
+
+test("explainNoMatch mentions time off and declines", () => {
+  const msg = explainNoMatch(job({ declinedBy: ["a"] }), [cleaner({ id: "a" }), cleaner({ id: "b", timeOff: [{ start: "2026-10-01", end: "2026-10-31" }] })], []);
+  assert.match(msg, /1 already declined it/);
+  assert.match(msg, /1 on time off/);
+});

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/server";
+import { clearPricingCache } from "@/lib/pricing-config";
 
 export const dynamic = "force-dynamic";
 
-const COLUMNS = "company_name, company_address, company_phone, company_email, google_review_link, customer_sms_enabled, customer_whatsapp_enabled";
+const COLUMNS = "company_name, company_address, company_phone, company_email, google_review_link, customer_sms_enabled, customer_whatsapp_enabled, hourly_rate, min_hours, deposit_percentage";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -24,6 +25,9 @@ const patchSchema = z.object({
   google_review_link: z.string().trim().url().max(500).or(z.literal("")).transform((v) => v || null).nullable().optional(),
   customer_sms_enabled: z.boolean().optional(),
   customer_whatsapp_enabled: z.boolean().optional(),
+  hourly_rate: z.number().min(5).max(200).optional(),
+  min_hours: z.number().min(1).max(12).optional(),
+  deposit_percentage: z.number().min(5).max(100).optional(),
 });
 
 /** PATCH — update business details and messaging switches (singleton row id=1). */
@@ -36,5 +40,6 @@ export async function PATCH(req: NextRequest) {
 
   const { error } = await createAdminClient().from("settings").update(parsed.data).eq("id", 1);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  clearPricingCache();
   return NextResponse.json({ success: true });
 }
