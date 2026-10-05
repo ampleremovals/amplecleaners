@@ -5,6 +5,7 @@ import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ErrorState, EmptyState } from "@/components/admin/DataState";
+import { MarketingReport } from "@/components/admin/MarketingReport";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -159,6 +160,8 @@ export default function ReportsPage() {
           </div>
         ) : null}
       </div>
+
+      <MarketingReport days={days} />
     </div>
   );
 }

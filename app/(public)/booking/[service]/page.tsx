@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2, Minus, Plus, Sparkles } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 import { usePricing } from "@/components/shared/PricingProvider";
+import { readAttribution } from "@/components/shared/attribution";
 
 const VALID_SERVICES = Object.keys(SERVICE_LABELS) as ServiceType[];
 const gbp = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(n);
@@ -44,7 +45,7 @@ export default function BookingWizardPage() {
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ serviceType, ...form }),
+        body: JSON.stringify({ serviceType, ...form, attribution: readAttribution() }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Something went wrong.");

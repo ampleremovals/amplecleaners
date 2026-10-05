@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           <li>Right-to-work and DBS check documents, and bank details for pay.</li>
           <li>Your location when you clock in and out of a job, before-and-after photos taken during jobs, and your job and pay history.</li>
         </ul>
-        <p className="mt-3"><strong>When you use our website:</strong> basic, privacy-friendly usage statistics (pages visited, device type) from Vercel Web Analytics, which does not use cookies or track you across other sites. We use only the cookies strictly necessary to keep our admin and cleaner sign-ins working.</p>
+        <p className="mt-3"><strong>When you use our website:</strong> basic, privacy-friendly usage statistics (pages visited, device type, and which link or advert brought you here) so we can see what works and improve the site. We measure this <em>without cookies and without storing anything on your device</em>: we make a one-way, anonymous code from your connection details that changes every day and cannot be used to follow you from one day to the next. We do not store your IP address. We also use this to test different versions of our homepage. Vercel Web Analytics provides further aggregate statistics and does not use cookies either. We use only the cookies strictly necessary to keep our admin and cleaner sign-ins working.</p>
       </section>
 
       <section>

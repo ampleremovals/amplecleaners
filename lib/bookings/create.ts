@@ -32,6 +32,14 @@ export const bookingInputSchema = z.object({
   cleanTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   isFlexibleDate: z.boolean().optional(),
   specialInstructions: z.string().max(2000).optional(),
+  /** Marketing attribution carried through the URL (utm_*, gclid, fbclid). Free text, length-capped. */
+  attribution: z
+    .object({
+      utm_source: z.string().max(200).optional(), utm_medium: z.string().max(200).optional(), utm_campaign: z.string().max(200).optional(),
+      utm_term: z.string().max(200).optional(), utm_content: z.string().max(200).optional(),
+      gclid: z.string().max(200).optional(), fbclid: z.string().max(200).optional(),
+    })
+    .optional(),
   /** Admin-only: a hand-agreed price for services without a fixed rate. */
   quoteTotal: z.number().positive().max(100000).optional(),
 });
@@ -101,6 +109,9 @@ export async function createBooking(input: BookingInput, source: string, actor: 
       quote_subtotal: total,
       quote_total: total,
       deposit_percentage: cfg.depositPercentage,
+      utm_source: input.attribution?.utm_source ?? null, utm_medium: input.attribution?.utm_medium ?? null,
+      utm_campaign: input.attribution?.utm_campaign ?? null, utm_term: input.attribution?.utm_term ?? null,
+      utm_content: input.attribution?.utm_content ?? null, gclid: input.attribution?.gclid ?? null, fbclid: input.attribution?.fbclid ?? null,
     })
     .select("id, reference")
     .single();

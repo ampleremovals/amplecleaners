@@ -494,10 +494,15 @@ The owner stated these are TRUE and must be used: "we're fully insured", "popula
 - Events (`site_events`) store only a DAILY-rotating hashed visitor id (can't be linked across days), path, variant, source — no IPs.
 - Attribution rides on the URL (utm_*, gclid, fbclid) through CTA links into the booking form, and is stored on the booking with the variant.
 ### Plan
-- [ ] Migration 0006: `site_events`, `bookings.copy_variant`.
-- [ ] `lib/experiments.ts` (variant assignment, daily visitor hash, hero copy per variant) + `lib/stats.ts` (two-proportion z-test) with unit tests.
-- [ ] Middleware rewrite for `/`; HomeView shared by `/` and `/lp/b` (B = outcome-led hero + different CTA).
-- [ ] `/api/track` (bot-filtered, rate-limited, fail-open) + client Tracker.
-- [ ] Attribution captured on links → booking form → `createBooking`.
-- [ ] Reports: sources/campaigns (bookings + revenue) and Experiments card (visitors → booking-page views → bookings per variant, significance + "need more traffic" guidance).
-- [ ] Privacy policy updated; e2e extended; tsc/lint/build; push; live check.
+- [x] Migration 0006: `site_events`, `bookings.copy_variant`.
+- [x] `lib/experiments.ts` (variant assignment, daily visitor hash, hero copy per variant) + `lib/stats.ts` (two-proportion z-test) with unit tests.
+- [x] Middleware rewrite for `/`; HomeView shared by `/` and `/lp/b` (B = outcome-led hero + different CTA).
+- [x] `/api/track` (bot-filtered, rate-limited, fail-open) + client Tracker.
+- [x] Attribution captured on links → booking form → `createBooking`.
+- [x] Reports: sources/campaigns (bookings + revenue) and Experiments card (visitors → booking-page views → bookings per variant, significance + "need more traffic" guidance).
+- [x] Privacy policy updated; e2e extended; tsc/lint/build; push; live check.
+
+### Review (phase 11)
+Built + verified (e2e: 160 checks all pass; unit tests 28): cookie-free A/B test of the homepage hero (A = price-led control, B = outcome-led) served by a middleware REWRITE from a stable hash of IP+UA (nothing stored on the device; bots/Lighthouse always get A; `/lp/b` is noindex); privacy-preserving analytics (`site_events`: daily-rotating hashed visitor id, no IPs, path allowlist so tokenised URLs are never stored, bots dropped); attribution (utm_*/gclid/fbclid) carried via links → stored on the booking; Reports → Marketing: per-variant funnel (saw hero → reached booking form → booked, matched by same-day anonymous id), two-proportion z-test with an honest verdict + "visitors needed" guidance, channel table (bookings + paid revenue + campaigns). Privacy policy updated. Migration 0006 applied.
+How to use: put `?utm_source=facebook&utm_campaign=autumn` on every ad link. Leave the test running until each version has the recommended visitors (Reports tells you); then make the winner the default (edit heroCopy in components/home/HomeView.tsx) and bump EXPERIMENT_ID in lib/experiments.ts for the next test.
+Not verified: live traffic (none yet); Vercel CDN behaviour of the rewrite is unverified until deployed — checked after push.

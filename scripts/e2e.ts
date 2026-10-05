@@ -289,6 +289,98 @@ async function main() {
   await phase8();
   await phase9();
   await phase10();
+  await phase11();
+}
+
+async function phase11() {
+  console.log("— phase 11: marketing measurement & A/B testing");
+  const { variantFor } = await import("../lib/experiments");
+  const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile Safari/604.1 E2E";
+  // Find one IP per variant using the real assignment function (deterministic).
+  let ipA = "", ipB = "";
+  for (let i = 1; i < 400 && (!ipA || !ipB); i++) {
+    const ip = `192.0.2.${i}`;
+    const v = variantFor(ip, UA);
+    if (v === "a" && !ipA) ipA = ip;
+    if (v === "b" && !ipB) ipB = ip;
+  }
+  const home = async (ip: string, ua = UA) => {
+    const res = await fetch(`${BASE}/`, { headers: { "x-forwarded-for": ip, "user-agent": ua } });
+    return { status: res.status, body: await res.text() };
+  };
+  const a1 = await home(ipA);
+  const b1 = await home(ipB);
+  check("variant A visitor sees the control hero", a1.status === 200 && /Come home to a spotless house/.test(a1.body) && !/Get your weekends back\. Fixed-price/.test(a1.body));
+  check("variant B visitor sees the test hero at the SAME url (rewrite)", b1.status === 200 && /Get your weekends back\. Fixed-price cleaning/.test(b1.body) && /Check my price/.test(b1.body));
+  check("the assignment is sticky for the same visitor", /Get your weekends back/.test((await home(ipB)).body) && /Come home to a spotless/.test((await home(ipA)).body));
+  const bot = await home(ipB, "Googlebot/2.1 (+http://www.google.com/bot.html)");
+  check("bots always get the control (never skew the test)", /Come home to a spotless house/.test(bot.body));
+  const direct = await fetch(`${BASE}/lp/b`);
+  const directBody = await direct.text();
+  check("/lp/b is not indexable on its own URL", direct.status === 200 && /noindex/.test(directBody));
+
+  // ── tracking endpoint ──
+  const track = (body: unknown, ip: string, ua = UA) => fetch(`${BASE}/api/track`, { method: "POST", headers: { "Content-Type": "application/json", "x-forwarded-for": ip, "user-agent": ua, "x-e2e-track": "1" }, body: JSON.stringify(body) });
+  const countEvents = async (extra: (q: any) => any = (q) => q) => (await extra(admin.from("site_events").select("id", { count: "exact", head: true }).eq("utm_campaign", "e2e"))).count ?? 0; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const t0 = await countEvents();
+  const ok = await track({ path: "/", utm_source: "e2e-source", utm_campaign: "e2e", referrer_host: "www.google.com" }, ipB);
+  const t1 = await countEvents();
+  check("page view is recorded (204)", ok.status === 204 && t1 === t0 + 1, `${t0}→${t1}`);
+  const { data: ev } = await admin.from("site_events").select("*").eq("utm_campaign", "e2e").order("created_at", { ascending: false }).limit(1).single();
+  check("event stores the variant and a hashed id — never the IP", ev?.variant === "b" && ev.visitor_hash.length === 32 && !JSON.stringify(ev).includes(ipB), JSON.stringify(ev));
+  await track({ path: "/", utm_campaign: "e2e" }, ipB, "Googlebot/2.1");
+  await track({ path: "/quote/00000000-0000-0000-0000-000000000000/secret-token", utm_campaign: "e2e" }, ipB);
+  await track({ nonsense: true }, ipB);
+  check("bots, tokenised paths and junk are NOT recorded", (await countEvents()) === t1);
+  const hashDay1 = ev!.visitor_hash;
+  const { dailyVisitorHash } = await import("../lib/tracking");
+  check("the visitor id changes every day (can't follow a person across days)", dailyVisitorHash(ipB, UA, new Date("2026-10-05T12:00:00Z")) !== dailyVisitorHash(ipB, UA, new Date("2026-10-06T12:00:00Z")) && dailyVisitorHash(ipB, UA, new Date("2026-10-05T01:00:00Z")) === dailyVisitorHash(ipB, UA, new Date("2026-10-05T23:00:00Z")) && hashDay1.length === 32);
+
+  // ── attribution on a booking + funnel event ──
+  const bk = await http("/api/bookings", { method: "POST", headers: { ...fwd(), "x-forwarded-for": ipB, "user-agent": UA, "x-e2e-track": "1" }, body: { serviceType: "regular_cleaning", fullName: "E2E Attrib", email: `delivered+e2e-attr-${stamp}@resend.dev`, phone: "07700900222", propertyType: "flat", frequency: "one_off", hours: 3, line1: "5 Attr St", postcode: "SW1A 1AA", cleanDate: dayShift(50), attribution: { utm_source: "facebook", utm_medium: "paid", utm_campaign: "e2e", gclid: "g123" } } });
+  check("booking accepted with attribution", bk.json.success === true, bk.text.slice(0, 120));
+  if (bk.json.reference) {
+    const { data: row } = await admin.from("bookings").select("id, customer_id, address_id, utm_source, utm_medium, utm_campaign, gclid").eq("reference", bk.json.reference).single();
+    if (row) { ids.bookings.push(row.id); ids.customers.push(row.customer_id); ids.addresses.push(row.address_id); }
+    check("utm_source/medium/campaign and gclid are stored on the booking", row?.utm_source === "facebook" && row.utm_medium === "paid" && row.utm_campaign === "e2e" && row.gclid === "g123", JSON.stringify(row));
+  }
+  const { count: subs } = await admin.from("site_events").select("id", { count: "exact", head: true }).eq("event", "booking_submit").eq("utm_campaign", "e2e");
+  check("a booking_submit event is recorded for the funnel", (subs ?? 0) >= 1);
+
+  // ── marketing report: seed a known funnel and check the maths ──
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  if (!ADMIN_PW) { console.log("SKIP  marketing report checks (set E2E_ADMIN_PW)"); await cleanupEvents(); return; }
+  check("marketing report needs admin", (await http("/api/admin/marketing")).status === 401);
+  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const at = as!.session!.access_token;
+  const before = await http("/api/admin/marketing?days=30", { token: at });
+  check("marketing report loads for admin", before.json.success === true && before.json.experiment?.a && before.json.experiment?.b, before.text.slice(0, 160));
+  const now = new Date().toISOString();
+  const seed = (hash: string, event: string, path: string, variant: string) => ({ visitor_hash: `e2eseed-${hash}`, event, path, variant, utm_campaign: "e2e", utm_source: "e2e-seed", created_at: now });
+  const rows = [
+    ...[1, 2, 3, 4, 5].flatMap((i) => [seed(`a${i}`, "page_view", "/", "a")]),
+    ...[1, 2].flatMap((i) => [seed(`a${i}`, "page_view", "/booking/regular_cleaning", "a")]),
+    seed("a1", "booking_submit", "/booking", "a"),
+    ...[1, 2, 3, 4, 5].flatMap((i) => [seed(`b${i}`, "page_view", "/", "b")]),
+    ...[1, 2, 3].flatMap((i) => [seed(`b${i}`, "page_view", "/booking/regular_cleaning", "b")]),
+    ...[1, 2].flatMap((i) => [seed(`b${i}`, "booking_submit", "/booking", "b")]),
+    seed("z1", "booking_submit", "/booking", "a"), // a booking by someone who never saw the homepage: must NOT count toward the test
+  ];
+  await admin.from("site_events").insert(rows);
+  const after = await http("/api/admin/marketing?days=30", { token: at });
+  const d = (k: "a" | "b", f: "visitors" | "bookingPageViews" | "bookings") => after.json.experiment[k][f] - before.json.experiment[k][f];
+  check("funnel counts only people who SAW a hero version (A: 5 visitors, 2 reached the form, 1 booked)", d("a", "visitors") === 5 && d("a", "bookingPageViews") === 2 && d("a", "bookings") === 1, JSON.stringify(after.json.experiment.a));
+  check("B funnel: 5 visitors, 3 reached the form, 2 booked", d("b", "visitors") === 5 && d("b", "bookingPageViews") === 3 && d("b", "bookings") === 2, JSON.stringify(after.json.experiment.b));
+  check("small samples are never declared a winner", after.json.experiment.result.significant === false);
+  check("the report says how many visitors are needed", typeof after.json.experiment.visitorsNeededPerVariant === "number" || after.json.experiment.visitorsNeededPerVariant === null);
+  const fb = (after.json.channels ?? []).find((c: { channel: string }) => c.channel === "facebook");
+  check("channel table shows facebook with its campaign", !!fb && fb.bookings >= 1 && fb.campaigns.includes("e2e"), JSON.stringify(after.json.channels).slice(0, 200));
+  await cleanupEvents();
+}
+
+async function cleanupEvents() {
+  await admin.from("site_events").delete().eq("utm_campaign", "e2e");
+  await admin.from("site_events").delete().like("visitor_hash", "e2eseed-%");
 }
 
 async function phase10() {
@@ -633,6 +725,7 @@ async function cleanup() {
     await admin.from("bookings").delete().in("parent_booking_id", ids.bookings);
     await admin.from("bookings").delete().in("id", ids.bookings);
     await admin.from("customers").delete().in("id", ids.customers);
+    await cleanupEvents();
     for (const e of ids.applicationEmails) await admin.from("cleaner_applications").delete().ilike("email", e);
     await admin.from("cleaner_applications").delete().ilike("email", `%e2e-bot-${stamp}%`);
     await admin.from("addresses").delete().in("id", ids.addresses);
