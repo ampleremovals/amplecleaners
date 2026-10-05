@@ -118,19 +118,7 @@
     text-wrap: balance;
   }
 
-  /* Brand gradient text — green → sky → violet, the three-colour signature */
-  .text-gradient-brand {
-    background: linear-gradient(95deg, #16a34a 0%, #0ea5e9 52%, #a855f7 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-  .text-gradient-sky {
-    background: linear-gradient(100deg, #38bdf8 0%, #0ea5e9 50%, #0284c7 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
+  /* Headings use ONE solid colour each — no gradient text (owner preference, and gradient text can't be contrast-checked). */
 
   /* ── Glassmorphism ──────────────────────────────────────────────── */
   /* Readability comes first — these are deliberately high-alpha ("frosted",

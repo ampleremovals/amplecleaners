@@ -69,7 +69,7 @@ export default function HomePage() {
               >
                 A spotless home,
                 <br />
-                <span className="text-gradient-brand">booked in minutes</span>
+                booked in minutes
               </motion.h1>
 
               <motion.p
@@ -78,7 +78,7 @@ export default function HomePage() {
                 className="mx-auto mt-6 max-w-xl text-lg text-slate-700"
               >
                 Fixed price, no hidden fees. Regular cleaning from just{" "}
-                <strong className="text-brand-green-700">£{hourlyRate}/hour</strong> — pay a small
+                <strong>£{hourlyRate}/hour</strong> — pay a small
                 deposit to secure your slot, the rest isn&apos;t due until the job&apos;s done.
               </motion.p>
 
@@ -138,9 +138,9 @@ export default function HomePage() {
               transition={{ duration: 0.4 }}
               className="mx-auto max-w-xl text-center"
             >
-              <span className="text-sm font-bold uppercase tracking-widest text-brand-sky-600">What we clean</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-brand-sky-700">What we clean</span>
               <h2 className="mt-2 font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">
-                Five services, <span className="text-gradient-brand">one fixed price</span>
+                Five services, one fixed price
               </h2>
             </motion.div>
             <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -168,9 +168,9 @@ export default function HomePage() {
               transition={{ duration: 0.4 }}
               className="mx-auto max-w-xl text-center"
             >
-              <span className="text-sm font-bold uppercase tracking-widest text-brand-violet-600">Simple pricing</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-brand-violet-700">Simple pricing</span>
               <h2 className="mt-2 font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">
-                Regular Cleaning, <span className="text-gradient-brand">priced by the hour</span>
+                Regular Cleaning, priced by the hour
               </h2>
               <p className="mt-3 text-slate-600">No quotes, no guesswork — just an honest hourly rate.</p>
             </motion.div>
@@ -190,10 +190,10 @@ export default function HomePage() {
                   <Timer className="h-3.5 w-3.5" /> {minHours} hour minimum booking
                 </span>
                 <div className="mt-6 flex items-end gap-2">
-                  <span className="font-display text-6xl font-extrabold tabular-nums text-brand-green-700 sm:text-7xl">
+                  <span className="font-display text-6xl font-extrabold tabular-nums text-brand-green-800 sm:text-7xl">
                     £{hourlyRate}
                   </span>
-                  <span className="mb-2 font-display text-xl font-bold text-slate-500">/ hour</span>
+                  <span className="mb-2 font-display text-xl font-bold text-brand-green-800">/ hour</span>
                 </div>
                 <p className="mt-2 text-slate-600">Every visit — no deep-clean upcharge, no travel fee, no VAT surprises.</p>
 
@@ -234,7 +234,7 @@ export default function HomePage() {
             transition={{ duration: 0.4 }}
             className="mx-auto max-w-xl text-center"
           >
-            <span className="text-sm font-bold uppercase tracking-widest text-brand-green-600">How it works</span>
+            <span className="text-sm font-bold uppercase tracking-widest text-brand-green-700">How it works</span>
             <h2 className="mt-2 font-display text-3xl font-extrabold text-slate-900 sm:text-4xl">
               Three steps to spotless
             </h2>
@@ -274,7 +274,7 @@ export default function HomePage() {
             whileInView={{ scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-green-600 via-brand-sky-500 to-brand-violet-500 px-8 py-16 text-center sm:px-16"
+            className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-green-800 via-brand-sky-700 to-brand-violet-700 px-8 py-16 text-center sm:px-16"
           >
             <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-20 -right-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
@@ -282,7 +282,7 @@ export default function HomePage() {
             <h2 className="relative mt-5 font-display text-3xl font-extrabold text-white sm:text-4xl">
               Ready for a spotless space?
             </h2>
-            <p className="relative mx-auto mt-3 max-w-md text-white/90">
+            <p className="relative mx-auto mt-3 max-w-md text-white">
               Get your fixed price in under a minute — no card needed until you&apos;re ready to book.
             </p>
             <a

@@ -122,3 +122,7 @@ gracefully at runtime instead of crashing the whole build.
 **What happened:** Repeated end-to-end runs emailed Resend's test inboxes dozens of times and hit the account's DAILY quota (429), which would have blocked real customer emails for the rest of the day.
 **Root cause:** The test shared the production send path with no off switch, and "test addresses" still count against the quota.
 **Rule going forward:** All outbound sends go through guarded wrappers honouring `DISABLE_OUTBOUND_MESSAGES=1`; the e2e script refuses to run without it. Also: per-IP rate limits persist in the DB across runs, so tests send a distinct `x-forwarded-for` per call.
+
+## Lesson 16 — One colour per piece of text; never gradient text
+**What happened:** Headings used a green→blue→purple gradient fill on part of the text, and a closing card put white text over a gradient whose bright-blue middle gave ~2.8:1 contrast. The owner asked for a single colour per text with good contrast.
+**Rule going forward:** Each heading/label is ONE solid colour. Pick it against the actual background (dark ink on light glass; white only on deep tones ≥5.9:1, e.g. green-800 / sky-700 / violet-700). Gradient text is removed from the CSS so it can't creep back, and gradient backgrounds under text must be checked at their brightest stop.
