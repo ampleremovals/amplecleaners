@@ -51,3 +51,17 @@ test("no invented claims on pages", () => {
     assert.ok(!/(5-star|rated|reviews|years of experience|guarantee[ds]? (to )?rank)/.test(text), `${s.slug}/${a.slug}`);
   }
 });
+
+import { GUIDES } from "../lib/seo/guides";
+
+test("guides: unique slugs, sane metadata, no overclaiming", () => {
+  assert.equal(new Set(GUIDES.map((g) => g.slug)).size, GUIDES.length);
+  const services = new Set(SEO_SERVICES.map((s) => s.slug));
+  for (const g of GUIDES) {
+    assert.match(g.slug, /^[a-z]+(-[a-z]+)*$/);
+    assert.ok(g.description.length <= 160, `${g.slug} description too long`);
+    assert.ok(services.has(g.service), `${g.slug} points at unknown service`);
+    assert.ok(g.sections.length >= 3 && g.faqs.length >= 1);
+    assert.ok(!/(best cleaning company|guarantee[sd]? (you|your) (deposit|full))/i.test(JSON.stringify(g)), `${g.slug} overclaims`);
+  }
+});

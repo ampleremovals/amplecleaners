@@ -536,3 +536,6 @@ Honest limits to tell the owner: nobody can guarantee #1 — rankings also depen
 - Booking CTA carries utm_source=seo & utm_content=area-<slug>; the booking form pre-fills the town; analytics only records real SEO paths (checked against the real slug lists).
 - Tests: 32 unit + full e2e (incl. phase 12) pass. Lesson: e2e server must start with STRIPE_WEBHOOK_SECRET=whsec_e2e_test (documented in the e2e header).
 - Not code, still needed for rankings: Google Business Profile, real reviews, citations, backlinks, a real phone number and address.
+
+### Review — guides (blog)
+- /guides index + 8 shareable guides (checklists, deposit rules, ovens, bathrooms, builders, office). Share bar: WhatsApp, email, Facebook, X, copy link, native share, print. Article/FAQ/Breadcrumb JSON-LD, sitemap, tracking, footer link. No "best company" claims; tested.

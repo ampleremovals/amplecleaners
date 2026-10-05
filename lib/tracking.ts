@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { clientIp } from "@/lib/rate-limit";
 import { isBot, variantFor } from "@/lib/experiments";
 import { AREAS } from "@/lib/seo/areas";
+import { GUIDES } from "@/lib/seo/guides";
 import { SEO_SERVICES } from "@/lib/seo/services";
 
 /**
@@ -16,8 +17,10 @@ const ALLOWED_PATH = /^\/(booking\/[a-z_]+|terms|privacy|confirmation|cleaners\/
 const SEO_SERVICE_SLUGS = new Set<string>(SEO_SERVICES.map((s) => s.slug));
 const SEO_AREA_SLUGS = new Set<string>(AREAS.map((a) => a.slug));
 
+const GUIDE_PATHS = new Set<string>(["/guides", ...GUIDES.map((g) => `/guides/${g.slug}`)]);
+
 export const isTrackablePath = (path: string) => {
-  if (ALLOWED_PATH.test(path)) return true;
+  if (ALLOWED_PATH.test(path) || GUIDE_PATHS.has(path)) return true;
   const [, service, area, extra] = path.split("/");
   return SEO_SERVICE_SLUGS.has(service ?? "") && extra === undefined && (area === undefined || SEO_AREA_SLUGS.has(area));
 };

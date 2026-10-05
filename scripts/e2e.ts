@@ -314,6 +314,11 @@ async function phase12() {
   check("unknown area / service return 404", (await http("/house-cleaning/atlantis", { headers: fwd() })).status === 404 && (await http("/not-a-service", { headers: fwd() })).status === 404);
   const sm = await http("/sitemap.xml", { headers: fwd() });
   check("sitemap lists every area page", urls.every((u) => sm.text.includes(u)));
+  const { GUIDES } = await import("../lib/seo/guides");
+  const gp = await Promise.all(["/guides", ...GUIDES.map((g) => `/guides/${g.slug}`)].map((u) => http(u, { headers: fwd() })));
+  check(`guides index + ${GUIDES.length} guides load`, gp.every((r) => r.status === 200 && /<h1/.test(r.text)));
+  check("guides are in the sitemap", GUIDES.every((g) => sm.text.includes(`/guides/${g.slug}`)));
+  check("unknown guide returns 404", (await http("/guides/not-a-guide", { headers: fwd() })).status === 404);
   check("static pages still win over the dynamic service route", (await http("/privacy", { headers: fwd() })).status === 200);
 }
 
