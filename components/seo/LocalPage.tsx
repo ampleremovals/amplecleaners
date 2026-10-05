@@ -139,8 +139,20 @@ export function HubPage({ service, intro }: { service: SeoService; intro: string
           <h1 className="font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{service.name} in Barking, Dagenham, Romford and surrounding areas</h1>
           <p className="mt-4 text-lg text-slate-700">{intro}</p>
           <p className="mt-3 text-slate-700">Our {service.noun} covers {service.covers}</p>
+          <p className="mt-3 text-slate-700">{service.audience} {service.process}</p>
           <div className="mt-6"><Cta service={service} /></div>
         </header>
+        <section>
+          <h2 className="font-display text-2xl font-extrabold text-brand-green-950">Common questions about {service.noun}</h2>
+          <div className="mt-4 space-y-3">
+            {service.faqs.map((f) => (
+              <details key={f.q} className="rounded-xl border border-slate-200 bg-white p-4">
+                <summary className="cursor-pointer font-semibold text-slate-900">{f.q.replaceAll("{area}", "my area")}</summary>
+                <p className="mt-2 text-slate-700">{f.a.replaceAll("{area}", "your area")}</p>
+              </details>
+            ))}
+          </div>
+        </section>
         {groups.map((g) => (
           <section key={g}>
             <h2 className="font-display text-xl font-extrabold text-brand-green-950">{g}</h2>

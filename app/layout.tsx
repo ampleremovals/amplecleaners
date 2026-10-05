@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next";
+import { AREAS } from "@/lib/seo/areas";
 import { getPricing } from "@/lib/pricing-config";
 
 // Both are variable fonts, so no `weight` list is needed — one file per script subset covers every weight.
@@ -31,8 +32,8 @@ const manrope = Manrope({
 export async function generateMetadata(): Promise<Metadata> {
   const { hourlyRate, minHours, depositPercentage } = await getPricing();
   const from = Math.round(hourlyRate * minHours * 100) / 100;
-  const title = "Ample Cleaners — Fixed-Price House Cleaning, Booked in 2 Minutes";
-  const description = `DBS-checked cleaners. See your exact price instantly — regular cleaning from £${from} (${minHours} hours at £${hourlyRate}/hr). Pay just ${depositPercentage}% to book, the rest after the clean. Free changes up to 48 hours before.`;
+  const title = "House Cleaning in Barking, Dagenham & Romford | Ample Cleaners";
+  const description = `Local house, deep, end of tenancy, office and after builders cleaning across Barking, Dagenham, Romford, Ilford and Hornchurch. DBS-checked cleaners. See your exact price instantly — regular cleaning from £${from} (${minHours} hours at £${hourlyRate}/hr). Pay just ${depositPercentage}% to book, the rest after the clean. Free changes up to 48 hours before.`;
   return {
     title: { default: title, template: "%s | Ample Cleaners" },
     description,
@@ -49,9 +50,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     "@context": "https://schema.org",
     "@type": "HomeAndConstructionBusiness",
     name: "Ample Cleaners",
-    description: "DBS-checked regular, deep, end of tenancy, office and after-builders cleaning with fixed prices, across the UK.",
+    description: "DBS-checked regular, deep, end of tenancy, office and after-builders cleaning with fixed prices across Barking, Dagenham, Romford and east London.",
     url: site,
-    areaServed: "United Kingdom",
+    areaServed: AREAS.map((a) => ({ "@type": "Place", name: a.name })),
     priceRange: "££",
   };
 

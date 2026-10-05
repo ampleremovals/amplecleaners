@@ -6,6 +6,7 @@ import {
   CheckCircle2, ArrowRight, Timer, BadgeCheck, CalendarCheck, Wallet, CalendarClock, Tag,
 } from "lucide-react";
 import { ServiceCard } from "@/components/shared/ServiceCard";
+import { AreasSection } from "@/components/seo/AreasSection";
 import { GradientMesh } from "@/components/shared/GradientMesh";
 import { SERVICE_LABELS } from "@/types";
 import { usePricing } from "@/components/shared/PricingProvider";
@@ -387,6 +388,8 @@ export function HomeView({ variant = "a" }: { variant?: HeroVariant }) {
           </div>
         </div>
       </section>
+
+      <AreasSection />
 
       {/* ── Final CTA ────────────────────────────────────────────────── */}
       <section className="px-4 py-16 sm:py-20">
