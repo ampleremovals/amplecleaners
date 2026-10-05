@@ -65,3 +65,17 @@ test("guides: unique slugs, sane metadata, no overclaiming", () => {
     assert.ok(!/(best cleaning company|guarantee[sd]? (you|your) (deposit|full))/i.test(JSON.stringify(g)), `${g.slug} overclaims`);
   }
 });
+
+import { POSTS, POST_CATEGORIES } from "../lib/seo/posts";
+import { getGuide } from "../lib/seo/guides";
+
+test("blog posts: valid, linked to real guides, no overclaiming", () => {
+  assert.equal(new Set(POSTS.map((p) => p.slug)).size, POSTS.length);
+  for (const p of POSTS) {
+    assert.match(p.slug, /^[a-z0-9]+(-[a-z0-9]+)*$/);
+    assert.ok(p.description.length <= 160, `${p.slug} description too long`);
+    assert.ok(p.category in POST_CATEGORIES);
+    for (const g of p.relatedGuides) assert.ok(getGuide(g), `${p.slug} links to unknown guide ${g}`);
+    assert.ok(!/(best cleaning company|guarantee)/i.test(JSON.stringify(p)), `${p.slug} overclaims`);
+  }
+});

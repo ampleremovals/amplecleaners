@@ -319,6 +319,12 @@ async function phase12() {
   check(`guides index + ${GUIDES.length} guides load`, gp.every((r) => r.status === 200 && /<h1/.test(r.text)));
   check("guides are in the sitemap", GUIDES.every((g) => sm.text.includes(`/guides/${g.slug}`)));
   check("unknown guide returns 404", (await http("/guides/not-a-guide", { headers: fwd() })).status === 404);
+  const { POSTS, POST_CATEGORIES } = await import("../lib/seo/posts");
+  const bp = await Promise.all(["/blog", "/blog/feed.xml", ...POSTS.map((p) => `/blog/${p.slug}`), ...Object.keys(POST_CATEGORIES).filter((c) => POSTS.some((p) => p.category === c)).map((c) => `/blog/category/${c}`)].map((u) => http(u, { headers: fwd() })));
+  check(`blog index, feed, ${POSTS.length} posts and categories load`, bp.every((r) => r.status === 200));
+  check("blog feed is RSS listing every post", /<rss/.test(bp[1].text) && POSTS.every((p) => bp[1].text.includes(`/blog/${p.slug}`)));
+  check("blog posts are in the sitemap", POSTS.every((p) => sm.text.includes(`/blog/${p.slug}`)));
+  check("unknown post and category return 404", (await http("/blog/nope", { headers: fwd() })).status === 404 && (await http("/blog/category/nope", { headers: fwd() })).status === 404);
   check("static pages still win over the dynamic service route", (await http("/privacy", { headers: fwd() })).status === 200);
 }
 

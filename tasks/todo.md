@@ -539,3 +539,6 @@ Honest limits to tell the owner: nobody can guarantee #1 — rankings also depen
 
 ### Review — guides (blog)
 - /guides index + 8 shareable guides (checklists, deposit rules, ovens, bathrooms, builders, office). Share bar: WhatsApp, email, Facebook, X, copy link, native share, print. Article/FAQ/Breadcrumb JSON-LD, sitemap, tracking, footer link. No "best company" claims; tested.
+
+### Review — blog
+- /blog (News & tips): 6 starter posts, 5 categories with pages, RSS at /blog/feed.xml, BlogPosting JSON-LD, sitemap, tracking, footer + guides cross-links, tests + e2e.

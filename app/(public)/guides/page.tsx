@@ -11,7 +11,7 @@ export default function GuidesIndex() {
     <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14">
       <div className="mx-auto w-full max-w-4xl">
         <h1 className="font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">Cleaning guides and checklists</h1>
-        <p className="mt-4 text-lg text-slate-700">Practical, no-nonsense advice from the Ample Cleaners team. Share any guide with a friend, a flatmate or your landlord, or print a checklist.</p>
+        <p className="mt-4 text-lg text-slate-700">Practical, no-nonsense advice from the Ample Cleaners team. Share any guide with a friend, a flatmate or your landlord, or print a checklist. Looking for seasonal tips and company news? See our <Link href="/blog" className="font-semibold text-brand-green-800 hover:underline">news &amp; tips</Link>.</p>
         <ul className="mt-8 grid gap-4 sm:grid-cols-2">
           {GUIDES.map((g) => (
             <li key={g.slug} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
