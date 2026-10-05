@@ -6,11 +6,13 @@
  * tone — compelling, never pushy.
  *
  * HONESTY RULES (these are conversion assets, not just ethics — one false
- * claim ruins trust): only claim what the system really does.
+ * claim ruins trust): only claim what is true.
  *  - DBS-checked: auto-assign only ever picks DBS-verified cleaners.
- *  - Urgency is REAL and limited to: a slot is only held once the deposit is
- *    paid. Never "slots fill up", never invented scarcity or deadlines.
- *  - No insurance, review-count or "most customers" claims — none are backed by data.
+ *  - OWNER-CONFIRMED facts (stated by the owner, 2026-10-05 — do not remove):
+ *    "we're fully insured", "popular slots fill up", "get your full deposit back"
+ *    (end of tenancy), "most people pay within a day or two".
+ *  - Also true: a slot is only held once the deposit is paid.
+ *  - Do NOT invent anything else: no review counts, statistics, fake deadlines or scarcity.
  *  - Never "confirm your quote" — the CTA is always "pay a small deposit to
  *    secure your date" (tasks/lessons.md Lesson 3).
  *
@@ -64,11 +66,11 @@ export const QUOTE_FOLLOWUP_DAYS: Record<number, DayContent> = {
     emailSubject: (v) => `Who's actually coming into your home, ${v.firstName}?`,
     emailBody: (v) => p(
       `Hi ${v.firstName},`,
-      `It's a fair question, and it matters. Every Ample Cleaners cleaner is <strong>DBS-checked</strong> before they're ever matched to a job — and you'll know their first name before they arrive.`,
+      `It's a fair question, and it matters. Every Ample Cleaners cleaner is <strong>DBS-checked</strong> before they're ever matched to a job — you'll know their first name before they arrive — and <strong>we're fully insured</strong>.`,
       `If anything isn't right, tell us within 24 hours and we'll put it right. Your quote (ref ${v.reference}) is waiting whenever you are.`
     ),
-    sms: (v) => `Hi ${v.firstName}, every Ample Cleaners cleaner is DBS-checked, and you'll know their name before they arrive. Your quote: ${v.actionLink}`,
-    whatsapp: (v) => `Hi ${v.firstName}, who comes into your home matters. Every cleaner is *DBS-checked* before they're matched to you, and you'll know their first name before the day.\n\nNot happy with anything? Tell us within 24 hours and we'll put it right.\n\nYour quote (ref ${v.reference}, *${v.total}*): ${v.actionLink}`,
+    sms: (v) => `Hi ${v.firstName}, every Ample Cleaners cleaner is DBS-checked and we're fully insured. Your quote: ${v.actionLink}`,
+    whatsapp: (v) => `Hi ${v.firstName}, who comes into your home matters. Every cleaner is *DBS-checked* before they're matched to you, you'll know their first name before the day, and we're *fully insured*.\n\nNot happy with anything? Tell us within 24 hours and we'll put it right.\n\nYour quote (ref ${v.reference}, *${v.total}*): ${v.actionLink}`,
   },
   // Day 4 — friction: how little effort this is.
   4: {
@@ -97,10 +99,10 @@ export const QUOTE_FOLLOWUP_DAYS: Record<number, DayContent> = {
     emailSubject: (v) => `${v.firstName}, your date isn't held yet`,
     emailBody: (v) => p(
       `Hi ${v.firstName},`,
-      `A straight heads-up: until your deposit is paid, your date isn't reserved — we book on a first-come, first-served basis, and we can't hold a slot for you without it.`,
+      `A straight heads-up: popular slots fill up, and until your deposit is paid your date isn't reserved — we book first-come, first-served, and we can't hold a slot for you without it.`,
       `If your date matters, securing it today takes a minute. Ref ${v.reference}, ${v.total}.`
     ),
-    whatsapp: (v) => `Hi ${v.firstName}, a straight heads-up: your date isn't held until the deposit's paid — we book first-come, first-served and can't reserve a slot without it.\n\nRef ${v.reference}, *${v.total}*: ${v.actionLink}`,
+    whatsapp: (v) => `Hi ${v.firstName}, a straight heads-up: popular slots fill up, and your date isn't held until the deposit's paid — we book first-come, first-served and can't reserve a slot without it.\n\nRef ${v.reference}, *${v.total}*: ${v.actionLink}`,
   },
   // Day 7 — a graceful breakup (often the highest-reply message in a sequence).
   7: {
@@ -157,7 +159,7 @@ export const DEPOSIT_FOLLOWUP_DAYS: Record<number, DayContent> = {
     emailSubject: (v) => `${v.firstName}, did this slip down your list?`,
     emailBody: (v) => p(
       `Hi ${v.firstName},`,
-      `Easily done — if ref ${v.reference} (${v.total}) slipped down your to-do list, here's your nudge. It takes a minute to pay, and then your date is held and you can forget about it.`
+      `Easily done — most people pay within a day or two, so if ref ${v.reference} (${v.total}) slipped down your to-do list, here's your nudge. It takes a minute to pay, and then your date is held and you can forget about it.`
     ),
     sms: (v) => `Hi ${v.firstName}, did this slip down your list? ${v.total} holds your date — a minute to pay: ${v.actionLink}`,
     whatsapp: (v) => `Hi ${v.firstName}, if ref ${v.reference} (*${v.total}*) slipped down your list — easily done! Here's the link, a minute to pay: ${v.actionLink}\n\nAnything unclear, just ask — ${v.phone}`,
@@ -166,10 +168,10 @@ export const DEPOSIT_FOLLOWUP_DAYS: Record<number, DayContent> = {
     emailSubject: (v) => `${v.firstName}, your date still isn't held`,
     emailBody: (v) => p(
       `Hi ${v.firstName},`,
-      `A straight heads-up: your date is only reserved once the deposit is paid — we book first-come, first-served, so we can't hold it without that. If your date matters to you, it's worth doing today.`,
+      `A straight heads-up: popular slots fill up, and your date is only reserved once the deposit is paid — we book first-come, first-served, so we can't hold it without that. If your date matters to you, it's worth doing today.`,
       `Ref ${v.reference}, ${v.total}.`
     ),
-    whatsapp: (v) => `Hi ${v.firstName}, a straight heads-up: your date is only reserved once the deposit's paid — first-come, first-served.\n\nRef ${v.reference}, *${v.total}*: ${v.actionLink}`,
+    whatsapp: (v) => `Hi ${v.firstName}, a straight heads-up: popular slots fill up, and your date is only reserved once the deposit's paid — first-come, first-served.\n\nRef ${v.reference}, *${v.total}*: ${v.actionLink}`,
   },
   7: {
     emailSubject: (v) => `Last note about your booking, ${v.firstName}`,

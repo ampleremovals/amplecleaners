@@ -49,7 +49,7 @@ export default function TermsPage() {
 
       <section>
         <h2>Damage and liability</h2>
-        <p>Please report any damage to us promptly so we can investigate and, where we are responsible, put it right. Nothing in these terms limits our liability for death or personal injury caused by our negligence, for fraud, or for anything else that cannot legally be limited. Otherwise, our liability to you is limited to the losses that were a reasonably foreseeable result of our failure to take reasonable care, and we are not liable for loss of profit or indirect loss. Your legal rights as a consumer are not affected.</p>
+        <p>We are fully insured. Please report any damage to us promptly so we can investigate and, where we are responsible, put it right. Nothing in these terms limits our liability for death or personal injury caused by our negligence, for fraud, or for anything else that cannot legally be limited. Otherwise, our liability to you is limited to the losses that were a reasonably foreseeable result of our failure to take reasonable care, and we are not liable for loss of profit or indirect loss. Your legal rights as a consumer are not affected.</p>
       </section>
 
       <section>

@@ -481,3 +481,6 @@ homepage (new hero, "Sound familiar?" problem section, benefit-led service cards
 **Honesty fixes (removed claims the system can't back):** "we're fully insured", "popular slots fill up", "get your full deposit back", "most people pay within a day or two". Urgency now rests on a true fact: a date is only held once the deposit is paid.
 **Not "data-tested":** no traffic exists yet, so this applies proven principles but is NOT validated. Next step = A/B-test the hero headline/CTA once there is traffic (record the variant on the booking and compare conversion in Reports).
 **Owner to confirm:** the re-clean/"put it right within 24h" promise and "free changes up to 48h" are now headline claims — they must be honoured in practice (terms are draft, see Phase 10).
+
+### Update — owner-confirmed claims restored (2026-10-05)
+The owner stated these are TRUE and must be used: "we're fully insured", "popular slots fill up", "get your full deposit back" (end of tenancy), "most people pay within a day or two". Restored in the follow-up sequences, homepage (trust pill, FAQ, service card, how-it-works), quote email and Terms. Recorded in memory so they are not removed again. Still do NOT invent other claims (review counts, statistics, fake deadlines).

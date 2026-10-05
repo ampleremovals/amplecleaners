@@ -16,7 +16,7 @@ const money = (n: number) =>
 const SERVICES = [
   { key: "regular_cleaning", icon: Repeat, cta: "See my price", description: "Weekly, fortnightly or monthly — the same cleaner wherever possible, billed after every visit. No contract, stop any time." },
   { key: "deep_cleaning", icon: Sparkles, cta: "Get my fixed price", description: "Every room, every surface, top to bottom — inside the oven and fridge, and the grime you've stopped noticing." },
-  { key: "end_of_tenancy", icon: Home, cta: "Get my fixed price", description: "A clean built around your check-out list, so you hand the keys back with confidence." },
+  { key: "end_of_tenancy", icon: Home, cta: "Get my fixed price", description: "Get your full deposit back — a clean built around your check-out list, so you hand the keys back with confidence." },
   { key: "office_cleaning", icon: Building2, cta: "Get my fixed price", description: "Out-of-hours cleaning, so your team walks into a fresh, professional space every morning." },
   { key: "after_builders", icon: HardHat, cta: "Get my fixed price", description: "Dust, residue and plaster-dust cleared — so your finished space is actually ready to enjoy." },
 ] as const;
@@ -33,7 +33,7 @@ export default function HomePage() {
   const startPrice = price(minHours);
 
   const trustPills = [
-    { icon: ShieldCheck, label: "DBS-checked cleaners" },
+    { icon: ShieldCheck, label: "DBS-checked & fully insured" },
     { icon: BadgeCheck, label: "Fixed price — zero surprises" },
     { icon: Wallet, label: `Only ${depositPercentage}% to book` },
     { icon: CalendarClock, label: "Free changes up to 48h before" },
@@ -42,7 +42,7 @@ export default function HomePage() {
   const faqs = [
     { q: "How is my price worked out?", a: `Regular Cleaning is £${hourlyRate} per hour with a ${minHours}-hour minimum. You choose your hours and see the exact total before you commit — it doesn't change on the day. Deep, end of tenancy, office and after-builders cleans are quoted individually because every property is different, and the quote is fixed too.` },
     { q: "When do I pay?", a: `You pay just ${depositPercentage}% to lock in your date — and that comes off your total, it's not an extra. The rest is invoiced after the clean, once you can see the result. Pay by card or by bank transfer (no card fee).` },
-    { q: "Are your cleaners vetted?", a: "Every cleaner is DBS-checked before they're ever matched to a job. You'll know who's coming — we tell you your cleaner's first name before the day." },
+    { q: "Are your cleaners vetted?", a: "Every cleaner is DBS-checked before they're ever matched to a job, and we're fully insured. You'll know who's coming — we tell you your cleaner's first name before the day." },
     { q: "What if I need to change or cancel?", a: "Move or cancel for free up to 48 hours before your clean, in a couple of taps, using the link in your booking messages. Regular cleans have no contract — stop whenever you like." },
     { q: "What if I'm not happy with the clean?", a: "Tell us within 24 hours and we'll put it right — that can include coming back to re-clean the area at no extra cost." },
     { q: "Do I need to be home? Do I need to buy products?", a: "You don't need to be in — just tell us how we'll get access when you book. We bring the equipment needed, and if you'd like us to use your own products, say so in your booking notes." },
@@ -316,7 +316,7 @@ export default function HomePage() {
             <div className="absolute left-0 right-0 top-8 hidden h-px bg-gradient-to-r from-brand-green-400 via-brand-sky-400 to-brand-violet-400 sm:block" />
             {[
               { icon: Clock, title: "1. See your exact price", body: "Tell us about your home and pick your hours. Your fixed price appears instantly — no card, no obligation.", grad: "from-brand-green-500 to-brand-green-400" },
-              { icon: CalendarCheck, title: `2. Lock in your date for ${depositPercentage}%`, body: "Pay a small deposit (it comes off your total) and your date is held. Your slot is only reserved once it's paid.", grad: "from-brand-sky-500 to-brand-sky-300" },
+              { icon: CalendarCheck, title: `2. Lock in your date for ${depositPercentage}%`, body: "Pay a small deposit (it comes off your total) and your date is held. Popular slots fill up, and yours is only reserved once the deposit's paid.", grad: "from-brand-sky-500 to-brand-sky-300" },
               { icon: Star, title: "3. Come home to clean", body: "A DBS-checked cleaner does the job. You pay the balance after the clean — and tell us if anything's not right.", grad: "from-brand-violet-500 to-brand-violet-300" },
             ].map((step, i) => (
               <motion.div

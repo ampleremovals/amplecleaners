@@ -83,7 +83,7 @@ export async function sendQuoteMessages({
         </div>
         <p style="font-size: 16px; margin: 0 0 8px;"><strong>Here's what you get:</strong></p>
         <ul style="margin: 0 0 20px; padding-left: 20px; font-size: 15px; line-height: 1.8;">
-          <li>A DBS-checked cleaner — you'll know their first name before the day</li>
+          <li>A DBS-checked, fully insured team — you'll know your cleaner's first name before the day</li>
           <li>A price that never changes on the day — no extras, no travel fee</li>
           <li>Free changes or cancellation up to 48 hours before</li>
           <li>The balance is only due <em>after</em> the clean</li>
