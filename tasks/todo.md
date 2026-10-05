@@ -509,3 +509,16 @@ Not verified: live traffic (none yet); Vercel CDN behaviour of the rewrite is un
 
 ### Live verification (phase 11)
 Verified on production with real browsers: 14 distinct browsers split 7 A / 7 B, URL stays `/`, a returning visitor keeps their version, no console errors. NOTE: Vercel's bot protection ("Security Checkpoint") challenges plain `curl`/script requests (403) — real browsers pass. If you add an uptime monitor for `/api/health`, allow-list it in Vercel → Firewall, or it will be challenged. Test visits were deleted from `site_events`.
+
+## Task: 50 local area landing pages (started 2026-10-05)
+Owner request: a landing page for each of ~50 places around Barking & Dagenham (Romford, Hornchurch, Elm Park, …) for local SEO.
+### Approach (avoid Google "doorway page" penalties — thin, near-identical pages rank poorly or get demoted)
+- Each page has area-specific content (postcodes, typical homes, what cleaning suits them, nearby areas, stations only where certain) + shared conversion blocks (live pricing, FAQ, booking CTA).
+- Only well-known, safe local facts. NO invented stats, review counts, "cleaners based in X" claims or fake testimonials.
+- Data-driven (`lib/areas.ts`): one place to add/remove/disable an area. Owner must only publish areas they genuinely cover.
+### Plan
+- [ ] `lib/areas.ts` — 50 areas with unique copy fields + integrity unit tests (unique slugs/titles, nearby links valid, postcode format, copy variety).
+- [ ] `/cleaning/[area]` (static, ISR) with unique title/description/canonical, Service + FAQPage + Breadcrumb JSON-LD; `/cleaning` hub grouped by area; unknown slug → 404.
+- [ ] Booking CTA carries `utm_content=area-<slug>` → stored on the booking; booking form pre-fills the town.
+- [ ] Tracker allowlist for `/cleaning/*`; sitemap entries; footer + homepage "Areas we cover" links.
+- [ ] e2e: all 50 pages 200, unique titles/H1, JSON-LD parses, sitemap lists them, 404, attribution; tsc/lint/build; push; live spot-check.
