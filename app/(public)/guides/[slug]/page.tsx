@@ -32,7 +32,8 @@ export default function GuidePage({ params }: { params: Params }) {
   if (!g) notFound();
   const service = getSeoService(g.service);
   const path = `/guides/${g.slug}`;
-  const related = GUIDES.filter((x) => x.slug !== g.slug).slice(0, 3);
+  // Same-service guides first, so the links are topically relevant.
+  const related = GUIDES.filter((x) => x.slug !== g.slug).sort((x, y) => Number(y.service === g.service) - Number(x.service === g.service)).slice(0, 4);
 
   const jsonLd = [
     {

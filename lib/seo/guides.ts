@@ -1,4 +1,5 @@
 import type { SeoServiceSlug } from "@/lib/seo/services";
+import { MORE_GUIDES } from "@/lib/seo/guides-more";
 
 /**
  * Cleaning guides (the blog). Written to be genuinely useful and shareable:
@@ -31,7 +32,7 @@ export interface Guide {
   printable?: boolean;
 }
 
-export const GUIDES: Guide[] = [
+const CORE_GUIDES: Guide[] = [
   {
     slug: "end-of-tenancy-cleaning-checklist",
     title: "End of Tenancy Cleaning Checklist: Room by Room (UK Renters)",
@@ -177,6 +178,8 @@ export const GUIDES: Guide[] = [
     ],
   },
 ];
+
+export const GUIDES: Guide[] = [...CORE_GUIDES, ...MORE_GUIDES];
 
 const BY_SLUG = new Map(GUIDES.map((g) => [g.slug, g]));
 export const getGuide = (slug: string): Guide | undefined => BY_SLUG.get(slug);
