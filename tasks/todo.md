@@ -433,3 +433,18 @@ Not verified: emails/SMS actually landing in inboxes (Resend test addresses only
 ### Review (phase 8)
 Built + verified (e2e: 90 checks, all pass, zero emails sent): shared change engine (`lib/bookings/changes.ts`: reschedule / cancel / stopSeries) used by customer self-service, the admin edit panel and the admin pipeline "cancelled" drop; customer `/manage/[id]/[token]` page (non-expiring HMAC link, in confirmation + assignment messages), 48h free-change rule enforced SERVER-side, refunds flagged for manual action (Stripe not wired), unpaid invoices voided, cleaners told; admin booking edit (date/time/postcode changes release and re-match the cleaner); System log page; sitemap.xml/robots.txt; NEXT_PUBLIC_SITE_URL fixed to www.amplecleaners.com (was the vercel.app URL, so every emailed link pointed there). Bug found by the tests: a series-stop would have cancelled tomorrow's visit inside the 48h window — fixed.
 **Incident:** repeated e2e runs exhausted Resend's DAILY email quota (429 daily_quota_exceeded) until 00:00 UTC. Added `DISABLE_OUTBOUND_MESSAGES=1` kill switch; e2e now refuses to run without it. If email volume grows, upgrade the Resend plan (free = 100/day).
+
+## Task: Phase 9 — Owner control & cleaner self-service (started 2026-10-05)
+### Gaps
+- Price (£15/hr), minimum hours and deposit % are hard-coded: changing them needs a code change + deploy.
+- A cleaner who can't make a job has to phone the office; there is no decline, no holiday/time-off, and they can't manage their own weekly availability (admin does it for them).
+- Real customer ratings exist but are never shown (social proof must stay honest — show only when real).
+### Plan
+- [ ] Migration 0005: settings pricing columns; `cleaner_time_off`; `booking_declines`; cleaner read policies for own availability/areas/time-off.
+- [ ] Pricing from Settings (rate / min hours / deposit %) via a server config + provider so pages render it with no flash; booking creation uses it; deposit % still stamped per booking (new bookings only).
+- [ ] Matcher respects time off and declines (unit-tested).
+- [ ] Cleaner API: decline a job, time off (auto-releases + re-matches affected jobs), weekly availability get/replace.
+- [ ] Mobile: "Can't make it" on a job, Profile with availability editor + time off + DBS/rating.
+- [ ] Admin: cleaner page shows time off + recent declines; Settings page edits pricing.
+- [ ] Homepage shows real rating only once there are enough reviews.
+- [ ] e2e extended (kill switch ON); tsc/lint/build; push (auto-deploy); live check.
