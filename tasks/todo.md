@@ -552,3 +552,25 @@ Honest limits to tell the owner: nobody can guarantee #1 — rankings also depen
 
 ### Review — Phase 12
 - /areas hub (all 50 areas × services), guides grouped by 6 topics with search (all 68 still in the server HTML for crawlers), 4 more blog posts (10 total), footer/homepage/sitemap/tracking wired. 34 unit + full e2e pass.
+
+## Task: Homepage + navbar design overhaul (2026-10-06)
+Owner feedback: the hero "looks like a junior amateur designer" — wants a design that sells at a glance, great on mobile AND laptop.
+### Diagnosis (from before-screenshots at 1440px and 390px)
+- No visual anchor: text-only, centred hero on a pale wash; the CTA is below a big paragraph (on mobile, below the fold).
+- Extra-bold wide display font wraps to 3-4 lines with orphans ("— from £45").
+- Four identical white-on-white "bobbing" pills = decoration, not proof. Low contrast overall, everything the same weight.
+### Plan
+- [x] Hero: deep-green, high-contrast split layout. Left = benefit headline + sub; right = LIVE price calculator card (hours stepper -> exact price, deposit, balance, CTA). The product is the hero visual. Copy strings for variants A/B kept verbatim (e2e + experiment depend on them).
+- [x] Trust band (real, owner-confirmed claims only) overlapping the hero edge, replacing the floating pills.
+- [x] Clean solid-card sections with alternating white/slate bands (less glass-on-blobs), featured Regular Cleaning card, numbered steps, solid FAQ, dark CTA.
+- [x] Mobile: stacked layout with the calculator in the first screen; sticky bottom "See my price" bar that hides while the hero card / final CTA are on screen.
+- [x] Navbar: solid white full-width bar (the glass pill looked washed out), call icon on mobile.
+- [x] Booking page reads `?hours=` so the chosen hours carry through.
+- [x] Verify: before/after screenshots at 1440 + 390 (+ 820), per-element overflow check, tsc/lint/build, unit + e2e (see Review below). Push: next.
+
+### Review — homepage + navbar overhaul (2026-10-06)
+- Hero: deep-green split layout; left = benefit headline + sub; right = live price calculator (hours stepper 3–8 → exact price, 20% deposit, balance, CTA). On phones the whole calculator is in the first screen. Headline copy and CTA labels for variants A/B are unchanged (nbsp added so "— from £45" never orphans), so the running A/B test and e2e assertions still hold.
+- New: trust band (only owner-confirmed claims), featured Regular Cleaning card with "From £45", numbered steps, solid FAQ, dark CTA, mobile sticky "See my price" bar (hidden while the hero card / final CTA are on screen), solid white navbar with call icon on mobile.
+- Booking form now reads `?hours=` (validated: integer, min..12), so the calculator choice carries through; invalid values fall back to the minimum.
+- Verified: before/after screenshots at 390 / 820 / 1440; per-element overflow check at 320–1440 (found + fixed a real mobile overflow in the pricing card); sticky bar tested with real scrolling; calculator +/−/limits/CTA href tested; tsc, lint, 34 unit tests, production build, full e2e 124/124 (admin-login checks skipped — no password this session).
+- Not done / for the owner: still the placeholder phone number (shown in nav, hero, CTA, footer); no real photography or customer reviews exist — adding a real team/before-after photo set would lift this further; live-site check after deploy is below.

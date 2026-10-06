@@ -36,6 +36,12 @@ export default function BookingWizardPage() {
     const town = content.slice(5).split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
     setForm((f) => (f.city ? f : { ...f, city: town }));
   }, []);
+  // Arriving from the homepage price calculator (?hours=5): keep the hours the customer already chose.
+  useEffect(() => {
+    const wanted = Number(new URLSearchParams(window.location.search).get("hours"));
+    if (!Number.isInteger(wanted) || wanted < minHours || wanted > 12) return;
+    setForm((f) => ({ ...f, hours: wanted }));
+  }, [minHours]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const isRegular = serviceType === "regular_cleaning";

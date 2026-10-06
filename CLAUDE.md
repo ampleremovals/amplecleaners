@@ -109,6 +109,14 @@ deliberately colourful and glassmorphic.
   `app/globals.css`) floating over slowly-drifting blurred colour-blob
   backgrounds (`components/shared/GradientMesh.tsx`), staggered
   scroll-reveal animation via Framer Motion.
+- **Homepage revised 2026-10-06 per owner feedback ("looks amateurish")** —
+  the public homepage now uses a deep-green (`brand-green-950`) hero with
+  white text, a live price-calculator card as the hero visual, a trust band,
+  and solid white/slate section bands with solid cards (no glass-on-blobs
+  behind body text). The glass utilities and `GradientMesh` still exist but
+  the homepage no longer relies on them. Primary buttons use
+  `brand-green-700` (white text 5:1), not 600 (3.3:1). Navbar is a solid
+  white bar. Keep one solid colour per text; no gradient text.
 - ~~Deliberately NOT purple/green (Ample Removals' palette)~~ — superseded;
   the owner explicitly asked for green + violet. The two brands are now
   differentiated by fonts, layout and the specific shade of green/accent mix

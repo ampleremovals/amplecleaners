@@ -126,3 +126,15 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 16 — One colour per piece of text; never gradient text
 **What happened:** Headings used a green→blue→purple gradient fill on part of the text, and a closing card put white text over a gradient whose bright-blue middle gave ~2.8:1 contrast. The owner asked for a single colour per text with good contrast.
 **Rule going forward:** Each heading/label is ONE solid colour. Pick it against the actual background (dark ink on light glass; white only on deep tones ≥5.9:1, e.g. green-800 / sky-700 / violet-700). Gradient text is removed from the CSS so it can't creep back, and gradient backgrounds under text must be checked at their brightest stop.
+
+## Lesson 17 — A "no horizontal overflow" check is blind if the page clips overflow
+**What happened:** The redesigned homepage wrapper uses `overflow-x-clip`, so `scrollWidth > innerWidth` always read false — yet the mobile pricing card was visibly poking ~37px past the screen edge (a flex row of "£15 / hour" + a chip could not shrink inside a grid cell).
+**Rule going forward:** Check overflow per element (`getBoundingClientRect().right > viewport`), not just the document width, at 320/360/390/768/1024+. Flex rows inside grid cells need `flex-wrap` and/or `min-w-0`. (A reusable check lived in the scratchpad: iterate `main *`, skip aria-hidden decoration.)
+
+## Lesson 18 — Never push backslash/escape edits through shell one-liners (again)
+**What happened:** A Python heredoc wrote real NBSP characters and converted the file to CRLF; the follow-up `sed` turned ` ` into `00a0` (GNU sed treats `\u` as "uppercase next char"); a Playwright regex `\d` became `d` and silently matched nothing.
+**Rule going forward:** Same as Lesson 12 — use the Write/Edit tools for anything containing backslashes, and re-read the result. Never round-trip source files through Python `open(...,'w')` on Windows (it rewrites line endings).
+
+## Lesson 19 — Design fixes need a before/after in a real browser at phone AND laptop size
+**What happened:** The owner's complaint ("looks amateurish") was a layout/hierarchy problem, not a bug: text-only centred hero, CTA below a paragraph on mobile, four identical white-on-white pills. No test could have caught it.
+**Rule going forward:** For any visual change, screenshot before and after at 390px and 1440px (plus a tablet width), and walk the whole page — not just the hero. Put the product (here, the live price calculator) where the eye lands first, and keep the primary action inside the first mobile screen.
