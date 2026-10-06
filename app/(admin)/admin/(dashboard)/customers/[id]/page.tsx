@@ -20,9 +20,9 @@ interface Response {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 font-display text-2xl font-extrabold tabular-nums text-slate-900">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export default function CustomerDetailPage() {
         : error || !data ? <div className="mt-6"><ErrorState message={error ?? "Couldn't load this customer."} onRetry={reload} /></div>
         : (
           <>
-            <h1 className="mt-2 font-display text-2xl font-extrabold text-slate-900">{data.customer.full_name}</h1>
+            <h1 className="mt-2 text-[1.65rem] font-semibold leading-tight text-slate-900">{data.customer.full_name}</h1>
             <p className="mt-1 text-sm text-slate-500">{data.erased ? "Personal data erased" : `${data.customer.email} · ${data.customer.phone}`} · customer since {formatDate(data.customer.created_at)}</p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -70,9 +70,9 @@ export default function CustomerDetailPage() {
             <h2 className="mt-8 font-bold text-slate-900">Booking history</h2>
             <div className="mt-3">
               {data.bookings.length === 0 ? <EmptyState title="No bookings" /> : (
-                <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                   <table className="w-full min-w-[560px] text-sm">
-                    <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
                       <tr><th className="px-4 py-3">Reference</th><th className="px-4 py-3">Service</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Price</th></tr>
                     </thead>
                     <tbody>
@@ -92,7 +92,7 @@ export default function CustomerDetailPage() {
             </div>
 
             {!data.erased && (
-              <section className="mt-10 rounded-2xl border border-red-200 bg-red-50/50 p-5">
+              <section className="mt-10 rounded-xl border border-red-200 bg-red-50/50 p-5">
                 <h2 className="flex items-center gap-2 font-bold text-red-800"><ShieldAlert className="h-4 w-4" /> Erase personal data</h2>
                 <p className="mt-1 text-sm text-red-700/80">For a customer&apos;s right-to-erasure request. Their name, contact details, address, notes and job photos are permanently removed. Invoices and amounts are kept, as tax law requires. This cannot be undone.</p>
                 <button onClick={() => setConfirming(true)} className="mt-3 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Erase personal data…</button>

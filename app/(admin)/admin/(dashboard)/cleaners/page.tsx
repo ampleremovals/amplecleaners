@@ -60,7 +60,7 @@ export default function CleanersPage() {
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-slate-900">Cleaners</h1>
+          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Cleaners</h1>
           <p className="mt-1 text-sm text-slate-500">Your roster, DBS status and pay rates.</p>
         </div>
         <button onClick={() => setShowForm((s) => !s)} className="flex items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800">
@@ -69,7 +69,7 @@ export default function CleanersPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-4">
+        <form onSubmit={handleAdd} className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-4">
           <input required placeholder="Full name" value={form.fullName} onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           <input required type="email" placeholder="Email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           <input required placeholder="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
@@ -87,9 +87,9 @@ export default function CleanersPage() {
       ) : cleaners.length === 0 ? (
         <div className="mt-6"><EmptyState icon={<Users className="h-8 w-8" />} title="No cleaners yet" hint="Add your first cleaner — they'll get an email to set their password and use the app." /></div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
               <tr>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Contact</th>

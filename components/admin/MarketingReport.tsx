@@ -53,20 +53,20 @@ export function MarketingReport({ days }: { days: number }) {
   const { data, loading, error, reload } = useAdminFetch<MarketingResponse>(`/api/admin/marketing?days=${days}`);
 
   if (error) return <div className="mt-8"><ErrorState message={error} onRetry={reload} /></div>;
-  if (loading && !data) return <div className="mt-8 space-y-4" aria-busy="true"><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-48 rounded-2xl" /></div>;
+  if (loading && !data) return <div className="mt-8 space-y-4" aria-busy="true"><Skeleton className="h-64 rounded-xl" /><Skeleton className="h-48 rounded-xl" /></div>;
   if (!data) return null;
 
   const { a, b, result, visitorsNeededPerVariant, progress } = data.experiment;
   return (
     <div className="mt-10 space-y-4">
-      <h2 className="font-display text-xl font-extrabold text-slate-900">Marketing</h2>
+      <h2 className="font-display text-xl font-semibold text-slate-900">Marketing</h2>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="flex items-center gap-2 font-bold text-slate-900"><FlaskConical className="h-4 w-4 text-brand-violet-700" /> Homepage headline test</h3>
         <p className="text-xs text-slate-500">Visitors are split 50/50 automatically. A visitor counts once they see the homepage; a conversion is a booking made the same day. Nothing is stored on their device.</p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[480px] text-sm">
-            <thead className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
               <tr><th className="py-2 pr-3">Version</th><th className="py-2 pr-3 text-right">Visitors</th><th className="py-2 pr-3 text-right">Reached booking form</th><th className="py-2 pr-3 text-right">Bookings</th><th className="py-2 text-right">Conversion</th></tr>
             </thead>
             <tbody>
@@ -85,7 +85,7 @@ export function MarketingReport({ days }: { days: number }) {
         <div className="mt-4"><Verdict r={result} a={a} b={b} progress={progress} need={visitorsNeededPerVariant} /></div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h3 className="flex items-center gap-2 font-bold text-slate-900"><Megaphone className="h-4 w-4 text-brand-sky-700" /> Where bookings come from</h3>
         <p className="text-xs text-slate-500">Add <code className="rounded bg-slate-100 px-1">?utm_source=facebook&amp;utm_campaign=autumn</code> to the links in your ads so each campaign shows up here.</p>
         {data.channels.length === 0 ? (
@@ -93,7 +93,7 @@ export function MarketingReport({ days }: { days: number }) {
         ) : (
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[480px] text-sm">
-              <thead className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 text-left text-xs font-medium text-slate-500">
                 <tr><th className="py-2 pr-3">Channel</th><th className="py-2 pr-3 text-right">Bookings</th><th className="py-2 pr-3 text-right">Paid so far</th><th className="py-2">Campaigns</th></tr>
               </thead>
               <tbody>

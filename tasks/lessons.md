@@ -138,3 +138,15 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 19 — Design fixes need a before/after in a real browser at phone AND laptop size
 **What happened:** The owner's complaint ("looks amateurish") was a layout/hierarchy problem, not a bug: text-only centred hero, CTA below a paragraph on mobile, four identical white-on-white pills. No test could have caught it.
 **Rule going forward:** For any visual change, screenshot before and after at 390px and 1440px (plus a tablet width), and walk the whole page — not just the hero. Put the product (here, the live price calculator) where the eye lands first, and keep the primary action inside the first mobile screen.
+
+## Lesson 20 — Grid and flex children need `min-w-0`, or one long string widens the whole page
+**What happened:** On the admin, a long unbreakable email, a nowrap status pill and a row of fixed-width inputs each stretched a CSS-grid column past the viewport (the bookings board made the whole page 2112px wide on a 1440px screen). Grid/flex items default to `min-width: auto`, so they refuse to shrink below their content.
+**Rule going forward:** Put `min-w-0` on grid/flex children that hold text, tables or inputs (and `break-words` on emails/URLs); let multi-input rows `flex-wrap`. Test every page at 390px with a per-element overflow check — and open the DETAIL pages too, not just the lists.
+
+## Lesson 21 — An admin without sign-out or mobile navigation is unfinished, whatever it looks like
+**What happened:** The CRM sidebar was `hidden` below 640px with no replacement, and there was no way to sign out. Neither shows up in code review or e2e; both showed up the moment the pages were used as a real person on a phone.
+**Rule going forward:** For any authenticated area, check the full session lifecycle (sign in, navigate on a phone, sign out, confirm the route is protected again) as part of "done".
+
+## Lesson 22 — The e2e's own cleanup report can hide earlier leftovers
+**What happened:** A previous e2e run (stamp `muunf1wn`, 2026-10-05) crashed before cleanup and left 20 bookings, 6 cleaners and 4 invoices in the live database. Every later run reported "left-over E2E bookings: 0" because it only checks its OWN stamp, so the dashboard showed fake revenue to the owner.
+**Rule going forward:** Check the whole table for `E2E` markers (not just this run's stamp) at the start and end of an e2e run — and never rely on the run's self-report as proof the database is clean.

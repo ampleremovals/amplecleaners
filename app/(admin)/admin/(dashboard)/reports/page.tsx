@@ -26,7 +26,7 @@ const FUNNEL_COLOURS = [SKY, "#38bdf8", "#4ade80", GREEN, "#15803d"];
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
       <h2 className="font-bold text-slate-900">{title}</h2>
       {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
       <div className="mt-4">{children}</div>
@@ -36,9 +36,9 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 
 function Stat({ label, value, tone = "text-slate-900" }: { label: string; value: string; tone?: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 font-display text-2xl font-extrabold tabular-nums ${tone}`}>{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`mt-1 font-display text-2xl font-semibold tabular-nums ${tone}`}>{value}</p>
     </div>
   );
 }
@@ -53,7 +53,7 @@ export default function ReportsPage() {
     <div className="p-4 sm:p-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-slate-900">Reports</h1>
+          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Reports</h1>
           {data && <p className="mt-1 text-sm text-slate-500">{formatDate(data.range.from)} – {formatDate(data.range.to)}</p>}
         </div>
         <div className="flex rounded-xl bg-slate-100 p-1">
@@ -68,9 +68,9 @@ export default function ReportsPage() {
           <ErrorState message={error} onRetry={reload} />
         ) : loading && !data ? (
           <div className="space-y-4" aria-busy="true" aria-label="Loading">
-            <div className="grid gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div>
-            <Skeleton className="h-72 rounded-2xl" />
-            <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-64 rounded-2xl" /></div>
+            <div className="grid gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+            <Skeleton className="h-72 rounded-xl" />
+            <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-64 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>
           </div>
         ) : data && data.bookings.total === 0 && data.revenue.total === 0 ? (
           <EmptyState icon={<BarChart3 className="h-8 w-8" />} title="Nothing to report yet" hint="Charts fill in as bookings and payments come through." />

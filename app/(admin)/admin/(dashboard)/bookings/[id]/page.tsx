@@ -133,7 +133,7 @@ export default function BookingDetailPage() {
     <div className="p-4 sm:p-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-slate-900">{booking.reference}</h1>
+          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">{booking.reference}</h1>
           <p className="mt-1 text-sm text-slate-500">
             {SERVICE_LABELS[booking.service_type as keyof typeof SERVICE_LABELS]} · {BOOKING_STATUS_LABELS[booking.status]}
           </p>
@@ -144,15 +144,15 @@ export default function BookingDetailPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left: customer + job details */}
-        <div className="space-y-6 lg:col-span-1">
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="min-w-0 space-y-6 lg:col-span-1">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Customer</h2>
             <p className="mt-2 text-sm text-slate-700">{booking.customer?.full_name}</p>
-            <p className="text-sm text-slate-500">{booking.customer?.email}</p>
+            <p className="break-words text-sm text-slate-500">{booking.customer?.email}</p>
             <p className="text-sm text-slate-500">{booking.customer?.phone}</p>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Property</h2>
             <p className="mt-2 text-sm text-slate-700">
               {booking.address ? `${booking.address.line_1}${booking.address.line_2 ? ", " + booking.address.line_2 : ""}, ${booking.address.postcode}` : "No address"}
@@ -171,7 +171,7 @@ export default function BookingDetailPage() {
 
           <BookingEdit key={`${booking.clean_date}-${booking.clean_time}-${booking.address?.postcode}`} booking={booking} onSaved={load} />
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Cleaner</h2>
             <select
               key={booking.assigned_cleaner_id ?? "unassigned"}
@@ -184,7 +184,7 @@ export default function BookingDetailPage() {
             </select>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Activity</h2>
             <div className="mt-2 max-h-72 space-y-2 overflow-y-auto text-xs">
               {[...statusHistory, ...activityLog]
@@ -201,33 +201,36 @@ export default function BookingDetailPage() {
         </div>
 
         {/* Right: quote builder */}
-        <div className="space-y-6 lg:col-span-2">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <BookingOps booking={booking} invoices={invoices} onChange={load} />
-          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <h2 className="font-bold text-slate-900">Quote</h2>
             <div className="mt-3 space-y-2">
               {lineItems.map((line, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="flex flex-wrap gap-2">
                   <input
                     value={line.description}
                     onChange={(e) => updateLine(i, "description", e.target.value)}
                     placeholder="Description"
-                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                    aria-label="Line description"
+                    className="basis-full rounded-lg border border-slate-200 px-3 py-2 text-sm sm:flex-1 sm:basis-0"
                   />
                   <input
                     type="number" min={1} value={line.quantity}
                     onChange={(e) => updateLine(i, "quantity", Number(e.target.value))}
+                    aria-label="Quantity"
                     className="w-16 rounded-lg border border-slate-200 px-2 py-2 text-sm"
                   />
                   <input
                     type="number" min={0} step={0.01} value={line.unit_price}
                     onChange={(e) => updateLine(i, "unit_price", Number(e.target.value))}
+                    aria-label="Unit price"
                     className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm"
                   />
                   <div className="flex w-24 items-center justify-end rounded-lg bg-slate-50 px-2 text-sm font-semibold">
                     {formatCurrency(line.total)}
                   </div>
-                  <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== i))} className="rounded-lg p-2 text-red-500 hover:bg-red-50">
+                  <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove line" className="rounded-lg p-2 text-red-500 hover:bg-red-50">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

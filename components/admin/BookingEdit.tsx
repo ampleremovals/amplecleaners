@@ -19,7 +19,7 @@ export interface EditableBooking {
 }
 
 const input = "h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-green-600 disabled:bg-slate-50 disabled:text-slate-400";
-const label = "mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500";
+const label = "mb-1 block text-xs font-medium text-slate-500";
 
 /** Edit a booking's schedule, address and job details. Moving the date/time re-matches the cleaner server-side. */
 export function BookingEdit({ booking, onSaved }: { booking: EditableBooking; onSaved: () => void }) {
@@ -64,7 +64,7 @@ export function BookingEdit({ booking, onSaved }: { booking: EditableBooking; on
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between text-left" aria-expanded={open}>
         <h2 className="flex items-center gap-2 font-bold text-slate-900"><Pencil className="h-4 w-4 text-slate-400" /> Edit details</h2>
         <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />

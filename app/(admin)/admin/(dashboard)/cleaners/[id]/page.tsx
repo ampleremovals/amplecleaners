@@ -119,11 +119,11 @@ export default function CleanerDetailPage() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">{cleaner.full_name}</h1>
+      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">{cleaner.full_name}</h1>
       <p className="mt-1 text-sm text-slate-500">{cleaner.email} · {cleaner.phone}</p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-slate-900">DBS check</h2>
             <button onClick={toggleDbs} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${cleaner.dbs_verified ? "bg-brand-green-100 text-brand-green-800" : "bg-amber-100 text-amber-800"}`}>
@@ -147,7 +147,7 @@ export default function CleanerDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Pay rate</h2>
           <p className="mt-1 text-xs text-slate-400">Used for the cleaner&apos;s Earnings screen (clocked hours × rate).</p>
           <div className="mt-3 flex items-center gap-2">
@@ -158,7 +158,7 @@ export default function CleanerDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Upcoming jobs</h2>
           <div className="mt-2 space-y-2">
             {upcomingJobs.map((j) => (
@@ -171,7 +171,7 @@ export default function CleanerDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Time off &amp; reliability</h2>
           <p className={`mt-2 text-sm ${declines30d >= 3 ? "font-semibold text-amber-700" : "text-slate-600"}`}>Jobs declined in the last 30 days: <strong>{declines30d}</strong>{declines30d >= 3 ? " — worth a chat" : ""}</p>
           <div className="mt-3 space-y-1.5">
@@ -185,7 +185,7 @@ export default function CleanerDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Availability</h2>
           <div className="mt-2 space-y-1.5">
             {availability.map((s) => (
@@ -205,7 +205,7 @@ export default function CleanerDetailPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Coverage areas</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             {coverage.map((a) => (

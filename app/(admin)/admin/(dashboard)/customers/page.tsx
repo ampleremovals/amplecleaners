@@ -20,7 +20,7 @@ export default function CustomersPage() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">Customers</h1>
+      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Customers</h1>
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -41,9 +41,9 @@ export default function CustomersPage() {
             hint={customers.length === 0 ? "Customers appear here automatically when someone books." : "Try a different search."}
           />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>

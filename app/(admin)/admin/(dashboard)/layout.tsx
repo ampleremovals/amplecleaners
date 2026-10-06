@@ -1,40 +1,29 @@
-import Link from "next/link";
-import Image from "next/image";
-import { LayoutDashboard, Calendar, Users, Receipt, BarChart3, UserPlus, Settings, Activity } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase client */
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { AdminShell } from "@/components/admin/AdminShell";
 
-const NAV = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/bookings", label: "Bookings", icon: Calendar },
-  { href: "/admin/cleaners", label: "Cleaners", icon: Users },
-  { href: "/admin/applications", label: "Applications", icon: UserPlus },
-  { href: "/admin/customers", label: "Customers", icon: Users },
-  { href: "/admin/invoices", label: "Invoices", icon: Receipt },
-  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: Settings },
-  { href: "/admin/logs", label: "System log", icon: Activity },
-];
+export const dynamic = "force-dynamic";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-slate-50">
-      <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white sm:flex sm:flex-col">
-        <div className="flex h-16 items-center gap-2 border-b border-slate-200 px-5 font-display text-lg font-extrabold text-brand-green-800">
-          <Image src="/logo-icon.png" alt="" width={64} height={64} priority className="h-8 w-8 rounded-lg" />
-          Ample Cleaners
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-brand-green-50 hover:text-brand-green-800"
-            >
-              <item.icon className="h-4 w-4" /> {item.label}
-            </Link>
-          ))}
-        </nav>
-      </aside>
-      <div className="flex-1">{children}</div>
-    </div>
-  );
+/** Identity + the two nav badges. Failure-tolerant: a hiccup here must never take the whole admin down. */
+async function loadShellData() {
+  try {
+    const session = await createClient();
+    const { data: { user } } = await session.auth.getUser();
+    const db: any = createAdminClient();
+    const count = (q: any) => q.then((r: any) => r.count ?? 0);
+    const [profile, bookings, applications] = await Promise.all([
+      user ? db.from("admin_users").select("full_name").eq("supabase_user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
+      count(db.from("bookings").select("id", { count: "exact", head: true }).eq("status", "inquiry")),
+      count(db.from("cleaner_applications").select("id", { count: "exact", head: true }).eq("status", "new")),
+    ]);
+    const email = user?.email ?? "";
+    return { user: { name: profile.data?.full_name || email.split("@")[0] || "Admin", email }, badges: { bookings, applications } };
+  } catch {
+    return { user: { name: "Admin", email: "" }, badges: { bookings: 0, applications: 0 } };
+  }
+}
+
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { user, badges } = await loadShellData();
+  return <AdminShell user={user} badges={badges}>{children}</AdminShell>;
 }

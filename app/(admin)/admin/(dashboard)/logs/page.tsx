@@ -21,7 +21,7 @@ export default function LogsPage() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">System log</h1>
+      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">System log</h1>
       <p className="mt-1 text-sm text-slate-500">Things that went wrong behind the scenes — failed emails or texts, payment webhooks, automation. Nothing here stops a booking.</p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -38,7 +38,7 @@ export default function LogsPage() {
           : error ? <ErrorState message={error} onRetry={reload} />
           : logs.length === 0 ? <EmptyState icon={<Activity className="h-8 w-8" />} title="All quiet" hint="No problems logged in this period." />
           : (
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+            <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
               {logs.map((l) => {
                 const isOpen = open === l.id;
                 const hasMeta = l.metadata && Object.keys(l.metadata).length > 0;

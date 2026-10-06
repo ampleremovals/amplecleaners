@@ -13,6 +13,7 @@ import { TableSkeleton, ErrorState } from "@/components/admin/DataState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { formatCurrency } from "@/lib/utils";
 import { SERVICE_LABELS, type ServiceType, type BookingStatus } from "@/types";
+import { PIPELINE_STAGES, type PipelineStage } from "@/lib/pipeline";
 
 interface BoardBooking {
   id: string;
@@ -31,14 +32,10 @@ interface BoardBooking {
 /** Pipeline columns — groups the 16 granular statuses into usable lanes.
  *  Dropping a card into a column sets its status to that column's
  *  `dropStatus` (the first/representative status for that stage). */
-const COLUMNS: { key: string; title: string; statuses: BookingStatus[]; dropStatus: BookingStatus }[] = [
-  { key: "new", title: "New Leads", statuses: ["inquiry", "called", "not_called", "answered", "not_answered"], dropStatus: "answered" },
-  { key: "quoted", title: "Quote Sent", statuses: ["quote_sent", "deposit_invoice_sent"], dropStatus: "quote_sent" },
-  { key: "confirmed", title: "Confirmed", statuses: ["booking_confirmed", "cleaner_assigned"], dropStatus: "booking_confirmed" },
-  { key: "in_progress", title: "In Progress", statuses: ["in_progress"], dropStatus: "in_progress" },
-  { key: "completed", title: "Completed", statuses: ["job_completed", "invoice_sent", "paid"], dropStatus: "job_completed" },
-  { key: "lost", title: "Lost", statuses: ["bad_lead", "not_a_good_fit", "cancelled"], dropStatus: "cancelled" },
-];
+const DROP_STATUS: Record<PipelineStage["key"], BookingStatus> = {
+  new: "answered", quoted: "quote_sent", confirmed: "booking_confirmed", in_progress: "in_progress", completed: "job_completed", lost: "cancelled",
+};
+const COLUMNS = PIPELINE_STAGES.map((s) => ({ ...s, dropStatus: DROP_STATUS[s.key] }));
 
 function oneOf<T>(v: T | T[] | null): T | null {
   return Array.isArray(v) ? (v[0] ?? null) : v;
@@ -80,7 +77,7 @@ function Column({ col, bookings }: { col: (typeof COLUMNS)[number]; bookings: Bo
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-2xl border ${isOver ? "border-brand-green-400 bg-brand-green-50/50" : "border-slate-200 bg-slate-50"} p-3`}
+      className={`flex w-72 shrink-0 flex-col rounded-xl border ${isOver ? "border-brand-green-400 bg-brand-green-50/50" : "border-slate-200 bg-slate-50"} p-3`}
     >
       <div className="mb-2 flex items-center justify-between px-1">
         <h3 className="text-sm font-bold text-slate-700">{col.title}</h3>
@@ -168,13 +165,13 @@ export default function BookingsBoardPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col p-4 sm:p-6">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-slate-900">Bookings</h1>
+          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Bookings</h1>
           <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
         </div>
-        <Link href="/admin/bookings/new" className="flex shrink-0 items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800"><Plus className="h-4 w-4" /> New booking</Link>
+        <Link href="/admin/bookings/new" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-brand-green-700 px-3.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-green-800"><Plus className="h-4 w-4" /> New booking</Link>
       </div>
 
       {loading ? (

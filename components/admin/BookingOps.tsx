@@ -38,7 +38,7 @@ async function post(url: string): Promise<{ ok: boolean; message?: string }> {
 export function FlagBanner({ booking }: { booking: OpsBooking }) {
   if (!booking.is_flagged) return null;
   return (
-    <div role="alert" className="mt-4 flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4">
+    <div role="alert" className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
       <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
       <div>
         <p className="font-semibold text-amber-900">Needs your attention</p>
@@ -78,7 +78,7 @@ export function BookingOps({ booking, invoices, onChange }: { booking: OpsBookin
   return (
     <div className="space-y-6">
       {(awaitingDepositCheck || canAutoAssign) && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <h2 className="font-bold text-slate-900">Next step</h2>
           {awaitingDepositCheck && (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-sky-50 p-4">
@@ -109,7 +109,7 @@ export function BookingOps({ booking, invoices, onChange }: { booking: OpsBookin
         </section>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="font-bold text-slate-900">Invoices</h2>
         {invoices.length === 0 ? (
           <p className="mt-2 text-sm text-slate-400">No invoices yet — the deposit invoice appears when the customer reserves, the balance when the job is completed.</p>
@@ -171,13 +171,13 @@ function JobProof({ bookingId }: { bookingId: string }) {
     return () => { cancelled = true; };
   }, [bookingId]);
 
-  if (error) return <section className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</section>;
-  if (!data) return <section className="flex justify-center rounded-2xl border border-slate-200 bg-white p-8"><Loader2 className="h-5 w-5 animate-spin text-brand-green-600" /></section>;
+  if (error) return <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</section>;
+  if (!data) return <section className="flex justify-center rounded-xl border border-slate-200 bg-white p-8"><Loader2 className="h-5 w-5 animate-spin text-brand-green-600" /></section>;
 
   const done = data.tasks.filter((t) => t.done).length;
   const Grid = ({ label, urls }: { label: string; urls: string[] }) => (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label} ({urls.length})</p>
+      <p className="text-xs font-medium text-slate-500">{label} ({urls.length})</p>
       {urls.length === 0 ? (
         <p className="mt-2 flex items-center gap-2 text-sm text-slate-400"><Camera className="h-4 w-4" /> None uploaded</p>
       ) : (
@@ -195,7 +195,7 @@ function JobProof({ bookingId }: { bookingId: string }) {
   );
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <section className="rounded-xl border border-slate-200 bg-white p-5">
       <h2 className="font-bold text-slate-900">On the day</h2>
       <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
         <p className="text-slate-600">

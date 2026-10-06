@@ -55,7 +55,7 @@ export default function ApplicationsPage() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">Applications</h1>
+      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Applications</h1>
       <p className="mt-1 text-sm text-slate-500">People who applied to clean for you at /cleaners/register.</p>
 
       <div className="mt-5 flex w-fit rounded-xl bg-slate-100 p-1">
@@ -69,7 +69,7 @@ export default function ApplicationsPage() {
           : error ? <ErrorState message={error} onRetry={reload} />
           : apps.length === 0 ? <EmptyState icon={<UserPlus className="h-8 w-8" />} title={tab === "new" ? "No new applications" : `No ${tab} applications`} hint={tab === "new" ? "Share your /cleaners/register link to recruit." : undefined} />
           : apps.map((a) => (
-            <article key={a.id} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <article key={a.id} className="rounded-xl border border-slate-200 bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-bold text-slate-900">{a.full_name}</h2>

@@ -206,3 +206,27 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
+
+/* ── Admin theme ─────────────────────────────────────────────────────────
+   A calm, financial-grade scope for the CRM: neutral surfaces, hairline
+   borders, tight radii, one accent. Everything is a TOKEN override (not
+   per-page CSS), so every admin page inherits it:
+   - the chunky public display face is re-pointed to the body face
+   - shadcn's --radius drops from 1.1rem (pill-ish) to 0.625rem
+   - figures are tabular by default so columns of money line up            */
+.admin-shell {
+  --font-display: var(--font-body);
+  --radius: 0.625rem;
+  --background: 220 20% 97.5%;
+  --border: 220 14% 91%;
+  --input: 220 13% 87%;
+  background: hsl(var(--background));
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3 {
+  letter-spacing: -0.015em;
+}

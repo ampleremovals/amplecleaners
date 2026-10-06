@@ -40,9 +40,9 @@ function StatusPill({ row }: { row: InvoiceRow }) {
 function Stat({ label, value, tone }: { label: string; value: number; tone: "green" | "amber" | "red" }) {
   const color = { green: "text-brand-green-800", amber: "text-amber-700", red: "text-red-700" }[tone];
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className={`mt-1 font-display text-2xl font-extrabold tabular-nums ${color}`}>{formatCurrency(value)}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="text-xs font-medium text-slate-500">{label}</p>
+      <p className={`mt-1 font-display text-2xl font-semibold tabular-nums ${color}`}>{formatCurrency(value)}</p>
     </div>
   );
 }
@@ -81,7 +81,7 @@ export default function InvoicesPage() {
 
   return (
     <div className="p-4 sm:p-8">
-      <h1 className="font-display text-2xl font-extrabold text-slate-900">Invoices</h1>
+      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Invoices</h1>
       <p className="mt-1 text-sm text-slate-500">Balances are invoiced automatically when a job is completed.</p>
 
       {data && (
@@ -111,9 +111,9 @@ export default function InvoicesPage() {
         ) : rows.length === 0 ? (
           <EmptyState icon={<Receipt className="h-8 w-8" />} title={filter === "all" && !search ? "No invoices yet" : "No invoices match"} hint={filter === "all" && !search ? "They appear here automatically — deposits when a customer reserves, balances when a job is completed." : "Try a different filter or search."} />
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table className="w-full min-w-[760px] text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs font-medium text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Invoice</th><th className="px-4 py-3">Customer</th><th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Due</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 text-right">Actions</th>

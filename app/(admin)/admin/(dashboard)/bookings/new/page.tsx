@@ -14,7 +14,7 @@ const inputCls = "h-10 w-full rounded-lg border border-slate-200 px-3 text-sm ou
 function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
       {children}
     </label>
   );
@@ -78,18 +78,18 @@ export default function NewBookingPage() {
   return (
     <div className="p-4 sm:p-8">
       <Link href="/admin/bookings" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800"><ArrowLeft className="h-4 w-4" /> Bookings</Link>
-      <h1 className="mt-2 font-display text-2xl font-extrabold text-slate-900">New booking</h1>
+      <h1 className="mt-2 text-[1.65rem] font-semibold leading-tight text-slate-900">New booking</h1>
       <p className="mt-1 text-sm text-slate-500">For phone and WhatsApp enquiries. It follows the same automation as a website booking.</p>
 
       <form onSubmit={submit} className="mt-6 max-w-3xl space-y-6">
-        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
+        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
           <h2 className="font-bold text-slate-900 sm:col-span-2">Customer</h2>
           <Field label="Full name"><input required className={inputCls} value={form.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
           <Field label="Phone"><input required className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="07…" /></Field>
           <Field label="Email" className="sm:col-span-2"><input required type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} /></Field>
         </section>
 
-        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
+        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
           <h2 className="font-bold text-slate-900 sm:col-span-2">The job</h2>
           <Field label="Service">
             <select className={inputCls} value={form.serviceType} onChange={(e) => set("serviceType", e.target.value as ServiceType)}>
@@ -122,7 +122,7 @@ export default function NewBookingPage() {
           <Field label="Start time"><input type="time" className={inputCls} value={form.cleanTime} onChange={(e) => set("cleanTime", e.target.value)} /></Field>
         </section>
 
-        <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
+        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
           <h2 className="font-bold text-slate-900 sm:col-span-2">Address</h2>
           <Field label="Address line 1" className="sm:col-span-2"><input required className={inputCls} value={form.line1} onChange={(e) => set("line1", e.target.value)} /></Field>
           <Field label="Town / city"><input className={inputCls} value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
@@ -130,10 +130,10 @@ export default function NewBookingPage() {
           <Field label="Notes for the cleaner (optional)" className="sm:col-span-2"><textarea rows={3} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green-600" value={form.specialInstructions} onChange={(e) => set("specialInstructions", e.target.value)} /></Field>
         </section>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Price</p>
-            <p className="font-display text-2xl font-extrabold text-brand-green-800">{price != null ? formatCurrency(price) : "Quote later"}</p>
+            <p className="text-xs font-medium text-slate-500">Price</p>
+            <p className="font-display text-2xl font-semibold text-brand-green-800">{price != null ? formatCurrency(price) : "Quote later"}</p>
           </div>
           <label className={`flex items-center gap-2 text-sm ${price == null ? "opacity-40" : ""}`}>
             <input type="checkbox" disabled={price == null} checked={form.sendQuote && price != null} onChange={(e) => set("sendQuote", e.target.checked)} className="h-4 w-4" />

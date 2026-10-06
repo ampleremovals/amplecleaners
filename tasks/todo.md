@@ -574,3 +574,32 @@ Owner feedback: the hero "looks like a junior amateur designer" — wants a desi
 - Booking form now reads `?hours=` (validated: integer, min..12), so the calculator choice carries through; invalid values fall back to the minimum.
 - Verified: before/after screenshots at 390 / 820 / 1440; per-element overflow check at 320–1440 (found + fixed a real mobile overflow in the pricing card); sticky bar tested with real scrolling; calculator +/−/limits/CTA href tested; tsc, lint, 34 unit tests, production build, full e2e 124/124 (admin-login checks skipped — no password this session).
 - Not done / for the owner: still the placeholder phone number (shown in nav, hero, CTA, footer); no real photography or customer reviews exist — adding a real team/before-after photo set would lift this further; live-site check after deploy is below.
+
+## Task: Admin dashboard redesign + restyle booking flow, SEO and guide pages (2026-10-06)
+Owner feedback: the admin dashboard looks "childish" — wants a modern-bank-grade admin (Apple/Google-calibre design); then restyle the booking flow + SEO + guide pages to match the new homepage.
+### Diagnosis (dashboard screenshot)
+- Chunky Unbounded display font for page titles/KPIs reads playful, not financial. Oversized radii (rounded-2xl/3xl), thick soft shadows, pastel icon tiles in 3 colours, no data visualisation, no hierarchy between KPIs (one number each, no context/delta).
+- Admin has NO sign-out and NO mobile navigation (sidebar is `hidden sm:flex`) — unusable on a phone.
+- No active-state in the nav; no page header/actions bar.
+- (Data) the DB only contains leftovers from an e2e run on 2026-10-05 — flagged to owner, NOT deleted.
+### Design system (Part A — admin)
+- Calm neutral surfaces (#F6F7F9 page, white cards, 1px hairline borders, 12px radius, near-zero shadow); ONE accent (brand green) used for primary action, active nav, positive deltas; semantic colours only for status.
+- Manrope everywhere in admin (re-point `--font-display` inside `.admin-shell` — a token, not a per-file hack), semibold headings, tabular-nums for every figure, 12px uppercase-free muted labels.
+### Plan — Part A: admin
+- [x] Throwaway admin (random password) to screenshot the real admin before/after — deleted at the end of the task.
+- [x] Shell: grouped sidebar with active state + user menu (sign out), sticky top bar (title/date/primary action), mobile drawer nav. Scoped `.admin-shell` tokens.
+- [x] Dashboard: KPI cards with real context (revenue vs last month, outstanding/overdue, jobs today, cleaners), 14-day revenue chart (server-rendered SVG, no new package), pipeline breakdown bar, attention list, today's jobs table with status pills.
+- [x] Shared admin primitives: `StatusBadge`, `PageHeader`, `Card` styling; sweep rounded-2xl→xl, font-extrabold→semibold across admin pages so every page matches.
+- [x] Login page restyled to match.
+- [x] Verify every admin page before/after at 1440 + 390, overflow check, tsc/lint/build/unit/e2e.
+### Plan — Part B: public pages (after A is pushed)
+- [ ] Booking flow (form, confirmation, quote, pay, manage, rate) → homepage language.
+- [ ] SEO pages (service×area, hubs, /areas), guides + blog → homepage language.
+- [ ] Verify at 390 + 1440; unit + e2e; push.
+
+### Review — Part A: admin redesign (2026-10-06)
+- Scoped `.admin-shell` theme (tokens, not per-page hacks): body font for headings, 10px radius, tabular figures, calm neutral surfaces. New shell: grouped sidebar with active state + live badges (new enquiries / applications), sticky top bar with breadcrumb, mobile drawer, user block with **sign-out** (admin had none) and a **mobile nav** (admin had none below 640px).
+- Dashboard: Revenue (+ real month-over-month delta), Outstanding/overdue, Jobs today, Active cleaners; 14-day revenue chart (plain markup, no new package); pipeline breakdown using the SAME stage definitions as the board (`lib/pipeline.ts`); attention list; today's jobs table with status pills.
+- Bugs found & fixed on the way: board stretched the whole page to 2112px on a 1440 screen (no `min-w-0` on the content column); dashboard + booking-detail grid columns overflowed on phones (grid `min-width:auto`); quote-line editor overflowed on phones; booking page used `h-screen` (double scrollbar under the new top bar); quote inputs had no accessible labels.
+- Verified: before/after screenshots of every admin page at 1440 + 390, per-element overflow check on all 10 list pages + 3 detail pages (all ok), drawer navigation, sign-out really ends the session (/admin → /admin/login), tsc, lint, 34 unit tests, build, e2e 124/124.
+- NOT changed: page-internal layouts of settings/reports/cleaners tables beyond the shared theme sweep (they inherit the new look; deeper per-page redesign can follow if wanted).
