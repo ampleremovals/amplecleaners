@@ -57,13 +57,13 @@ export default function RatePage() {
   const shown = hover || rating;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-12 sm:py-20">
+    <div className="min-h-screen bg-slate-50 px-4 py-12 sm:py-20">
       <div className="mx-auto w-full max-w-md">
         {stage === "loading" && <p className="flex items-center justify-center gap-2 py-24 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</p>}
 
         {(stage === "form" || stage === "submitting") && data && (
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl shadow-slate-200/60">
-            <h1 className="font-display text-2xl font-extrabold text-brand-green-950">How was your clean, {data.firstName}?</h1>
+            <h1 className="font-display text-2xl font-bold text-slate-900">How was your clean, {data.firstName}?</h1>
             <p className="mt-2 text-sm text-slate-500">
               {data.cleanerFirstName ? `${data.cleanerFirstName} looked after your ${data.serviceLabel.toLowerCase()}.` : `Your ${data.serviceLabel.toLowerCase()}.`} Tap a star.
             </p>
@@ -86,7 +86,7 @@ export default function RatePage() {
         {stage === "done" && (
           <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <div className="mx-auto mb-6 mt-8 flex h-20 w-20 items-center justify-center rounded-full bg-brand-green-100"><CheckCircle2 className="h-12 w-12 text-brand-green-600" /></div>
-            <h1 className="font-display text-3xl font-extrabold text-brand-green-950">Thank you!</h1>
+            <h1 className="font-display text-3xl font-bold text-slate-900">Thank you!</h1>
             <p className="mx-auto mt-3 max-w-sm text-slate-500">Your feedback helps us look after you — and everyone else — better.</p>
           </motion.div>
         )}
@@ -94,7 +94,7 @@ export default function RatePage() {
         {stage === "error" && (
           <div className="text-center">
             <div className="mx-auto mb-6 mt-8 flex h-16 w-16 items-center justify-center rounded-full bg-red-100"><XCircle className="h-8 w-8 text-red-600" /></div>
-            <h1 className="font-display text-2xl font-extrabold text-brand-green-950">Something went wrong</h1>
+            <h1 className="font-display text-2xl font-bold text-slate-900">Something went wrong</h1>
             <p className="mx-auto mt-3 max-w-md text-slate-500">{error}</p>
           </div>
         )}

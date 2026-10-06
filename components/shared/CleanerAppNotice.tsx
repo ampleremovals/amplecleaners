@@ -8,7 +8,7 @@ export function CleanerAppNotice({ title }: { title: string }) {
     <div className="flex min-h-[70vh] items-center justify-center px-6 py-16">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
         <Image src="/logo-icon.png" alt="Ample Cleaners" width={128} height={128} priority className="mx-auto mb-4 h-16 w-16 rounded-2xl" />
-        <h1 className="font-display text-2xl font-extrabold text-brand-green-950">{title}</h1>
+        <h1 className="font-display text-2xl font-bold text-slate-900">{title}</h1>
         <p className="mt-3 text-slate-500">
           Cleaners sign in, see their jobs and clock in and out in the <strong>Ample Cleaner</strong> mobile app.
         </p>

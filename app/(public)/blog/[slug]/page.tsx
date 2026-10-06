@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { ukDate } from "@/components/seo/PostList";
 import { ShareBar } from "@/components/seo/ShareBar";
+import { ARTICLE_BODY, ARTICLE_H2 } from "@/components/seo/article-styles";
+import { CtaBand, PageBody, PageHero } from "@/components/shared/PageHero";
 import { COMPANY_NAME } from "@/lib/constants";
 import { getGuide } from "@/lib/seo/guides";
 import { POSTS, POST_CATEGORIES, getPost } from "@/lib/seo/posts";
@@ -47,40 +50,58 @@ export default function PostPage({ params }: { params: Params }) {
   ];
 
   return (
-    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14">
+    <>
       {jsonLd.map((d, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(d) }} />)}
-      <article className="mx-auto w-full max-w-3xl">
-        <nav aria-label="Breadcrumb" className="text-sm text-slate-600"><Link href="/" className="hover:underline">Home</Link> / <Link href="/blog" className="hover:underline">News & tips</Link> / <Link href={`/blog/category/${p.category}`} className="hover:underline">{cat.name}</Link></nav>
-        <h1 className="mt-4 font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{p.title}</h1>
-        <p className="mt-2 text-sm text-slate-600">By the {COMPANY_NAME} team · {ukDate(p.published)} · {p.minutes} min read</p>
-        <p className="mt-5 text-lg text-slate-700">{p.intro}</p>
-        <div className="mt-5"><ShareBar title={p.title} path={path} /></div>
+      <PageHero
+        width="narrow"
+        crumbs={[{ label: "Home", href: "/" }, { label: "News & tips", href: "/blog" }, { label: cat.name, href: `/blog/category/${p.category}` }]}
+        title={p.title}
+        lead={p.intro}
+      >
+        <p className="text-sm text-brand-green-100">By the {COMPANY_NAME} team · {ukDate(p.published)} · {p.minutes} min read</p>
+      </PageHero>
 
-        <div className="mt-8 space-y-8 text-[15px] leading-relaxed text-slate-700">
-          {p.sections.map((s) => (
-            <section key={s.h}>
-              <h2 className="font-display text-xl font-extrabold text-brand-green-950">{s.h}</h2>
-              {s.p?.map((t, i) => <p key={i} className="mt-2">{t}</p>)}
-              {s.ul && <ul className="mt-2 list-disc space-y-1.5 pl-5">{s.ul.map((x) => <li key={x}>{x}</li>)}</ul>}
-              {s.ol && <ol className="mt-2 list-decimal space-y-1.5 pl-5">{s.ol.map((x) => <li key={x}>{x}</li>)}</ol>}
+      <PageBody width="narrow">
+        <article>
+          <ShareBar title={p.title} path={path} />
+
+          <div className={`mt-10 ${ARTICLE_BODY}`}>
+            {p.sections.map((s) => (
+              <section key={s.h}>
+                <h2 className={ARTICLE_H2}>{s.h}</h2>
+                {s.p?.map((t, i) => <p key={i} className="mt-3">{t}</p>)}
+                {s.ul && <ul className="mt-3 list-disc space-y-2 pl-5 marker:text-brand-green-600">{s.ul.map((x) => <li key={x}>{x}</li>)}</ul>}
+                {s.ol && <ol className="mt-3 list-decimal space-y-2 pl-5 marker:font-semibold marker:text-brand-green-700">{s.ol.map((x) => <li key={x}>{x}</li>)}</ol>}
+              </section>
+            ))}
+          </div>
+
+          {guides.length > 0 && (
+            <section className="mt-14">
+              <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">Read next</h2>
+              <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                {guides.map((g) => (
+                  <li key={g.slug}>
+                    <Link href={`/guides/${g.slug}`} className="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-[15px] font-semibold text-slate-800 transition-colors hover:border-brand-green-300 hover:text-brand-green-800">
+                      {g.title}<ArrowRight className="h-4 w-4 shrink-0 text-brand-green-700 transition-transform group-hover:translate-x-1" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
-          ))}
-        </div>
+          )}
 
-        {guides.length > 0 && (
-          <section className="mt-10">
-            <h2 className="font-display text-xl font-extrabold text-brand-green-950">Read next</h2>
-            <ul className="mt-3 space-y-1.5 text-sm">{guides.map((g) => <li key={g.slug}><Link href={`/guides/${g.slug}`} className="font-semibold text-brand-green-800 hover:underline">{g.title}</Link></li>)}</ul>
-          </section>
-        )}
-
-        <aside className="mt-10 rounded-2xl bg-brand-green-950 p-6 text-white">
-          <p className="font-display text-lg font-extrabold">Need a hand?</p>
-          <p className="mt-2 text-slate-200">{COMPANY_NAME} cleans homes and offices across Barking, Dagenham, Romford, Ilford and surrounding areas, with DBS-checked cleaners and a fixed price.</p>
-          <Link href="/cleaning-services" className="mt-4 inline-flex h-11 items-center rounded-xl bg-white px-5 font-bold text-brand-green-900 hover:bg-slate-100">See our cleaning services</Link>
-        </aside>
-        <div className="mt-8"><ShareBar title={p.title} path={path} /></div>
-      </article>
-    </div>
+          <div className="mt-14">
+            <CtaBand
+              title="Need a hand?"
+              text={`${COMPANY_NAME} cleans homes and offices across Barking, Dagenham, Romford, Ilford and surrounding areas, with DBS-checked cleaners and a fixed price.`}
+              href="/cleaning-services"
+              label="See our cleaning services"
+            />
+          </div>
+          <div className="mt-10"><ShareBar title={p.title} path={path} /></div>
+        </article>
+      </PageBody>
+    </>
   );
 }

@@ -150,3 +150,11 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 22 — The e2e's own cleanup report can hide earlier leftovers
 **What happened:** A previous e2e run (stamp `muunf1wn`, 2026-10-05) crashed before cleanup and left 20 bookings, 6 cleaners and 4 invoices in the live database. Every later run reported "left-over E2E bookings: 0" because it only checks its OWN stamp, so the dashboard showed fake revenue to the owner.
 **Rule going forward:** Check the whole table for `E2E` markers (not just this run's stamp) at the start and end of an e2e run — and never rely on the run's self-report as proof the database is clean.
+
+## Lesson 23 — Sticky/fixed elements in full-page screenshots lie; test them with real scrolling
+**What happened:** Every full-page capture showed the sticky navbar and the mobile bottom bar floating in the middle of the page, which looked like bugs. They are artefacts of capturing a tall page with fixed elements. The real behaviour (bar hidden at top, shown mid-page, hidden at the end) was only provable by scrolling a real viewport and reading `aria-hidden`.
+**Rule going forward:** Judge layout from full-page shots, judge sticky/fixed behaviour from scripted scrolling.
+
+## Lesson 24 — A UI-level test that submits a real form writes a real row
+**What happened:** Verifying the rewritten booking form through the browser created a booking in the live database (the dev server uses the live Supabase).
+**Rule going forward:** Use a clearly-marked `@resend.dev` test identity with outbound messages disabled, record the reference, look at exactly what was created, and delete only that — in the same task.

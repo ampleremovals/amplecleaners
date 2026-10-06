@@ -1,9 +1,10 @@
-import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import { COMPANY_NAME } from "@/lib/constants";
 import { AREAS, nearbyAreas, type Area } from "@/lib/seo/areas";
 import { SEO_SERVICES, SPECIALIST_SERVICES, type SeoService } from "@/lib/seo/services";
 import type { PageContent } from "@/lib/seo/content";
+import { Chip, CtaBand, H2, HeroButton, PageBody, PageHero } from "@/components/shared/PageHero";
+import { BookCard, StickyBookBar } from "@/components/seo/BookCard";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.amplecleaners.com";
 
@@ -17,11 +18,15 @@ function JsonLd({ data }: { data: object }) {
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
 }
 
-function Cta({ service, area, label }: { service: SeoService; area?: Area; label?: string }) {
+const FAQ_CLASS = "group rounded-2xl border border-slate-200 bg-white px-5 py-4 transition-shadow open:border-brand-green-300 open:shadow-md";
+const FAQ_SUMMARY = "flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[0.95rem] font-bold leading-snug text-slate-900 [&::-webkit-details-marker]:hidden";
+
+function Faq({ q, children }: { q: string; children: React.ReactNode }) {
   return (
-    <Link href={bookingHref(service, area?.slug)} className="inline-flex h-12 items-center justify-center rounded-xl bg-brand-green-700 px-6 text-base font-bold text-white shadow-lg shadow-brand-green-200 hover:bg-brand-green-800">
-      {label ?? service.cta}
-    </Link>
+    <details className={FAQ_CLASS}>
+      <summary className={FAQ_SUMMARY}>{q}<ChevronDown className="h-5 w-5 shrink-0 text-brand-green-700 transition-transform group-open:rotate-180" aria-hidden /></summary>
+      <p className="mt-3 text-[15px] leading-relaxed text-slate-600">{children}</p>
+    </details>
   );
 }
 
@@ -30,6 +35,7 @@ export function LocalPage({ service, area, content }: { service: SeoService; are
   const url = `${SITE}${pagePath(service, area)}`;
   const near = nearbyAreas(area);
   const otherServices = SEO_SERVICES.filter((s) => s.slug !== service.slug);
+  const href = bookingHref(service, area.slug);
 
   const jsonLd = [
     {
@@ -53,71 +59,80 @@ export function LocalPage({ service, area, content }: { service: SeoService; are
   ];
 
   return (
-    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14">
+    <>
       {jsonLd.map((d, i) => <JsonLd key={i} data={d} />)}
-      <div className="mx-auto w-full max-w-4xl space-y-10">
-        <nav aria-label="Breadcrumb" className="text-sm text-slate-600">
-          <Link href="/" className="hover:underline">Home</Link> / <Link href={pagePath(service)} className="hover:underline">{service.name}</Link> / <span className="font-semibold text-slate-800">{area.name}</span>
-        </nav>
+      <PageHero
+        width="wide"
+        crumbs={[{ label: "Home", href: "/" }, { label: service.name, href: pagePath(service) }, { label: area.name }]}
+        title={content.h1}
+        lead={content.lead}
+      >
+        <HeroButton href={href}>{service.cta}</HeroButton>
+        <p className="mt-3.5 max-w-xl text-sm text-brand-green-100">{content.priceNote}</p>
+      </PageHero>
 
-        <header>
-          <h1 className="font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{content.h1}</h1>
-          <p className="mt-4 text-lg text-slate-700">{content.lead}</p>
-          <div className="mt-6"><Cta service={service} area={area} /></div>
-          <p className="mt-3 text-sm font-semibold text-slate-700">{content.priceNote}</p>
-        </header>
+      <PageBody width="wide">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
+          <div className="min-w-0 space-y-14">
+            <section className="space-y-5 text-[16.5px] leading-[1.75] text-slate-700">
+              {content.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+            </section>
 
-        <section className="space-y-4 text-slate-700">
-          {content.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
-        </section>
-
-        <section>
-          <h2 className="font-display text-2xl font-extrabold text-brand-green-950">What our {service.noun} covers in {area.name}</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {content.checklist.map((g) => (
-              <div key={g.area} className="rounded-2xl border border-slate-200 bg-white p-5">
-                <h3 className="font-bold text-slate-900">{g.area}</h3>
-                <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
-                  {g.items.map((item) => (
-                    <li key={item} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand-green-700" aria-hidden />{item}</li>
-                  ))}
-                </ul>
+            <section>
+              <H2>What our {service.noun} covers in {area.name}</H2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {content.checklist.map((g) => (
+                  <div key={g.area} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 className="font-display text-base font-bold text-slate-900">{g.area}</h3>
+                    <ul className="mt-3 space-y-2 text-[15px] text-slate-700">
+                      {g.items.map((item) => (
+                        <li key={item} className="flex gap-2.5"><CheckCircle2 className="mt-0.5 h-[18px] w-[18px] shrink-0 text-brand-green-700" aria-hidden />{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </section>
 
-        <section>
-          <h2 className="font-display text-2xl font-extrabold text-brand-green-950">Questions about {service.noun} in {area.name}</h2>
-          <div className="mt-4 space-y-3">
-            {content.faqs.map((f) => (
-              <details key={f.q} className="rounded-xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-semibold text-slate-900">{f.q}</summary>
-                <p className="mt-2 text-slate-700">{f.a}</p>
-              </details>
-            ))}
-          </div>
-          <div className="mt-6"><Cta service={service} area={area} /></div>
-        </section>
+            <section>
+              <H2>Questions about {service.noun} in {area.name}</H2>
+              <div className="mt-6 space-y-3">
+                {content.faqs.map((f) => <Faq key={f.q} q={f.q}>{f.a}</Faq>)}
+              </div>
+            </section>
 
-        <section className="grid gap-6 sm:grid-cols-2">
-          <div>
-            <h2 className="font-display text-xl font-extrabold text-brand-green-950">Other cleaning services in {area.name}</h2>
-            <ul className="mt-3 space-y-1.5 text-sm">
-              {otherServices.map((s) => <li key={s.slug}><Link className="font-semibold text-brand-green-800 hover:underline" href={pagePath(s, area)}>{s.name} in {area.name}</Link></li>)}
-            </ul>
+            <CtaBand
+              title={`Ready to book in ${area.name}?`}
+              text="See your exact price in about 2 minutes. No card needed, and you can change or cancel free up to 48 hours before."
+              href={href}
+              label={service.cta}
+            />
+
+            <section className="grid gap-10 sm:grid-cols-2">
+              <div>
+                <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">Other cleaning services in {area.name}</h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {otherServices.map((s) => <Chip key={s.slug} href={pagePath(s, area)}>{s.name} in {area.name}</Chip>)}
+                </div>
+              </div>
+              {near.length > 0 && (
+                <div>
+                  <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">{service.name} near {area.name}</h2>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {near.map((a) => <Chip key={a.slug} href={pagePath(service, a)}>{service.name} in {a.name}</Chip>)}
+                  </div>
+                </div>
+              )}
+            </section>
           </div>
-          {near.length > 0 && (
-            <div>
-              <h2 className="font-display text-xl font-extrabold text-brand-green-950">{service.name} near {area.name}</h2>
-              <ul className="mt-3 space-y-1.5 text-sm">
-                {near.map((a) => <li key={a.slug}><Link className="font-semibold text-brand-green-800 hover:underline" href={pagePath(service, a)}>{service.name} in {a.name}</Link></li>)}
-              </ul>
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
+
+          <div className="hidden lg:block">
+            <div className="sticky top-28"><BookCard href={href} serviceType={service.type} place={area.name} label={service.cta} /></div>
+          </div>
+        </div>
+      </PageBody>
+      <StickyBookBar href={href} serviceType={service.type} label="See my price" />
+    </>
   );
 }
 
@@ -131,45 +146,64 @@ export function HubPage({ service, intro }: { service: SeoService; intro: string
     ],
   };
   const groups = [...new Set(AREAS.map((a) => a.group))];
+  const href = bookingHref(service);
   return (
-    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14">
+    <>
       <JsonLd data={jsonLd} />
-      <div className="mx-auto w-full max-w-4xl space-y-10">
-        <header>
-          <h1 className="font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{service.name} in Barking, Dagenham, Romford and surrounding areas</h1>
-          <p className="mt-4 text-lg text-slate-700">{intro}</p>
-          <p className="mt-3 text-slate-700">Our {service.noun} covers {service.covers}</p>
-          <p className="mt-3 text-slate-700">{service.audience} {service.process}</p>
-          <div className="mt-6"><Cta service={service} /></div>
-        </header>
-        <section>
-          <h2 className="font-display text-2xl font-extrabold text-brand-green-950">Common questions about {service.noun}</h2>
-          <div className="mt-4 space-y-3">
-            {service.faqs.map((f) => (
-              <details key={f.q} className="rounded-xl border border-slate-200 bg-white p-4">
-                <summary className="cursor-pointer font-semibold text-slate-900">{f.q.replaceAll("{area}", "my area")}</summary>
-                <p className="mt-2 text-slate-700">{f.a.replaceAll("{area}", "your area")}</p>
-              </details>
-            ))}
+      <PageHero
+        width="wide"
+        crumbs={[{ label: "Home", href: "/" }, { label: service.name }]}
+        title={`${service.name} in Barking, Dagenham, Romford and surrounding areas`}
+        lead={intro}
+      >
+        <HeroButton href={href}>{service.cta}</HeroButton>
+      </PageHero>
+
+      <PageBody width="wide">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-14">
+          <div className="min-w-0 space-y-14">
+            <section className="space-y-5 text-[16.5px] leading-[1.75] text-slate-700">
+              <p>Our {service.noun} covers {service.covers}</p>
+              <p>{service.audience} {service.process}</p>
+            </section>
+
+            <section>
+              <H2>Common questions about {service.noun}</H2>
+              <div className="mt-6 space-y-3">
+                {service.faqs.map((f) => <Faq key={f.q} q={f.q.replaceAll("{area}", "my area")}>{f.a.replaceAll("{area}", "your area")}</Faq>)}
+              </div>
+            </section>
+
+            <section>
+              <H2>Find {service.noun} in your area</H2>
+              <div className="mt-6 space-y-8">
+                {groups.map((g) => (
+                  <div key={g}>
+                    <h3 className="font-display text-base font-bold text-slate-900">{g}</h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {AREAS.filter((a) => a.group === g).map((a) => <Chip key={a.slug} href={pagePath(service, a)}>{service.name} in {a.name}</Chip>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <CtaBand title={`Book ${service.noun} today`} text="See your exact price in about 2 minutes. No card needed, and free changes up to 48 hours before." href={href} label={service.cta} />
+
+            <section>
+              <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">Our other services</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {SPECIALIST_SERVICES.filter((s) => s.slug !== service.slug).map((s) => <Chip key={s.slug} href={pagePath(s)}>{s.name}</Chip>)}
+              </div>
+            </section>
           </div>
-        </section>
-        {groups.map((g) => (
-          <section key={g}>
-            <h2 className="font-display text-xl font-extrabold text-brand-green-950">{g}</h2>
-            <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-3">
-              {AREAS.filter((a) => a.group === g).map((a) => (
-                <li key={a.slug}><Link className="font-semibold text-brand-green-800 hover:underline" href={pagePath(service, a)}>{service.name} in {a.name}</Link></li>
-              ))}
-            </ul>
-          </section>
-        ))}
-        <section>
-          <h2 className="font-display text-xl font-extrabold text-brand-green-950">Our other services</h2>
-          <ul className="mt-3 space-y-1.5 text-sm">
-            {SPECIALIST_SERVICES.filter((s) => s.slug !== service.slug).map((s) => <li key={s.slug}><Link className="font-semibold text-brand-green-800 hover:underline" href={pagePath(s)}>{s.name}</Link></li>)}
-          </ul>
-        </section>
-      </div>
-    </div>
+
+          <div className="hidden lg:block">
+            <div className="sticky top-28"><BookCard href={href} serviceType={service.type} place="east London" label={service.cta} /></div>
+          </div>
+        </div>
+      </PageBody>
+      <StickyBookBar href={href} serviceType={service.type} label="See my price" />
+    </>
   );
 }

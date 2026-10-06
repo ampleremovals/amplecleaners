@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { CategoryNav, PostList } from "@/components/seo/PostList";
+import { PageBody, PageHero } from "@/components/shared/PageHero";
 import { POSTS, POST_CATEGORIES, postsIn, type PostCategory } from "@/lib/seo/posts";
 
 export const dynamicParams = false;
@@ -24,13 +25,17 @@ export default function CategoryPage({ params }: { params: Params }) {
   const cat = POST_CATEGORIES[category];
   if (!cat || !activeCategories().includes(category)) notFound();
   return (
-    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14">
-      <div className="mx-auto w-full max-w-3xl">
-        <h1 className="font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{cat.name}</h1>
-        <p className="mt-4 text-lg text-slate-700">{cat.blurb}</p>
+    <>
+      <PageHero
+        width="narrow"
+        crumbs={[{ label: "Home", href: "/" }, { label: "News & tips", href: "/blog" }, { label: cat.name }]}
+        title={cat.name}
+        lead={cat.blurb}
+      />
+      <PageBody width="narrow">
         <CategoryNav active={category} />
         <PostList posts={postsIn(category)} />
-      </div>
-    </div>
+      </PageBody>
+    </>
   );
 }

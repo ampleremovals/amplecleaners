@@ -593,9 +593,9 @@ Owner feedback: the admin dashboard looks "childish" — wants a modern-bank-gra
 - [x] Login page restyled to match.
 - [x] Verify every admin page before/after at 1440 + 390, overflow check, tsc/lint/build/unit/e2e.
 ### Plan — Part B: public pages (after A is pushed)
-- [ ] Booking flow (form, confirmation, quote, pay, manage, rate) → homepage language.
-- [ ] SEO pages (service×area, hubs, /areas), guides + blog → homepage language.
-- [ ] Verify at 390 + 1440; unit + e2e; push.
+- [x] Booking flow (form, confirmation, quote, pay, manage, rate) → homepage language.
+- [x] SEO pages (service×area, hubs, /areas), guides + blog + legal → homepage language.
+- [x] Verify at 390 + 1440; unit + e2e (push: see review).
 
 ### Review — Part A: admin redesign (2026-10-06)
 - Scoped `.admin-shell` theme (tokens, not per-page hacks): body font for headings, 10px radius, tabular figures, calm neutral surfaces. New shell: grouped sidebar with active state + live badges (new enquiries / applications), sticky top bar with breadcrumb, mobile drawer, user block with **sign-out** (admin had none) and a **mobile nav** (admin had none below 640px).
@@ -603,3 +603,11 @@ Owner feedback: the admin dashboard looks "childish" — wants a modern-bank-gra
 - Bugs found & fixed on the way: board stretched the whole page to 2112px on a 1440 screen (no `min-w-0` on the content column); dashboard + booking-detail grid columns overflowed on phones (grid `min-width:auto`); quote-line editor overflowed on phones; booking page used `h-screen` (double scrollbar under the new top bar); quote inputs had no accessible labels.
 - Verified: before/after screenshots of every admin page at 1440 + 390, per-element overflow check on all 10 list pages + 3 detail pages (all ok), drawer navigation, sign-out really ends the session (/admin → /admin/login), tsc, lint, 34 unit tests, build, e2e 124/124.
 - NOT changed: page-internal layouts of settings/reports/cleaners tables beyond the shared theme sweep (they inherit the new look; deeper per-page redesign can follow if wanted).
+
+### Review — Part B: booking flow, SEO, guides (2026-10-06)
+- Shared building blocks (`components/shared/PageHero.tsx`: PageHero, PageBody, H2, Chip, CtaBand, HeroButton; `components/seo/BookCard.tsx`: sticky price card + phone sticky bar; `components/booking/Steps.tsx`; `components/seo/article-styles.ts`) so every content page uses ONE look: deep-green hero band with breadcrumb, white body, solid cards, chip links, dark closing CTA. Prints as a plain page (verified) so printable guide checklists still work.
+- Rebuilt on them: all 300 service×area pages + 6 hubs (sticky "From £45"/"Fixed price quote" card on desktop, sticky bar on phones that steps aside near the footer), /areas, guides index (search box) + 68 guides, blog index/category/posts, terms + privacy.
+- Booking form is now a checkout: 3 numbered sections, sticky summary (price, deposit, balance, guarantees; a 3-step explainer for quoted services), a phone price bar that hides while the real submit button is visible, autocomplete attributes, accessible stepper. Confirmation/quote pages show a Details → Secure your date → All set indicator. Quote/pay/manage/rate/register pages got the new backdrop + type tokens (class swaps only).
+- Verified: before/after screenshots of every page type at 1440 + 390; per-element overflow check on 19 page types × 2 sizes on the PRODUCTION build; 17 behavioural checks (sticky bars show/hide, area attribution in links, one h1 + JSON-LD intact, `?hours=` hand-off, the booking form submitted through the real UI → confirmation with ref/total/pay link, print styles); tsc, lint (caught one unused import), 34 unit tests, build, e2e 124/124.
+- The UI submit test created one real booking (REG-2026-QX7Z9, @resend.dev, no messages sent): looked at it, deleted that booking + its address/customer/history, verified gone.
+- NOT changed (deliberately): the homepage/HomeView (already done), cleaner-app, cleaner login/reset pages (inherit tokens only), email templates. The placeholder phone number is unchanged everywhere.

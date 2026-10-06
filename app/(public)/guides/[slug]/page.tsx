@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { ShareBar } from "@/components/seo/ShareBar";
+import { ARTICLE_BODY, ARTICLE_H2 } from "@/components/seo/article-styles";
+import { CtaBand, PageBody, PageHero } from "@/components/shared/PageHero";
 import { COMPANY_NAME } from "@/lib/constants";
 import { GUIDES, getGuide } from "@/lib/seo/guides";
 import { getSeoService } from "@/lib/seo/services";
@@ -50,53 +53,73 @@ export default function GuidePage({ params }: { params: Params }) {
   ];
 
   return (
-    <div className="bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-14 print:bg-white print:py-0">
+    <>
       {jsonLd.map((d, i) => <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(d) }} />)}
-      <article className="mx-auto w-full max-w-3xl">
-        <nav aria-label="Breadcrumb" className="text-sm text-slate-600 print:hidden"><Link href="/" className="hover:underline">Home</Link> / <Link href="/guides" className="hover:underline">Guides</Link></nav>
-        <h1 className="mt-4 font-display text-3xl font-extrabold text-brand-green-950 sm:text-4xl">{g.title}</h1>
-        <p className="mt-2 text-sm text-slate-600">By the {COMPANY_NAME} team · {ukDate(g.published)} · {g.minutes} min read</p>
-        <p className="mt-5 text-lg text-slate-700">{g.intro}</p>
-        <div className="mt-5"><ShareBar title={g.title} path={path} printable={g.printable} /></div>
+      <PageHero
+        width="narrow"
+        crumbs={[{ label: "Home", href: "/" }, { label: "Guides", href: "/guides" }, { label: g.title }]}
+        title={g.title}
+        lead={g.intro}
+      >
+        <p className="text-sm text-brand-green-100">By the {COMPANY_NAME} team · {ukDate(g.published)} · {g.minutes} min read</p>
+      </PageHero>
 
-        <div className="mt-8 space-y-8 text-[15px] leading-relaxed text-slate-700">
-          {g.sections.map((s) => (
-            <section key={s.h}>
-              <h2 className="font-display text-xl font-extrabold text-brand-green-950">{s.h}</h2>
-              {s.p?.map((p, i) => <p key={i} className="mt-2">{p}</p>)}
-              {s.ul && <ul className="mt-2 list-disc space-y-1.5 pl-5">{s.ul.map((x) => <li key={x}>{x}</li>)}</ul>}
-              {s.ol && <ol className="mt-2 list-decimal space-y-1.5 pl-5">{s.ol.map((x) => <li key={x}>{x}</li>)}</ol>}
-            </section>
-          ))}
-        </div>
+      <PageBody width="narrow">
+        <article>
+          <ShareBar title={g.title} path={path} printable={g.printable} />
 
-        <section className="mt-10">
-          <h2 className="font-display text-xl font-extrabold text-brand-green-950">Common questions</h2>
-          <div className="mt-3 space-y-3">
-            {g.faqs.map((f) => (
-              <details key={f.q} className="rounded-xl border border-slate-200 bg-white p-4" open>
-                <summary className="cursor-pointer font-semibold text-slate-900">{f.q}</summary>
-                <p className="mt-2">{f.a}</p>
-              </details>
+          <div className={`mt-10 ${ARTICLE_BODY}`}>
+            {g.sections.map((s) => (
+              <section key={s.h}>
+                <h2 className={ARTICLE_H2}>{s.h}</h2>
+                {s.p?.map((p, i) => <p key={i} className="mt-3">{p}</p>)}
+                {s.ul && <ul className="mt-3 list-disc space-y-2 pl-5 marker:text-brand-green-600">{s.ul.map((x) => <li key={x}>{x}</li>)}</ul>}
+                {s.ol && <ol className="mt-3 list-decimal space-y-2 pl-5 marker:font-semibold marker:text-brand-green-700">{s.ol.map((x) => <li key={x}>{x}</li>)}</ol>}
+              </section>
             ))}
           </div>
-        </section>
 
-        {service && (
-          <aside className="mt-10 rounded-2xl bg-brand-green-950 p-6 text-white print:hidden">
-            <p className="font-display text-lg font-extrabold">Would you rather we did it for you?</p>
-            <p className="mt-2 text-slate-200">{COMPANY_NAME} offers {service.noun} across Barking, Dagenham, Romford, Ilford and surrounding areas, with DBS-checked cleaners and a fixed price.</p>
-            <Link href={`/${service.slug}`} className="mt-4 inline-flex h-11 items-center rounded-xl bg-white px-5 font-bold text-brand-green-900 hover:bg-slate-100">See {service.name.toLowerCase()} near you</Link>
-          </aside>
-        )}
+          <section className="mt-14">
+            <h2 className={ARTICLE_H2}>Common questions</h2>
+            <div className="mt-5 space-y-3">
+              {g.faqs.map((f) => (
+                <details key={f.q} className="group rounded-2xl border border-slate-200 bg-white px-5 py-4 open:border-brand-green-300" open>
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-[0.95rem] font-bold leading-snug text-slate-900 [&::-webkit-details-marker]:hidden">
+                    {f.q}<ChevronDown className="h-5 w-5 shrink-0 text-brand-green-700 transition-transform group-open:rotate-180 print:hidden" aria-hidden />
+                  </summary>
+                  <p className="mt-3 text-[15px] leading-relaxed text-slate-600">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
 
-        <div className="mt-8"><ShareBar title={g.title} path={path} printable={g.printable} /></div>
+          {service && (
+            <div className="mt-14">
+              <CtaBand
+                title="Would you rather we did it for you?"
+                text={`${COMPANY_NAME} offers ${service.noun} across Barking, Dagenham, Romford, Ilford and surrounding areas, with DBS-checked cleaners and a fixed price.`}
+                href={`/${service.slug}`}
+                label={`See ${service.name.toLowerCase()} near you`}
+              />
+            </div>
+          )}
 
-        <section className="mt-10 print:hidden">
-          <h2 className="font-display text-xl font-extrabold text-brand-green-950">More guides</h2>
-          <ul className="mt-3 space-y-1.5 text-sm">{related.map((r) => <li key={r.slug}><Link href={`/guides/${r.slug}`} className="font-semibold text-brand-green-800 hover:underline">{r.title}</Link></li>)}</ul>
-        </section>
-      </article>
-    </div>
+          <div className="mt-10"><ShareBar title={g.title} path={path} printable={g.printable} /></div>
+
+          <section className="mt-14 print:hidden">
+            <h2 className="font-display text-lg font-bold tracking-tight text-slate-900">More guides</h2>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+              {related.map((r) => (
+                <li key={r.slug}>
+                  <Link href={`/guides/${r.slug}`} className="group flex h-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-[15px] font-semibold text-slate-800 transition-colors hover:border-brand-green-300 hover:text-brand-green-800">
+                    {r.title}<ArrowRight className="h-4 w-4 shrink-0 text-brand-green-700 transition-transform group-hover:translate-x-1" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </article>
+      </PageBody>
+    </>
   );
 }

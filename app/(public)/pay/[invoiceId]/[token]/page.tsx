@@ -96,12 +96,12 @@ export default function PayInvoicePage() {
   const pdfHref = `/api/invoices/${invoiceId}/pdf?token=${token}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-green-50 via-white to-brand-sky-50 px-4 py-10 sm:py-16">
+    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:py-16">
       <div className="mx-auto w-full max-w-xl">
         <AnimatePresence mode="wait">
           {stage === "loading" && (
             <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center py-24 text-center">
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-green-700 shadow-xl shadow-brand-green-200"><Sparkles className="h-9 w-9 text-white" /></div>
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-green-700 shadow-xl shadow-brand-green-700/25"><Sparkles className="h-9 w-9 text-white" /></div>
               <p className="flex items-center gap-2 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading your invoice…</p>
             </motion.div>
           )}
@@ -110,14 +110,14 @@ export default function PayInvoicePage() {
             <motion.div key="pay" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div className="mb-6 text-center">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-green-100"><Sparkles className="h-7 w-7 text-brand-green-700" /></div>
-                <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-green-950">Thanks, {invoice.firstName}</h1>
+                <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">Thanks, {invoice.firstName}</h1>
                 <p className="mt-2 text-slate-500">Your {invoice.serviceLabel.toLowerCase()} is complete. Here&apos;s your invoice.</p>
               </div>
 
               <div className="rounded-2xl border-2 border-brand-green-200 bg-white p-5 shadow-xl shadow-slate-200/60 sm:p-6">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h2 className="font-display text-lg font-extrabold text-brand-green-950">{invoice.invoiceNumber}</h2>
+                    <h2 className="font-display text-lg font-bold text-slate-900">{invoice.invoiceNumber}</h2>
                     <p className="text-sm text-slate-500">
                       {invoice.cleanDate ? `Clean on ${formatDate(invoice.cleanDate)} · ` : ""}Ref {invoice.reference}
                     </p>
@@ -127,8 +127,8 @@ export default function PayInvoicePage() {
                   </a>
                 </div>
                 <div className="mt-5 flex items-end justify-between border-t border-dashed border-slate-200 pt-5">
-                  <span className="font-display text-lg font-bold text-brand-green-950">Amount due</span>
-                  <span className="font-display text-3xl font-extrabold tabular-nums text-brand-green-900">{formatCurrency(invoice.total)}</span>
+                  <span className="font-display text-lg font-bold text-slate-900">Amount due</span>
+                  <span className="font-display text-3xl font-bold tabular-nums text-brand-green-900">{formatCurrency(invoice.total)}</span>
                 </div>
                 {invoice.dueDate && <p className="mt-1 text-right text-xs text-slate-500">Due {formatDate(invoice.dueDate)}</p>}
               </div>
@@ -139,14 +139,14 @@ export default function PayInvoicePage() {
                     {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <CreditCard className="h-5 w-5" />}
                   </span>
                   <span className="flex-1">
-                    <span className="block font-display text-base font-bold text-brand-green-950">Pay by card</span>
+                    <span className="block font-display text-base font-bold text-slate-900">Pay by card</span>
                     <span className="block text-sm text-slate-500">Instant and secure.</span>
                   </span>
                 </button>
                 <button type="button" onClick={() => setShowBank((s) => !s)} disabled={busy} className="flex w-full items-center gap-3 rounded-2xl border-2 border-slate-200 bg-white p-4 text-left shadow-sm transition-colors hover:border-slate-300 disabled:opacity-60">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><Landmark className="h-5 w-5" /></span>
                   <span className="flex-1">
-                    <span className="block font-display text-base font-bold text-brand-green-950">Pay by bank transfer</span>
+                    <span className="block font-display text-base font-bold text-slate-900">Pay by bank transfer</span>
                     <span className="block text-sm text-slate-500">No card fee.</span>
                   </span>
                   <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${showBank ? "rotate-180" : ""}`} />
@@ -185,7 +185,7 @@ export default function PayInvoicePage() {
               <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", delay: 0.1 }} className="mx-auto mb-6 mt-8 flex h-20 w-20 items-center justify-center rounded-full bg-brand-green-100">
                 <CheckCircle2 className="h-12 w-12 text-brand-green-600" />
               </motion.div>
-              <h1 className="font-display text-3xl font-extrabold tracking-tight text-brand-green-950">
+              <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900">
                 {stage === "paid" ? "All paid — thank you!" : "Thanks — we're checking it"}
               </h1>
               <p className="mx-auto mt-3 max-w-md text-slate-500">
@@ -196,7 +196,7 @@ export default function PayInvoicePage() {
               {invoice && (
                 <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
                   <p className="text-sm text-slate-500">Invoice</p>
-                  <p className="mt-1 font-display text-2xl font-extrabold text-brand-green-900">{invoice.invoiceNumber}</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-brand-green-900">{invoice.invoiceNumber}</p>
                   <a href={pdfHref} target="_blank" rel="noreferrer" className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-brand-green-200 px-5 py-3 font-semibold text-brand-green-800 hover:bg-brand-green-50"><FileText className="h-4 w-4" /> Download PDF</a>
                 </div>
               )}
@@ -206,7 +206,7 @@ export default function PayInvoicePage() {
           {stage === "error" && (
             <motion.div key="error" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="text-center">
               <div className="mx-auto mb-6 mt-8 flex h-16 w-16 items-center justify-center rounded-full bg-red-100"><XCircle className="h-8 w-8 text-red-600" /></div>
-              <h1 className="font-display text-2xl font-extrabold text-brand-green-950">Something went wrong</h1>
+              <h1 className="font-display text-2xl font-bold text-slate-900">Something went wrong</h1>
               <p className="mx-auto mt-3 max-w-md text-slate-500">{error || "Please try again, or give us a call and we'll sort it out."}</p>
               <a href={`tel:${PHONE_TEL}`} className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-brand-green-200 px-5 py-3 font-semibold text-brand-green-800 hover:bg-brand-green-50"><Phone className="h-4 w-4" /> Call us on {PHONE_DISPLAY}</a>
             </motion.div>

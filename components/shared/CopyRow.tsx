@@ -24,7 +24,7 @@ export function CopyRow({ label, value, strong }: { label: string; value: string
     <div className="flex items-center justify-between gap-3 py-3">
       <dt className="text-sm text-slate-500">{label}</dt>
       <dd className="flex items-center gap-2">
-        <span className={`font-display font-bold tracking-wide ${strong ? "text-lg text-brand-green-900" : "text-base text-brand-green-950"}`}>
+        <span className={`font-display font-bold tracking-wide ${strong ? "text-lg text-brand-green-900" : "text-base text-slate-900"}`}>
           {value}
         </span>
         <button
