@@ -158,3 +158,7 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 24 — A UI-level test that submits a real form writes a real row
 **What happened:** Verifying the rewritten booking form through the browser created a booking in the live database (the dev server uses the live Supabase).
 **Rule going forward:** Use a clearly-marked `@resend.dev` test identity with outbound messages disabled, record the reference, look at exactly what was created, and delete only that — in the same task.
+
+## Lesson 25 — Importing a constant from a server-only module into a client component breaks at runtime, and tsc cannot see it
+**What happened:** The new client chart imported `RANGE_DAYS` from the dashboard data loader, which imports `next/headers` via the Supabase server client. `tsc` and `lint` were clean; the dev server returned a 500 for every page.
+**Rule going forward:** Constants, types and pure helpers that a client component needs live in a module with NO server imports (`*-shared.ts`). After adding any client component that touches shared code, load the page in the dev server (or run `next build`) before calling it done.

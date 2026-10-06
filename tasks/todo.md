@@ -611,3 +611,28 @@ Owner feedback: the admin dashboard looks "childish" — wants a modern-bank-gra
 - Verified: before/after screenshots of every page type at 1440 + 390; per-element overflow check on 19 page types × 2 sizes on the PRODUCTION build; 17 behavioural checks (sticky bars show/hide, area attribution in links, one h1 + JSON-LD intact, `?hours=` hand-off, the booking form submitted through the real UI → confirmation with ref/total/pay link, print styles); tsc, lint (caught one unused import), 34 unit tests, build, e2e 124/124.
 - The UI submit test created one real booking (REG-2026-QX7Z9, @resend.dev, no messages sent): looked at it, deleted that booking + its address/customer/history, verified gone.
 - NOT changed (deliberately): the homepage/HomeView (already done), cleaner-app, cleaner login/reset pages (inherit tokens only), email templates. The placeholder phone number is unchanged everywhere.
+
+## Task: Admin dashboard v2 — "wow" pass (2026-10-06)
+Owner feedback: v1 is better but "way below design expectations — make it wow, I need to wow my co-founders."
+### Diagnosis of v1
+- Tidy but generic: every card is the same white box, nothing is the hero, no motion, no depth, nothing you can *do* from the page, one dull bar chart. Looks like a template, not a product.
+### Principles (honest data only — nothing fabricated; empty states stay graceful)
+- One unmistakable hero: dark brand panel with greeting, a one-line live summary, a count-up revenue figure and an interactive area chart (7/14/30 days, tooltips, vs previous period).
+- Mission-control depth: dark sidebar, glass stat tiles with sparklines, today as a timeline, 7-day load bars, team-today availability, live activity feed, quick actions.
+- Do things from here: ⌘K / Ctrl+K command palette that searches bookings, customers and cleaners and jumps to any page (uses `cmdk`, ALREADY a dependency — no new package; Recharts + framer-motion also already installed).
+- Motion with restraint: staggered entrance, count-up, chart draw, hover lift; respects reduced-motion.
+### Plan
+- [x] `lib/admin/overview.ts` data loader (revenue 7/14/30 + previous periods, bookings/day, next-7-days load, pipeline, team today, activity, attention).
+- [x] Components: CountUp, Sparkline, Reveal, RevenueHero (Recharts), Pipeline, WeekLoad, TeamToday, TodayTimeline, ActivityFeed, Attention, QuickActions.
+- [x] Command palette + `/api/admin/search` (requireAdmin, escaped input) + shell search button + hotkey.
+- [x] Dark brand sidebar + refined top bar (shell).
+- [x] Verify with real admin session: desktop 1440, laptop 1100, tablet, phone; overflow; palette keyboard flow; reduced motion; tsc/lint/build/e2e; push; live check; delete throwaway admin.
+
+### Review — Admin dashboard v2 "wow" (2026-10-06)
+- **Hero:** dark brand panel with greeting by time of day (first name only if one is saved — never guessed from an email), live "what needs you" chips, a count-up revenue figure with an interactive Recharts area chart (7/14/30 days, tooltip, comparison with the previous equal period), and four glass stat tiles (outstanding/overdue, bookings in 14 days with sparkline, jobs today, active cleaners).
+- **Panels:** 7-day load bars, pipeline bars, team today (on a job / booked / free), today's schedule as a timeline, live activity feed (code-style entries rewritten as sentences), needs-attention list, quick actions. Two independent columns so nothing stretches into an empty box.
+- **⌘K / Ctrl+K command palette** (cmdk, already a dependency): searches bookings, customers, cleaners and jumps to any page; keyboard-driven; admin-only `/api/admin/search` with input stripped of wildcards/filter syntax and one query per column.
+- **Shell:** dark brand rail with a glowing active state, frosted top bar with search trigger.
+- **Bug caught by running it (not by tsc):** the client chart imported a constant from the server-only data loader, pulling `next/headers` into the browser bundle → page 500. Fixed by splitting browser-safe constants/helpers into `lib/admin/overview-shared.ts`.
+- **Verified:** screenshots at 1440/1100/820/390 with a real admin session; 23 interaction checks (palette open/search/arrow/Enter/Escape/jump, range toggle + aria-pressed, tooltip, reduced-motion shows final numbers immediately, 401 when unauthenticated, six hostile search inputs handled, no-match returns empty, phone palette fits); per-element overflow on all 20 admin pages × 2 sizes on the PRODUCTION build; tsc, lint, 34 unit tests, build, e2e 124/124.
+- **Honest limits:** with so little real data (the DB still holds only the leftover E2E test rows) the charts are sparse. Everything shown is real; nothing is mocked. The design will look fuller as real bookings arrive.

@@ -18,12 +18,12 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 /** The one surface used everywhere: white, hairline border, 12px radius, almost no shadow. */
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("min-w-0 rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>{children}</section>;
+  return <section className={cn("flex h-full min-w-0 flex-col rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>{children}</section>;
 }
 
 export function PanelHeader({ title, hint, right }: { title: string; hint?: ReactNode; right?: ReactNode }) {
   return (
-    <header className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
       <div className="min-w-0">
         <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
         {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
@@ -62,12 +62,15 @@ export function StatusBadge({ status }: { status: BookingStatus }) {
 }
 
 /** Initials in a neutral circle — a person without needing a photo. */
-export function Avatar({ name, size = 28 }: { name: string; size?: number }) {
+export function Avatar({ name, size = 28, tone = "light" }: { name: string; size?: number; tone?: "light" | "dark" }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200"
-      style={{ width: size, height: size }}
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold",
+        tone === "dark" ? "bg-white/10 text-white ring-1 ring-white/20" : "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+      )}
+      style={{ width: size, height: size, fontSize: Math.max(9, Math.round(size * 0.38)) }}
       aria-hidden
     >
       {initials || "?"}
