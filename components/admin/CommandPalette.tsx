@@ -33,6 +33,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Results>(EMPTY);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState("");
   const q = query.trim();
 
   // Reset when closed, so it always opens fresh.
@@ -64,12 +65,19 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
   const pages = PAGES.filter((p) => !lower || `${p.label} ${p.keywords}`.toLowerCase().includes(lower));
   const total = results.bookings.length + results.customers.length + results.cleaners.length + pages.length;
 
+  // Enter must always open the TOP result. cmdk keeps the previous highlight when new results arrive, so point the
+  // selection back at the first item whenever the list changes (typing, results landing, opening).
+  const firstValue = results.bookings[0] ? `booking-${results.bookings[0].id}` : results.customers[0] ? `customer-${results.customers[0].id}` : results.cleaners[0] ? `cleaner-${results.cleaners[0].id}` : pages[0] ? `page-${pages[0].href}` : "";
+  useEffect(() => { setSelected(firstValue); }, [firstValue, q, open]);
+
   return (
     <Command.Dialog
       open={open}
       onOpenChange={onOpenChange}
       label="Search and jump"
       shouldFilter={false}
+      value={selected}
+      onValueChange={setSelected}
       loop
       overlayClassName="fixed inset-0 z-[60] bg-slate-950/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0"
       contentClassName="fixed left-1/2 top-[12vh] z-[61] w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_40px_100px_-20px_rgba(2,6,23,0.55)] data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"

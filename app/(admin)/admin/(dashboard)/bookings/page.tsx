@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { AlertTriangle, Plus, Repeat } from "lucide-react";
 import { TableSkeleton, ErrorState } from "@/components/admin/DataState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { AdminHero, AdminPage, HERO_BTN } from "@/components/admin/kit";
+import { Avatar } from "@/components/admin/ui";
 import { formatCurrency } from "@/lib/utils";
 import { SERVICE_LABELS, type ServiceType, type BookingStatus } from "@/types";
 import { PIPELINE_STAGES, type PipelineStage } from "@/lib/pipeline";
@@ -51,41 +53,51 @@ function Card({ booking }: { booking: BoardBooking }) {
       {...listeners}
       {...attributes}
       style={transform ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` } : undefined}
-      className={`mb-2 cursor-grab rounded-xl border border-slate-200 bg-white p-3 shadow-sm active:cursor-grabbing ${isDragging ? "opacity-40" : ""}`}
+      className={`mb-2.5 cursor-grab rounded-xl border border-slate-200 bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.05)] transition-shadow hover:shadow-md active:cursor-grabbing ${isDragging ? "opacity-40" : ""}`}
     >
       <Link href={`/admin/bookings/${booking.id}`} className="block" onClick={(e) => isDragging && e.preventDefault()}>
-        <p className="flex items-center gap-1.5 text-sm font-bold text-slate-900">
-          {customer?.full_name ?? "Unknown"}
+        <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
+          <span className="truncate">{customer?.full_name ?? "Unknown"}</span>
           {booking.is_flagged && <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-label="Needs attention" />}
-          {booking.parent_booking_id && <Repeat className="h-3.5 w-3.5 shrink-0 text-brand-sky-600" aria-label="Recurring visit" />}
+          {booking.parent_booking_id && <Repeat className="h-3.5 w-3.5 shrink-0 text-sky-600" aria-label="Recurring visit" />}
         </p>
-        <p className="mt-0.5 text-xs text-slate-500">{SERVICE_LABELS[booking.service_type]} · {booking.reference}</p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-xs text-slate-400">
-            {booking.is_flexible_date ? "Flexible" : booking.clean_date ? new Date(booking.clean_date).toLocaleDateString("en-GB") : "No date"}
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-slate-500">
+          {SERVICE_LABELS[booking.service_type]}
+          <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-600">{booking.reference}</span>
+        </p>
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-2.5">
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-slate-600">
+            {cleaner ? <><Avatar name={cleaner.full_name} size={20} /><span className="truncate">{cleaner.full_name}</span></> : <span className="text-slate-400">No cleaner</span>}
           </span>
-          {booking.quote_total != null && <span className="text-xs font-bold text-brand-green-700">{formatCurrency(booking.quote_total)}</span>}
+          <span className="shrink-0 text-right text-xs">
+            <span className="block text-slate-500">{booking.is_flexible_date ? "Flexible" : booking.clean_date ? new Date(booking.clean_date).toLocaleDateString("en-GB") : "No date"}</span>
+            {booking.quote_total != null && <span className="block font-semibold tabular-nums text-slate-900">{formatCurrency(booking.quote_total)}</span>}
+          </span>
         </div>
-        {cleaner && <p className="mt-1 text-xs text-brand-sky-700">👤 {cleaner.full_name}</p>}
       </Link>
     </div>
   );
 }
+
+const STAGE_ACCENT: Record<PipelineStage["key"], string> = {
+  new: "bg-slate-400", quoted: "bg-sky-500", confirmed: "bg-emerald-500", in_progress: "bg-amber-500", completed: "bg-slate-800", lost: "bg-red-400",
+};
 
 function Column({ col, bookings }: { col: (typeof COLUMNS)[number]; bookings: BoardBooking[] }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.key });
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border ${isOver ? "border-brand-green-400 bg-brand-green-50/50" : "border-slate-200 bg-slate-50"} p-3`}
+      className={`flex max-h-[68vh] w-72 shrink-0 flex-col overflow-hidden rounded-2xl border transition-colors ${isOver ? "border-brand-green-400 bg-brand-green-50/60" : "border-slate-200 bg-slate-100/60"}`}
     >
-      <div className="mb-2 flex items-center justify-between px-1">
-        <h3 className="text-sm font-bold text-slate-700">{col.title}</h3>
-        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600">{bookings.length}</span>
+      <div className={`h-1 shrink-0 ${STAGE_ACCENT[col.key]}`} aria-hidden />
+      <div className="flex shrink-0 items-center justify-between px-4 py-3">
+        <h3 className="text-sm font-semibold text-slate-800">{col.title}</h3>
+        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 shadow-sm ring-1 ring-slate-200">{bookings.length}</span>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto px-3 pb-3">
         {bookings.map((b) => <Card key={b.id} booking={b} />)}
-        {bookings.length === 0 && <p className="px-1 py-6 text-center text-xs text-slate-400">No bookings</p>}
+        {bookings.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 px-2 py-8 text-center text-xs text-slate-400">Drop a booking here</p>}
       </div>
     </div>
   );
@@ -164,23 +176,31 @@ export default function BookingsBoardPage() {
     if (targetCol.key === "confirmed") load();
   }
 
+  const count = (key: PipelineStage["key"]) => (byColumn.get(key) ?? []).length;
+  const flagged = bookings.filter((b) => b.is_flagged).length;
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col px-4 py-6 sm:px-8 sm:py-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Bookings</h1>
-          <p className="mt-1 text-sm text-slate-500">Drag a card to move it through the pipeline.</p>
-        </div>
-        <Link href="/admin/bookings/new" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-brand-green-700 px-3.5 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-brand-green-800"><Plus className="h-4 w-4" /> New booking</Link>
-      </div>
+    <AdminPage>
+      <AdminHero
+        eyebrow="Operations"
+        title="Bookings"
+        description="Drag a card to move it through the pipeline. Completing a job invoices the customer automatically."
+        actions={<Link href="/admin/bookings/new" className={HERO_BTN.primary}><Plus className="h-4 w-4" /> New booking</Link>}
+        stats={loading || loadError ? undefined : [
+          { label: "New leads", value: count("new"), hint: count("new") ? "Waiting for a quote" : "None waiting" },
+          { label: "Quote sent", value: count("quoted"), hint: "Waiting for the deposit" },
+          { label: "Confirmed", value: count("confirmed"), hint: "Dated and paid for" },
+          { label: "Needs attention", value: flagged, hint: flagged ? "Flagged by automation" : "All clear", tone: flagged ? "warning" : "positive" },
+        ]}
+      />
 
       {loading ? (
-        <div className="mt-6"><TableSkeleton rows={5} cols={4} /></div>
+        <TableSkeleton rows={5} cols={4} />
       ) : loadError ? (
-        <div className="mt-6"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>
+        <ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} />
       ) : (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="mt-6 flex flex-1 gap-4 overflow-x-auto pb-4">
+          <div className="-mx-4 flex gap-4 overflow-x-auto px-4 pb-4 sm:-mx-8 sm:px-8">
             {COLUMNS.map((col) => (
               <Column key={col.key} col={col} bookings={byColumn.get(col.key) ?? []} />
             ))}
@@ -198,6 +218,6 @@ export default function BookingsBoardPage() {
         busy={moving}
         onConfirm={async () => { if (!pendingMove) return; setMoving(true); await moveBooking(pendingMove.booking, pendingMove.target); setMoving(false); setPendingMove(null); }}
       />
-    </div>
+    </AdminPage>
   );
 }

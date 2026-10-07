@@ -3,12 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, Save, Send } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { Loader2, Plus, Trash2, Save, Send, Mail, Phone, MapPin } from "lucide-react";
+import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { BookingOps, FlagBanner, type OpsInvoice } from "@/components/admin/BookingOps";
 import { BookingEdit } from "@/components/admin/BookingEdit";
 import { ErrorState } from "@/components/admin/DataState";
-import { SERVICE_LABELS, BOOKING_STATUS_LABELS, type QuoteLineItem, type BookingStatus } from "@/types";
+import { AdminHero, AdminPage, BTN, INPUT } from "@/components/admin/kit";
+import { Avatar, Panel, PanelHeader, StatusBadge } from "@/components/admin/ui";
+import { activitySentence } from "@/lib/admin/overview-shared";
+import { SERVICE_LABELS, type QuoteLineItem, type BookingStatus } from "@/types";
 
 interface BookingDetail {
   id: string; reference: string; service_type: string; status: BookingStatus;
@@ -122,152 +125,143 @@ export default function BookingDetailPage() {
   }
 
   if (loadError && !booking) {
-    return <div className="p-6 sm:p-8"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>;
+    return <AdminPage><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></AdminPage>;
   }
 
   if (loading || !booking) {
     return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>;
   }
 
+  const when = booking.is_flexible_date ? "Flexible date" : booking.clean_date ? `${formatDate(booking.clean_date)}${booking.clean_time ? ` · ${booking.clean_time.slice(0, 5)}` : ""}` : "No date set";
+  const history = [...statusHistory, ...activityLog].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   return (
-    <div className="p-4 sm:p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">{booking.reference}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {SERVICE_LABELS[booking.service_type as keyof typeof SERVICE_LABELS]} · {BOOKING_STATUS_LABELS[booking.status]}
-          </p>
-        </div>
-      </div>
+    <AdminPage>
+      <AdminHero
+        back={{ href: "/admin/bookings", label: "Bookings" }}
+        eyebrow={SERVICE_LABELS[booking.service_type as keyof typeof SERVICE_LABELS]}
+        title={booking.reference}
+        description={booking.customer ? `${booking.customer.full_name}${booking.frequency && booking.frequency !== "one_off" ? ` · repeats ${booking.frequency}` : ""}` : undefined}
+        stats={[
+          { label: "Status", value: <StatusBadge status={booking.status} /> },
+          { label: "When", value: <span className="text-[1.1rem]">{when}</span> },
+          { label: "Cleaner", value: <span className="text-[1.1rem]">{booking.cleaner?.full_name ?? "Unassigned"}</span>, tone: booking.cleaner ? "default" : "warning", hint: booking.cleaner ? booking.cleaner.phone : "No cleaner yet" },
+          { label: "Quote", value: booking.quote_total != null ? formatCurrency(Number(booking.quote_total)) : "—", hint: booking.deposit_amount != null ? `Deposit ${formatCurrency(Number(booking.deposit_amount))}` : undefined },
+        ]}
+      />
 
       <FlagBanner booking={booking} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: customer + job details */}
         <div className="min-w-0 space-y-6 lg:col-span-1">
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-900">Customer</h2>
-            <p className="mt-2 text-sm text-slate-700">{booking.customer?.full_name}</p>
-            <p className="break-words text-sm text-slate-500">{booking.customer?.email}</p>
-            <p className="text-sm text-slate-500">{booking.customer?.phone}</p>
-          </section>
+          <Panel>
+            <PanelHeader title="Customer" />
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <Avatar name={booking.customer?.full_name ?? "Customer"} size={40} />
+                <p className="font-medium text-slate-900">{booking.customer?.full_name}</p>
+              </div>
+              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+                <li className="flex items-start gap-2.5"><Mail className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" /><span className="break-words">{booking.customer?.email}</span></li>
+                <li className="flex items-center gap-2.5"><Phone className="h-4 w-4 shrink-0 text-slate-400" />{booking.customer?.phone}</li>
+              </ul>
+            </div>
+          </Panel>
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-900">Property</h2>
-            <p className="mt-2 text-sm text-slate-700">
-              {booking.address ? `${booking.address.line_1}${booking.address.line_2 ? ", " + booking.address.line_2 : ""}, ${booking.address.postcode}` : "No address"}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              {booking.property_type} · {booking.bedrooms ?? "—"} bed · {booking.bathrooms ?? "—"} bath
-              {booking.frequency && booking.frequency !== "one_off" ? ` · ${booking.frequency}` : ""}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              {booking.is_flexible_date ? "Flexible date" : booking.clean_date ? formatDate(booking.clean_date) : "No date set"}
-            </p>
-            {booking.special_instructions && (
-              <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{booking.special_instructions}</p>
-            )}
-          </section>
+          <Panel>
+            <PanelHeader title="Property" />
+            <div className="space-y-3 p-5 text-sm">
+              <p className="flex items-start gap-2.5 text-slate-800">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                {booking.address ? `${booking.address.line_1}${booking.address.line_2 ? ", " + booking.address.line_2 : ""}${booking.address.city ? ", " + booking.address.city : ""}, ${booking.address.postcode}` : "No address"}
+              </p>
+              <p className="text-slate-600">
+                {booking.property_type} · {booking.bedrooms ?? "—"} bed · {booking.bathrooms ?? "—"} bath
+                {booking.frequency && booking.frequency !== "one_off" ? ` · ${booking.frequency}` : ""}
+              </p>
+              {booking.special_instructions && <p className="rounded-xl bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">{booking.special_instructions}</p>}
+            </div>
+          </Panel>
 
           <BookingEdit key={`${booking.clean_date}-${booking.clean_time}-${booking.address?.postcode}`} booking={booking} onSaved={load} />
 
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-900">Cleaner</h2>
-            <select
-              key={booking.assigned_cleaner_id ?? "unassigned"}
-              defaultValue={booking.assigned_cleaner_id ?? ""}
-              onChange={(e) => assignCleaner(e.target.value)}
-              className="mt-2 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
-            >
-              <option value="">Unassigned</option>
-              {cleaners.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
-            </select>
-          </section>
-
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-900">Activity</h2>
-            <div className="mt-2 max-h-72 space-y-2 overflow-y-auto text-xs">
-              {[...statusHistory, ...activityLog]
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((entry) => (
-                  <div key={entry.id} className="border-b border-slate-100 pb-2">
-                    <p className="text-slate-600">{entry.action ?? `Status: ${entry.previous_status ?? "—"} → ${entry.new_status}`}</p>
-                    <p className="text-slate-400">{new Date(entry.created_at).toLocaleString("en-GB")} · {entry.performed_by ?? entry.changed_by}</p>
-                  </div>
-                ))}
-              {statusHistory.length === 0 && activityLog.length === 0 && <p className="text-slate-400">No activity yet.</p>}
+          <Panel>
+            <PanelHeader title="Cleaner" hint="Changing this notifies the cleaner." />
+            <div className="p-5">
+              <select
+                key={booking.assigned_cleaner_id ?? "unassigned"}
+                defaultValue={booking.assigned_cleaner_id ?? ""}
+                onChange={(e) => assignCleaner(e.target.value)}
+                aria-label="Assigned cleaner"
+                className={INPUT}
+              >
+                <option value="">Unassigned</option>
+                {cleaners.map((c) => <option key={c.id} value={c.id}>{c.full_name}</option>)}
+              </select>
             </div>
-          </section>
+          </Panel>
+
+          <Panel>
+            <PanelHeader title="Activity" hint="Status changes and automation, newest first." />
+            {history.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">No activity yet.</p> : (
+              <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto">
+                {history.map((entry) => (
+                  <li key={entry.id} className="px-5 py-3">
+                    <p className="text-sm text-slate-800">{entry.action ? activitySentence(entry.action) : `Status: ${entry.previous_status ?? "—"} → ${entry.new_status}`}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{new Date(entry.created_at).toLocaleString("en-GB")} · {entry.performed_by ?? entry.changed_by}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         </div>
 
-        {/* Right: quote builder */}
+        {/* Right: ops + quote builder */}
         <div className="min-w-0 space-y-6 lg:col-span-2">
           <BookingOps booking={booking} invoices={invoices} onChange={load} />
-          <section className="rounded-xl border border-slate-200 bg-white p-5">
-            <h2 className="font-bold text-slate-900">Quote</h2>
-            <div className="mt-3 space-y-2">
-              {lineItems.map((line, i) => (
-                <div key={i} className="flex flex-wrap gap-2">
-                  <input
-                    value={line.description}
-                    onChange={(e) => updateLine(i, "description", e.target.value)}
-                    placeholder="Description"
-                    aria-label="Line description"
-                    className="basis-full rounded-lg border border-slate-200 px-3 py-2 text-sm sm:flex-1 sm:basis-0"
-                  />
-                  <input
-                    type="number" min={1} value={line.quantity}
-                    onChange={(e) => updateLine(i, "quantity", Number(e.target.value))}
-                    aria-label="Quantity"
-                    className="w-16 rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                  <input
-                    type="number" min={0} step={0.01} value={line.unit_price}
-                    onChange={(e) => updateLine(i, "unit_price", Number(e.target.value))}
-                    aria-label="Unit price"
-                    className="w-24 rounded-lg border border-slate-200 px-2 py-2 text-sm"
-                  />
-                  <div className="flex w-24 items-center justify-end rounded-lg bg-slate-50 px-2 text-sm font-semibold">
-                    {formatCurrency(line.total)}
+
+          <Panel>
+            <PanelHeader title="Quote" hint="Sends by email, SMS and WhatsApp. The customer pays their deposit straight from the quote page." />
+            <div className="p-5">
+              <div className="space-y-2">
+                {lineItems.map((line, i) => (
+                  <div key={i} className="flex flex-wrap gap-2">
+                    <input value={line.description} onChange={(e) => updateLine(i, "description", e.target.value)} placeholder="Description" aria-label="Line description" className={cn(INPUT, "basis-full sm:flex-1 sm:basis-0")} />
+                    <input type="number" min={1} value={line.quantity} onChange={(e) => updateLine(i, "quantity", Number(e.target.value))} aria-label="Quantity" className={cn(INPUT, "w-20")} />
+                    <input type="number" min={0} step={0.01} value={line.unit_price} onChange={(e) => updateLine(i, "unit_price", Number(e.target.value))} aria-label="Unit price" className={cn(INPUT, "w-28")} />
+                    <div className="flex h-10 w-28 items-center justify-end rounded-lg bg-slate-50 px-3 text-sm font-semibold tabular-nums text-slate-900">{formatCurrency(line.total)}</div>
+                    <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove line" className={`${BTN.icon} h-10 w-10 text-red-500 hover:text-red-700`}><Trash2 className="h-4 w-4" /></button>
                   </div>
-                  <button onClick={() => setLineItems((prev) => prev.filter((_, idx) => idx !== i))} aria-label="Remove line" className="rounded-lg p-2 text-red-500 hover:bg-red-50">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => setLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, total: 0 }])}
-              className="mt-2 flex items-center gap-1.5 text-sm font-semibold text-brand-green-700"
-            >
-              <Plus className="h-4 w-4" /> Add line
-            </button>
-
-            <div className="mt-4 flex items-center gap-2">
-              <label className="text-sm text-slate-600">VAT %</label>
-              <input type="number" min={0} max={100} value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            </div>
-
-            <div className="mt-4 rounded-xl bg-slate-50 p-4">
-              <div className="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>
-              {vatRate > 0 && <div className="flex justify-between text-sm text-slate-600"><span>VAT ({vatRate}%)</span><span>{formatCurrency(vatAmount)}</span></div>}
-              <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-900"><span>Total</span><span>{formatCurrency(total)}</span></div>
-            </div>
-
-            <div className="mt-4 flex gap-3">
-              <button onClick={() => saveQuote(false)} disabled={saving} className="flex items-center gap-2 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-50">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save quote
+                ))}
+              </div>
+              <button onClick={() => setLineItems((prev) => [...prev, { description: "", quantity: 1, unit_price: 0, total: 0 }])} className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-green-700 hover:underline">
+                <Plus className="h-4 w-4" /> Add line
               </button>
-              <button onClick={() => saveQuote(true)} disabled={sending} className="flex items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800 disabled:opacity-50">
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Save &amp; send
-              </button>
+
+              <div className="mt-5 flex items-center gap-3">
+                <label htmlFor="vat" className="text-sm text-slate-600">VAT %</label>
+                <input id="vat" type="number" min={0} max={100} value={vatRate} onChange={(e) => setVatRate(Number(e.target.value))} className={cn(INPUT, "w-24")} />
+              </div>
+
+              <div className="mt-5 rounded-xl bg-slate-50 p-4">
+                <div className="flex justify-between text-sm text-slate-600"><span>Subtotal</span><span className="tabular-nums">{formatCurrency(subtotal)}</span></div>
+                {vatRate > 0 && <div className="mt-1 flex justify-between text-sm text-slate-600"><span>VAT ({vatRate}%)</span><span className="tabular-nums">{formatCurrency(vatAmount)}</span></div>}
+                <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-base font-semibold text-slate-900"><span>Total</span><span className="tabular-nums">{formatCurrency(total)}</span></div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button onClick={() => saveQuote(false)} disabled={saving} className={BTN.dark}>
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save quote
+                </button>
+                <button onClick={() => saveQuote(true)} disabled={sending} className={BTN.primary}>
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Save &amp; send
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-xs text-slate-400">
-              Sends by email, SMS and WhatsApp — the customer pays their deposit straight from the quote page, no confirmation step first.
-            </p>
-          </section>
+          </Panel>
         </div>
       </div>
-    </div>
+    </AdminPage>
   );
 }

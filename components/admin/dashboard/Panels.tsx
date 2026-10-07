@@ -4,7 +4,7 @@ import {
 } from "lucide-react";
 import { Avatar, Panel, PanelHeader, StatusBadge } from "@/components/admin/ui";
 import type { Overview } from "@/lib/admin/overview";
-import { timeAgo, type TeamState } from "@/lib/admin/overview-shared";
+import { activitySentence, timeAgo, type TeamState } from "@/lib/admin/overview-shared";
 import { formatCurrency } from "@/lib/utils";
 import { SERVICE_LABELS, type BookingStatus, type ServiceType } from "@/types";
 import { stageOf } from "@/lib/pipeline";
@@ -28,7 +28,7 @@ export function Pipeline({ stages }: { stages: Overview["pipeline"] }) {
   const total = stages.reduce((s, x) => s + x.count, 0);
   const max = Math.max(...stages.map((s) => s.count), 1);
   return (
-    <Panel>
+    <Panel className="h-full">
       <PanelHeader title="Pipeline" hint={`${total} active booking${total === 1 ? "" : "s"}`} right={<LinkAll href="/admin/bookings">Open board</LinkAll>} />
       <ul className="flex flex-1 flex-col justify-around gap-3.5 p-5">
         {stages.map((s) => (
@@ -53,7 +53,7 @@ export function WeekLoad({ days }: { days: Overview["weekLoad"] }) {
   const total = days.reduce((s, d) => s + d.count, 0);
   const max = Math.max(...days.map((d) => d.count), 1);
   return (
-    <Panel>
+    <Panel className="h-full">
       <PanelHeader title="Next 7 days" hint={`${total} job${total === 1 ? "" : "s"} scheduled`} right={<LinkAll href="/admin/bookings">Schedule</LinkAll>} />
       <div className="flex flex-1 flex-col px-5 pb-5 pt-6">
         <div className="relative min-h-[9rem] flex-1">
@@ -95,7 +95,7 @@ export function TeamToday({ team }: { team: Overview["team"] }) {
   const free = team.filter((t) => t.state === "available").length;
   const shown = team.slice(0, 5);
   return (
-    <Panel>
+    <Panel className="h-full">
       <PanelHeader title="Team today" hint={team.length ? `${on} on a job · ${booked} booked · ${free} free` : "No active cleaners yet"} right={<LinkAll href="/admin/cleaners">Roster</LinkAll>} />
       {team.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-slate-500">Add a cleaner to see who is working today.</p>
@@ -159,14 +159,6 @@ export function TodayTimeline({ jobs }: { jobs: Overview["todayJobs"] }) {
 
 /* ── Recent activity ───────────────────────────────────────────────────── */
 
-/** A few activity entries are stored as codes rather than sentences; show them as the sentence a person would write. */
-const ACTION_TEXT: Record<string, string> = {
-  booking_created: "New booking received",
-  deposit_claimed: "Customer says they've paid the deposit by bank transfer",
-  instant_quote: "Instant quote sent to the customer",
-};
-const sentence = (action: string) => { const t = ACTION_TEXT[action] ?? action; return t.charAt(0).toUpperCase() + t.slice(1); };
-
 const BY_ICON = { system: Zap, customer: UserRound, cleaner: Sparkles, admin: ShieldCheck } as const;
 const BY_TINT = { system: "bg-violet-50 text-violet-600", customer: "bg-sky-50 text-sky-600", cleaner: "bg-emerald-50 text-emerald-600", admin: "bg-slate-100 text-slate-600" } as const;
 
@@ -185,7 +177,7 @@ export function ActivityFeed({ items }: { items: Overview["activity"] }) {
               <li key={a.id} className="flex items-start gap-3 px-5 py-3">
                 <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${BY_TINT[key]}`}><Icon className="h-4 w-4" /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm leading-snug text-slate-800">{sentence(a.action)}</span>
+                  <span className="block text-sm leading-snug text-slate-800">{activitySentence(a.action)}</span>
                   <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                     {a.reference && a.bookingId && <Link href={`/admin/bookings/${a.bookingId}`} className="rounded-md bg-slate-100 px-1.5 py-0.5 font-medium text-slate-700 hover:bg-slate-200">{a.reference}</Link>}
                     {a.customer && <span>{a.customer}</span>}

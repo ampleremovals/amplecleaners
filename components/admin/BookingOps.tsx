@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Camera, CheckCircle2, FileText, Loader2, MapPin, Sparkles, Landmark } from "lucide-react";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { BTN } from "@/components/admin/kit";
+import { Panel, PanelHeader, Pill } from "@/components/admin/ui";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { BookingStatus, CleaningTask } from "@/types";
 
@@ -38,11 +40,11 @@ async function post(url: string): Promise<{ ok: boolean; message?: string }> {
 export function FlagBanner({ booking }: { booking: OpsBooking }) {
   if (!booking.is_flagged) return null;
   return (
-    <div role="alert" className="mt-4 flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
-      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+    <div role="alert" className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><AlertTriangle className="h-5 w-5" /></span>
       <div>
-        <p className="font-semibold text-amber-900">Needs your attention</p>
-        <p className="text-sm text-amber-800">{booking.flag_reason ?? "This booking has been flagged."}</p>
+        <p className="font-semibold text-amber-950">Needs your attention</p>
+        <p className="text-sm text-amber-900/80">{booking.flag_reason ?? "This booking has been flagged."}</p>
       </div>
     </div>
   );
@@ -78,59 +80,61 @@ export function BookingOps({ booking, invoices, onChange }: { booking: OpsBookin
   return (
     <div className="space-y-6">
       {(awaitingDepositCheck || canAutoAssign) && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Next step</h2>
-          {awaitingDepositCheck && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-sky-50 p-4">
-              <div className="flex items-start gap-3">
-                <Landmark className="mt-0.5 h-5 w-5 text-sky-700" />
-                <div>
-                  <p className="font-semibold text-sky-900">Customer says they&apos;ve paid the deposit by bank transfer</p>
-                  <p className="text-sm text-sky-800">Check the account for {booking.deposit_amount != null ? formatCurrency(Number(booking.deposit_amount)) : "the deposit"}, then confirm.</p>
+        <Panel>
+          <PanelHeader title="Next step" hint="This booking is waiting on you." />
+          <div className="space-y-3 p-5">
+            {awaitingDepositCheck && (
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-sky-100 bg-sky-50 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-sky-700 shadow-sm"><Landmark className="h-5 w-5" /></span>
+                  <div>
+                    <p className="font-semibold text-sky-950">Customer says they&apos;ve paid the deposit by bank transfer</p>
+                    <p className="text-sm text-sky-900/80">Check the account for {booking.deposit_amount != null ? formatCurrency(Number(booking.deposit_amount)) : "the deposit"}, then confirm.</p>
+                  </div>
                 </div>
+                <button onClick={() => setConfirmDeposit(true)} className={BTN.primary}>Verify deposit</button>
               </div>
-              <button onClick={() => setConfirmDeposit(true)} className="rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800">Verify deposit</button>
-            </div>
-          )}
-          {canAutoAssign && (
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-green-50 p-4">
-              <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-brand-green-700" />
-                <div>
-                  <p className="font-semibold text-brand-green-900">No cleaner assigned yet</p>
-                  <p className="text-sm text-brand-green-800">Matches on DBS check, area, availability and workload.</p>
+            )}
+            {canAutoAssign && (
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700 shadow-sm"><Sparkles className="h-5 w-5" /></span>
+                  <div>
+                    <p className="font-semibold text-emerald-950">No cleaner assigned yet</p>
+                    <p className="text-sm text-emerald-900/80">Matches on DBS check, area, availability and workload.</p>
+                  </div>
                 </div>
+                <button onClick={autoAssign} disabled={busy === "assign"} className={BTN.primary}>
+                  {busy === "assign" && <Loader2 className="h-4 w-4 animate-spin" />} Auto-assign
+                </button>
               </div>
-              <button onClick={autoAssign} disabled={busy === "assign"} className="inline-flex items-center gap-2 rounded-xl bg-brand-green-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-brand-green-800 disabled:opacity-60">
-                {busy === "assign" && <Loader2 className="h-4 w-4 animate-spin" />} Auto-assign
-              </button>
-            </div>
-          )}
-        </section>
+            )}
+          </div>
+        </Panel>
       )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-bold text-slate-900">Invoices</h2>
-        {invoices.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-400">No invoices yet — the deposit invoice appears when the customer reserves, the balance when the job is completed.</p>
+      <Panel>
+        <PanelHeader title="Invoices" hint="Deposit when the customer reserves; balance when the job is completed." />
+        {invoices.filter((i) => i.status !== "draft").length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-slate-500">No invoices yet.</p>
         ) : (
-          <ul className="mt-2 divide-y divide-slate-100">
+          <ul className="divide-y divide-slate-100">
             {invoices.filter((i) => i.status !== "draft").map((i) => (
-              <li key={i.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+              <li key={i.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-sm">
                 <div>
-                  <p className="font-semibold text-slate-800">{i.invoice_number} <span className="font-normal text-slate-400">· {TYPE_LABEL[i.type]}</span></p>
-                  <p className="text-xs text-slate-400">{i.status === "paid" && i.paid_at ? `Paid ${formatDate(i.paid_at)}` : i.due_date ? `Due ${formatDate(i.due_date)}` : ""}</p>
+                  <p className="font-medium text-slate-900">{i.invoice_number} <span className="font-normal text-slate-500">· {TYPE_LABEL[i.type]}</span></p>
+                  <p className="text-xs text-slate-500">{i.status === "paid" && i.paid_at ? `Paid ${formatDate(i.paid_at)}` : i.due_date ? `Due ${formatDate(i.due_date)}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold tabular-nums">{formatCurrency(Number(i.total))}</span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${i.status === "paid" ? "bg-brand-green-100 text-brand-green-800" : i.status === "cancelled" ? "bg-slate-100 text-slate-500" : "bg-amber-100 text-amber-800"}`}>{i.status === "sent" ? "unpaid" : i.status}</span>
-                  <a href={`/api/invoices/${i.id}/pdf`} target="_blank" rel="noreferrer" aria-label={`Open PDF for ${i.invoice_number}`} className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100"><FileText className="h-4 w-4" /></a>
+                  <span className="font-semibold tabular-nums text-slate-900">{formatCurrency(Number(i.total))}</span>
+                  <Pill tone={i.status === "paid" ? "positive" : i.status === "cancelled" ? "neutral" : "warning"}>{i.status === "sent" ? "Unpaid" : i.status === "paid" ? "Paid" : "Cancelled"}</Pill>
+                  <a href={`/api/invoices/${i.id}/pdf`} target="_blank" rel="noreferrer" aria-label={`Open PDF for ${i.invoice_number}`} className={BTN.icon}><FileText className="h-4 w-4" /></a>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Panel>
 
       {JOB_STARTED.includes(booking.status) && <JobProof bookingId={booking.id} />}
 
@@ -157,6 +161,27 @@ interface ProofResponse {
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const mapsUrl = (p: { lat: number; lng: number }) => `https://www.google.com/maps?q=${p.lat},${p.lng}`;
 
+function PhotoGrid({ label, urls }: { label: string; urls: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-slate-500">{label} ({urls.length})</p>
+      {urls.length === 0 ? (
+        <p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><Camera className="h-4 w-4" /> None uploaded</p>
+      ) : (
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {urls.map((u) => (
+            <a key={u} href={u} target="_blank" rel="noreferrer">
+              {/* Signed URLs expire, so next/image optimisation would only cache a dead link. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u} alt={`${label} photo`} loading="lazy" className="aspect-square w-full rounded-lg object-cover ring-1 ring-slate-200" />
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** What the cleaner actually did on the day: times, location stamps, checklist, photos. */
 function JobProof({ bookingId }: { bookingId: string }) {
   const [data, setData] = useState<ProofResponse | null>(null);
@@ -171,47 +196,31 @@ function JobProof({ bookingId }: { bookingId: string }) {
     return () => { cancelled = true; };
   }, [bookingId]);
 
-  if (error) return <section className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</section>;
-  if (!data) return <section className="flex justify-center rounded-xl border border-slate-200 bg-white p-8"><Loader2 className="h-5 w-5 animate-spin text-brand-green-600" /></section>;
+  if (error) return <Panel><p className="p-5 text-sm text-red-700">{error}</p></Panel>;
+  if (!data) return <Panel><div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-brand-green-600" /></div></Panel>;
 
   const done = data.tasks.filter((t) => t.done).length;
-  const Grid = ({ label, urls }: { label: string; urls: string[] }) => (
-    <div>
-      <p className="text-xs font-medium text-slate-500">{label} ({urls.length})</p>
-      {urls.length === 0 ? (
-        <p className="mt-2 flex items-center gap-2 text-sm text-slate-400"><Camera className="h-4 w-4" /> None uploaded</p>
-      ) : (
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {urls.map((u) => (
-            <a key={u} href={u} target="_blank" rel="noreferrer">
-              {/* Signed URLs expire, so next/image optimisation would only cache a dead link. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u} alt={`${label} photo`} loading="lazy" className="aspect-square w-full rounded-lg object-cover ring-1 ring-slate-200" />
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="font-bold text-slate-900">On the day</h2>
-      <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-sm">
-        <p className="text-slate-600">
-          Clocked in <strong>{data.clockInAt ? hhmm(data.clockInAt) : "—"}</strong>
-          {data.clockIn && <a href={mapsUrl(data.clockIn)} target="_blank" rel="noreferrer" className="ml-1.5 inline-flex items-center text-brand-green-700 hover:underline"><MapPin className="h-3.5 w-3.5" /> map</a>}
-        </p>
-        <p className="text-slate-600">
-          Clocked out <strong>{data.clockOutAt ? hhmm(data.clockOutAt) : "—"}</strong>
-          {data.clockOut && <a href={mapsUrl(data.clockOut)} target="_blank" rel="noreferrer" className="ml-1.5 inline-flex items-center text-brand-green-700 hover:underline"><MapPin className="h-3.5 w-3.5" /> map</a>}
-        </p>
-        <p className="flex items-center gap-1.5 text-slate-600"><CheckCircle2 className="h-4 w-4 text-brand-green-600" /> Checklist <strong>{done}/{data.tasks.length}</strong></p>
+    <Panel>
+      <PanelHeader title="On the day" hint="What the cleaner did: times, location stamps, checklist and photos." />
+      <div className="p-5">
+        <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <p className="text-slate-600">
+            Clocked in <strong className="text-slate-900">{data.clockInAt ? hhmm(data.clockInAt) : "—"}</strong>
+            {data.clockIn && <a href={mapsUrl(data.clockIn)} target="_blank" rel="noreferrer" className="ml-1.5 inline-flex items-center text-brand-green-700 hover:underline"><MapPin className="h-3.5 w-3.5" /> map</a>}
+          </p>
+          <p className="text-slate-600">
+            Clocked out <strong className="text-slate-900">{data.clockOutAt ? hhmm(data.clockOutAt) : "—"}</strong>
+            {data.clockOut && <a href={mapsUrl(data.clockOut)} target="_blank" rel="noreferrer" className="ml-1.5 inline-flex items-center text-brand-green-700 hover:underline"><MapPin className="h-3.5 w-3.5" /> map</a>}
+          </p>
+          <p className="flex items-center gap-1.5 text-slate-600"><CheckCircle2 className="h-4 w-4 text-emerald-600" /> Checklist <strong className="text-slate-900">{done}/{data.tasks.length}</strong></p>
+        </div>
+        <div className="mt-5 grid gap-6 sm:grid-cols-2">
+          <PhotoGrid label="Before" urls={data.before} />
+          <PhotoGrid label="After" urls={data.after} />
+        </div>
       </div>
-      <div className="mt-4 grid gap-5 sm:grid-cols-2">
-        <Grid label="Before" urls={data.before} />
-        <Grid label="After" urls={data.after} />
-      </div>
-    </section>
+    </Panel>
   );
 }

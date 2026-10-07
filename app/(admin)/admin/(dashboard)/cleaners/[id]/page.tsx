@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Plus, Trash2, ShieldCheck, FileText, Upload, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Trash2, ShieldCheck, ShieldAlert, FileText, Upload, ExternalLink } from "lucide-react";
 import { ErrorState } from "@/components/admin/DataState";
+import { AdminHero, AdminPage, BTN, HERO_BTN, INPUT } from "@/components/admin/kit";
+import { Panel, PanelHeader, Pill } from "@/components/admin/ui";
+import { cn } from "@/lib/utils";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -13,6 +17,8 @@ interface Slot { id: string; day_of_week: number; start_time: string; end_time: 
 interface Area { id: string; postcode_prefix: string; }
 interface Job { id: string; reference: string; clean_date: string | null; status: string; }
 interface TimeOff { id: string; start_date: string; end_date: string; reason: string | null; }
+
+const ukDate = (d: string) => new Date(d).toLocaleDateString("en-GB");
 
 export default function CleanerDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -114,30 +120,39 @@ export default function CleanerDetailPage() {
     load();
   }
 
-  if (loadError && !cleaner) return <div className="p-4 sm:p-8"><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></div>;
+  if (loadError && !cleaner) return <AdminPage><ErrorState message={loadError} onRetry={() => { setLoading(true); load(); }} /></AdminPage>;
   if (loading || !cleaner) return <div className="flex h-96 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-brand-green-600" /></div>;
 
   return (
-    <div className="p-4 sm:p-8">
-      <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">{cleaner.full_name}</h1>
-      <p className="mt-1 text-sm text-slate-500">{cleaner.email} · {cleaner.phone}</p>
+    <AdminPage>
+      <AdminHero
+        back={{ href: "/admin/cleaners", label: "Cleaners" }}
+        title={cleaner.full_name}
+        description={`${cleaner.email} · ${cleaner.phone}`}
+        actions={
+          <button onClick={toggleDbs} className={cleaner.dbs_verified ? HERO_BTN.ghost : HERO_BTN.primary}>
+            {cleaner.dbs_verified ? <ShieldCheck className="h-4 w-4 text-emerald-300" /> : <ShieldAlert className="h-4 w-4" />}
+            {cleaner.dbs_verified ? "DBS verified" : "Mark DBS verified"}
+          </button>
+        }
+        stats={[
+          { label: "Status", value: cleaner.is_active ? "Active" : "Inactive" },
+          { label: "Pay rate", value: cleaner.pay_rate_per_hour != null ? `£${cleaner.pay_rate_per_hour}/hr` : "—" },
+          { label: "Upcoming jobs", value: upcomingJobs.length },
+          { label: "Declined, 30 days", value: declines30d, hint: declines30d >= 3 ? "Worth a chat" : "Reliable", tone: declines30d >= 3 ? "warning" : "default" },
+        ]}
+      />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-slate-900">DBS check</h2>
-            <button onClick={toggleDbs} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ${cleaner.dbs_verified ? "bg-brand-green-100 text-brand-green-800" : "bg-amber-100 text-amber-800"}`}>
-              <ShieldCheck className="h-4 w-4" /> {cleaner.dbs_verified ? "Verified" : "Mark verified"}
-            </button>
-          </div>
-          <p className="mt-2 text-xs text-slate-400">Only DBS-verified cleaners are auto-assigned to jobs. Upload the certificate as evidence, then mark verified.</p>
-          <div className="mt-4 space-y-3">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel>
+          <PanelHeader title="DBS & documents" hint="Only DBS-verified cleaners are auto-assigned to jobs. Upload the certificate as evidence, then mark verified." right={<Pill tone={cleaner.dbs_verified ? "positive" : "warning"}>{cleaner.dbs_verified ? "Verified" : "Pending"}</Pill>} />
+          <div className="space-y-3 p-5">
             {([["dbs", "DBS certificate", cleaner.dbs_check_url], ["right_to_work", "Right to work", cleaner.right_to_work_url]] as const).map(([kind, label, path]) => (
-              <div key={kind} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2.5">
-                <span className="flex items-center gap-2 text-sm font-semibold text-slate-700"><FileText className="h-4 w-4 text-slate-400" /> {label}</span>
-                <span className="flex items-center gap-2">
-                  {path && <button onClick={() => viewDoc(kind)} className="flex items-center gap-1 text-sm font-semibold text-brand-green-700 hover:underline"><ExternalLink className="h-3.5 w-3.5" /> View</button>}
-                  <label className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-100">
+              <div key={kind} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-4 py-3">
+                <span className="flex items-center gap-2.5 text-sm font-medium text-slate-800"><FileText className="h-4 w-4 text-slate-400" /> {label}</span>
+                <span className="flex items-center gap-3">
+                  {path && <button onClick={() => viewDoc(kind)} className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-green-700 hover:underline"><ExternalLink className="h-3.5 w-3.5" /> View</button>}
+                  <label className={`${BTN.secondary} h-9 cursor-pointer`}>
                     {uploading === kind ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />} {path ? "Replace" : "Upload"}
                     <input type="file" accept="application/pdf,image/jpeg,image/png" className="sr-only" disabled={uploading !== null} onChange={(e) => { uploadDoc(kind, e.target.files?.[0]); e.target.value = ""; }} />
                   </label>
@@ -145,82 +160,90 @@ export default function CleanerDetailPage() {
               </div>
             ))}
           </div>
-        </section>
+        </Panel>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Pay rate</h2>
-          <p className="mt-1 text-xs text-slate-400">Used for the cleaner&apos;s Earnings screen (clocked hours × rate).</p>
-          <div className="mt-3 flex items-center gap-2">
+        <Panel>
+          <PanelHeader title="Pay rate" hint="Used for the cleaner's Earnings screen (clocked hours × rate)." />
+          <div className="flex flex-wrap items-center gap-3 p-5">
             <span className="text-sm text-slate-500">£</span>
-            <input type="number" min={0} max={200} step={0.25} value={payRate} onChange={(e) => setPayRate(e.target.value)} placeholder="0.00" aria-label="Hourly pay rate" className="w-28 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <span className="text-sm text-slate-500">/ hour</span>
-            <button onClick={savePayRate} className="rounded-lg bg-brand-green-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-green-800">Save</button>
+            <input type="number" min={0} max={200} step={0.25} value={payRate} onChange={(e) => setPayRate(e.target.value)} placeholder="0.00" aria-label="Hourly pay rate" className={cn(INPUT, "w-28")} />
+            <span className="text-sm text-slate-500">per hour</span>
+            <button onClick={savePayRate} className={BTN.primary}>Save</button>
           </div>
-        </section>
+        </Panel>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Upcoming jobs</h2>
-          <div className="mt-2 space-y-2">
-            {upcomingJobs.map((j) => (
-              <div key={j.id} className="flex justify-between text-sm">
-                <span className="text-slate-700">{j.reference}</span>
-                <span className="text-slate-400">{j.clean_date ? new Date(j.clean_date).toLocaleDateString("en-GB") : "Flexible"}</span>
+        <Panel>
+          <PanelHeader title="Upcoming jobs" hint={`${upcomingJobs.length} assigned`} />
+          {upcomingJobs.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">No upcoming jobs assigned.</p> : (
+            <ul className="divide-y divide-slate-100">
+              {upcomingJobs.map((j) => (
+                <li key={j.id} className="flex items-center justify-between px-5 py-3 text-sm">
+                  <Link href={`/admin/bookings/${j.id}`} className="font-medium text-slate-900 hover:text-brand-green-700 hover:underline">{j.reference}</Link>
+                  <span className="text-slate-500">{j.clean_date ? ukDate(j.clean_date) : "Flexible"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Time off & reliability" hint={`Jobs declined in the last 30 days: ${declines30d}${declines30d >= 3 ? " — worth a chat" : ""}`} />
+          {timeOff.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">No time off booked.</p> : (
+            <ul className="divide-y divide-slate-100">
+              {timeOff.map((t) => (
+                <li key={t.id} className="flex items-center justify-between px-5 py-3 text-sm">
+                  <span className="font-medium text-slate-900">{ukDate(t.start_date)} – {ukDate(t.end_date)}</span>
+                  <span className="text-slate-500">{t.reason ?? ""}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Availability" hint="When they can work each week." />
+          <div className="p-5">
+            {availability.length === 0 ? <p className="text-sm text-slate-500">No weekly availability set yet.</p> : (
+              <ul className="space-y-2">
+                {availability.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-2.5 text-sm">
+                    <span className="font-medium text-slate-800">{DAYS[s.day_of_week]} <span className="font-normal text-slate-600">{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}</span></span>
+                    <button onClick={() => removeSlot(s.id)} aria-label={`Remove ${DAYS[s.day_of_week]} slot`} className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+              <select value={newSlot.dayOfWeek} onChange={(e) => setNewSlot((s) => ({ ...s, dayOfWeek: Number(e.target.value) }))} aria-label="Day" className={cn(INPUT, "w-24")}>
+                {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
+              </select>
+              <input type="time" value={newSlot.startTime} onChange={(e) => setNewSlot((s) => ({ ...s, startTime: e.target.value }))} aria-label="Start time" className={cn(INPUT, "w-32")} />
+              <input type="time" value={newSlot.endTime} onChange={(e) => setNewSlot((s) => ({ ...s, endTime: e.target.value }))} aria-label="End time" className={cn(INPUT, "w-32")} />
+              <button onClick={addSlot} className={BTN.primary}><Plus className="h-4 w-4" /> Add</button>
+            </div>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Coverage areas" hint="Postcode areas they work in. Used to match them to jobs." />
+          <div className="p-5">
+            {coverage.length === 0 ? <p className="text-sm text-slate-500">No areas added yet, so they can&apos;t be auto-assigned.</p> : (
+              <div className="flex flex-wrap gap-2">
+                {coverage.map((a) => (
+                  <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 py-1 pl-3 pr-2 text-sm font-semibold text-sky-800">
+                    {a.postcode_prefix}
+                    <button onClick={() => removeArea(a.id)} aria-label={`Remove ${a.postcode_prefix}`} className="rounded-full p-0.5 text-sky-500 transition-colors hover:bg-sky-100 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </span>
+                ))}
               </div>
-            ))}
-            {upcomingJobs.length === 0 && <p className="text-sm text-slate-400">No upcoming jobs assigned.</p>}
+            )}
+            <div className="mt-4 flex gap-2 border-t border-slate-100 pt-4">
+              <input value={newArea} onChange={(e) => setNewArea(e.target.value)} placeholder="e.g. RM8" aria-label="Postcode area" className={cn(INPUT, "w-36")} />
+              <button onClick={addArea} className={BTN.primary}><Plus className="h-4 w-4" /> Add</button>
+            </div>
           </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Time off &amp; reliability</h2>
-          <p className={`mt-2 text-sm ${declines30d >= 3 ? "font-semibold text-amber-700" : "text-slate-600"}`}>Jobs declined in the last 30 days: <strong>{declines30d}</strong>{declines30d >= 3 ? " — worth a chat" : ""}</p>
-          <div className="mt-3 space-y-1.5">
-            {timeOff.map((t) => (
-              <div key={t.id} className="flex justify-between rounded-lg bg-slate-50 px-3 py-1.5 text-sm">
-                <span>{new Date(t.start_date).toLocaleDateString("en-GB")} – {new Date(t.end_date).toLocaleDateString("en-GB")}</span>
-                <span className="text-slate-400">{t.reason ?? ""}</span>
-              </div>
-            ))}
-            {timeOff.length === 0 && <p className="text-sm text-slate-400">No time off booked.</p>}
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Availability</h2>
-          <div className="mt-2 space-y-1.5">
-            {availability.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-1.5 text-sm">
-                <span>{DAYS[s.day_of_week]} {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}</span>
-                <button onClick={() => removeSlot(s.id)}><Trash2 className="h-3.5 w-3.5 text-red-500" /></button>
-              </div>
-            ))}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <select value={newSlot.dayOfWeek} onChange={(e) => setNewSlot((s) => ({ ...s, dayOfWeek: Number(e.target.value) }))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm">
-              {DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}
-            </select>
-            <input type="time" value={newSlot.startTime} onChange={(e) => setNewSlot((s) => ({ ...s, startTime: e.target.value }))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <input type="time" value={newSlot.endTime} onChange={(e) => setNewSlot((s) => ({ ...s, endTime: e.target.value }))} className="rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <button onClick={addSlot} className="flex items-center gap-1 rounded-lg bg-brand-green-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="font-bold text-slate-900">Coverage areas</h2>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {coverage.map((a) => (
-              <span key={a.id} className="flex items-center gap-1.5 rounded-full bg-brand-sky-100 px-3 py-1 text-sm font-semibold text-brand-sky-700">
-                {a.postcode_prefix}
-                <button onClick={() => removeArea(a.id)}><Trash2 className="h-3 w-3" /></button>
-              </span>
-            ))}
-          </div>
-          <div className="mt-3 flex gap-2">
-            <input value={newArea} onChange={(e) => setNewArea(e.target.value)} placeholder="e.g. SW1" className="w-32 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-            <button onClick={addArea} className="flex items-center gap-1 rounded-lg bg-brand-green-700 px-3 py-1.5 text-sm font-semibold text-white"><Plus className="h-3.5 w-3.5" /> Add</button>
-          </div>
-        </section>
+        </Panel>
       </div>
-    </div>
+    </AdminPage>
   );
 }

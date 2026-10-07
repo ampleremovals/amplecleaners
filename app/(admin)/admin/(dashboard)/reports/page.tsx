@@ -5,7 +5,10 @@ import { BarChart3 } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useAdminFetch } from "@/hooks/useAdminFetch";
 import { ErrorState, EmptyState } from "@/components/admin/DataState";
+import { Segmented } from "@/components/admin/controls";
+import { AdminHero, AdminPage } from "@/components/admin/kit";
 import { MarketingReport } from "@/components/admin/MarketingReport";
+import { Avatar, Panel, PanelHeader } from "@/components/admin/ui";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -18,150 +21,132 @@ interface ReportResponse {
   cleaners: { id: string; name: string; jobs: number; hours: number }[];
 }
 
-const RANGES = [{ days: 30, label: "30 days" }, { days: 90, label: "90 days" }, { days: 365, label: "12 months" }];
+const RANGES = [{ key: 30, label: "30 days" }, { key: 90, label: "90 days" }, { key: 365, label: "12 months" }];
 const GREEN = "#16a34a";
-const SKY = "#0ea5e9";
 const VIOLET = "#8b5cf6";
-const FUNNEL_COLOURS = [SKY, "#38bdf8", "#4ade80", GREEN, "#15803d"];
+const FUNNEL_COLOURS = ["#38bdf8", "#0ea5e9", "#4ade80", GREEN, "#15803d"];
+const tooltipStyle = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12, boxShadow: "0 10px 30px -12px rgba(15,23,42,0.25)" };
+const AXIS = { fontSize: 11, fill: "#64748b" };
 
-function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function ChartCard({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="font-bold text-slate-900">{title}</h2>
-      {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
+    <Panel>
+      <PanelHeader title={title} hint={hint} />
+      <div className="p-5">{children}</div>
+    </Panel>
   );
 }
-
-function Stat({ label, value, tone = "text-slate-900" }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className={`mt-1 font-display text-2xl font-semibold tabular-nums ${tone}`}>{value}</p>
-    </div>
-  );
-}
-
-const tooltipStyle = { borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 12 };
 
 export default function ReportsPage() {
   const [days, setDays] = useState(90);
   const { data, loading, error, reload } = useAdminFetch<ReportResponse>(`/api/admin/reports?days=${days}`);
 
   return (
-    <div className="p-4 sm:p-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[1.65rem] font-semibold leading-tight text-slate-900">Reports</h1>
-          {data && <p className="mt-1 text-sm text-slate-500">{formatDate(data.range.from)} – {formatDate(data.range.to)}</p>}
-        </div>
-        <div className="flex rounded-xl bg-slate-100 p-1">
-          {RANGES.map((r) => (
-            <button key={r.days} onClick={() => setDays(r.days)} className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${days === r.days ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>{r.label}</button>
-          ))}
-        </div>
-      </div>
+    <AdminPage>
+      <AdminHero
+        eyebrow="Finance"
+        title="Reports"
+        description={data ? `${formatDate(data.range.from)} to ${formatDate(data.range.to)}` : "Revenue, bookings and where they come from."}
+        actions={<Segmented tone="dark" label="Report range" value={days} onChange={setDays} options={RANGES} />}
+        stats={data ? [
+          { label: "Revenue (paid)", value: formatCurrency(data.revenue.total), hint: "Money actually received" },
+          { label: "Bookings", value: data.bookings.total, hint: "Created in this period" },
+          { label: "Average quote", value: formatCurrency(data.bookings.avgQuote) },
+          { label: "Outstanding", value: formatCurrency(data.revenue.outstanding), hint: data.revenue.overdue > 0 ? `${formatCurrency(data.revenue.overdue)} overdue` : "None overdue", tone: data.revenue.overdue > 0 ? "critical" : "default" },
+        ] : undefined}
+      />
 
-      <div className="mt-6">
-        {error ? (
-          <ErrorState message={error} onRetry={reload} />
-        ) : loading && !data ? (
-          <div className="space-y-4" aria-busy="true" aria-label="Loading">
-            <div className="grid gap-3 sm:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
-            <Skeleton className="h-72 rounded-xl" />
-            <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-64 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>
-          </div>
-        ) : data && data.bookings.total === 0 && data.revenue.total === 0 ? (
-          <EmptyState icon={<BarChart3 className="h-8 w-8" />} title="Nothing to report yet" hint="Charts fill in as bookings and payments come through." />
-        ) : data ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <Stat label="Revenue (paid)" value={formatCurrency(data.revenue.total)} tone="text-brand-green-800" />
-              <Stat label="Bookings" value={String(data.bookings.total)} />
-              <Stat label="Avg quote" value={formatCurrency(data.bookings.avgQuote)} />
-              <Stat label="Outstanding" value={formatCurrency(data.revenue.outstanding)} tone={data.revenue.overdue > 0 ? "text-red-700" : "text-amber-700"} />
+      {error ? (
+        <ErrorState message={error} onRetry={reload} />
+      ) : loading && !data ? (
+        <div className="space-y-4" aria-busy="true" aria-label="Loading">
+          <Skeleton className="h-72 rounded-xl" />
+          <div className="grid gap-4 lg:grid-cols-2"><Skeleton className="h-64 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>
+        </div>
+      ) : data && data.bookings.total === 0 && data.revenue.total === 0 ? (
+        <EmptyState icon={<BarChart3 className="h-8 w-8" />} title="Nothing to report yet" hint="Charts fill in as bookings and payments come through." />
+      ) : data ? (
+        <div className="space-y-6">
+          <ChartCard title="Revenue by week" hint="Money actually received (paid invoices)">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.revenue.byWeek} margin={{ left: -10, right: 8, top: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="week" tickFormatter={(w: string) => formatDate(w).slice(0, 5)} tick={AXIS} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                  <YAxis tickFormatter={(v: number) => `£${v}`} tick={AXIS} tickLine={false} axisLine={false} />
+                  <Tooltip cursor={{ fill: "rgba(22,163,74,0.06)" }} contentStyle={tooltipStyle} labelFormatter={(w) => `Week of ${formatDate(String(w))}`} formatter={(v) => [formatCurrency(Number(v)), "Revenue"]} />
+                  <Bar dataKey="amount" fill={GREEN} radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
+          </ChartCard>
 
-            <Card title="Revenue by week" subtitle="Money actually received (paid invoices)">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ChartCard title="Booking funnel" hint="How many of this period's enquiries reached each stage">
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.revenue.byWeek} margin={{ left: -10, right: 8, top: 4 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="week" tickFormatter={(w: string) => formatDate(w).slice(0, 5)} tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-                    <YAxis tickFormatter={(v: number) => `£${v}`} tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={tooltipStyle} labelFormatter={(w) => `Week of ${formatDate(String(w))}`} formatter={(v) => [formatCurrency(Number(v)), "Revenue"]} />
-                    <Bar dataKey="amount" fill={GREEN} radius={[6, 6, 0, 0]} />
+                  <BarChart data={data.funnel} layout="vertical" margin={{ left: 8, right: 24 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                    <XAxis type="number" allowDecimals={false} tick={AXIS} tickLine={false} axisLine={false} />
+                    <YAxis type="category" dataKey="stage" width={84} tick={{ ...AXIS, fontSize: 12 }} tickLine={false} axisLine={false} />
+                    <Tooltip cursor={{ fill: "rgba(14,165,233,0.06)" }} contentStyle={tooltipStyle} formatter={(v) => [String(v), "Bookings"]} />
+                    <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                      {data.funnel.map((_, i) => <Cell key={i} fill={FUNNEL_COLOURS[i % FUNNEL_COLOURS.length]} />)}
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
-            </Card>
+            </ChartCard>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card title="Booking funnel" subtitle="How many of this period's enquiries reached each stage">
+            <ChartCard title="Bookings by service">
+              {data.bookings.byService.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">No bookings in this period.</p> : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.funnel} layout="vertical" margin={{ left: 8, right: 24 }}>
+                    <BarChart data={data.bookings.byService} layout="vertical" margin={{ left: 8, right: 24 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                      <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="stage" width={80} tick={{ fontSize: 12 }} />
-                      <Tooltip contentStyle={tooltipStyle} formatter={(v) => [String(v), "Bookings"]} />
-                      <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-                        {data.funnel.map((_, i) => <Cell key={i} fill={FUNNEL_COLOURS[i % FUNNEL_COLOURS.length]} />)}
-                      </Bar>
+                      <XAxis type="number" allowDecimals={false} tick={AXIS} tickLine={false} axisLine={false} />
+                      <YAxis type="category" dataKey="service" width={130} tick={AXIS} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{ fill: "rgba(139,92,246,0.06)" }} contentStyle={tooltipStyle} formatter={(v) => [String(v), "Bookings"]} />
+                      <Bar dataKey="count" fill={VIOLET} radius={[0, 6, 6, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-
-              <Card title="Bookings by service">
-                {data.bookings.byService.length === 0 ? <p className="py-10 text-center text-sm text-slate-400">No bookings in this period.</p> : (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.bookings.byService} layout="vertical" margin={{ left: 8, right: 24 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                        <YAxis type="category" dataKey="service" width={130} tick={{ fontSize: 11 }} />
-                        <Tooltip contentStyle={tooltipStyle} formatter={(v) => [String(v), "Bookings"]} />
-                        <Bar dataKey="count" fill={VIOLET} radius={[0, 6, 6, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </Card>
-            </div>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card title="Cleaner hours" subtitle="Clocked hours on completed jobs">
-                {data.cleaners.length === 0 ? <p className="py-6 text-center text-sm text-slate-400">No clocked jobs in this period.</p> : (
-                  <ul className="divide-y divide-slate-100">
-                    {data.cleaners.map((c) => (
-                      <li key={c.id} className="flex items-center justify-between py-2.5 text-sm">
-                        <span className="font-semibold text-slate-800">{c.name}</span>
-                        <span className="text-slate-500">{c.jobs} job{c.jobs === 1 ? "" : "s"} · <strong className="text-slate-800">{c.hours}h</strong></span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-              <Card title="Where bookings come from">
-                {data.bookings.bySource.length === 0 ? <p className="py-6 text-center text-sm text-slate-400">No bookings in this period.</p> : (
-                  <ul className="divide-y divide-slate-100">
-                    {data.bookings.bySource.map((s) => (
-                      <li key={s.source} className="flex items-center justify-between py-2.5 text-sm">
-                        <span className="font-semibold capitalize text-slate-800">{s.source.replace(/_/g, " ")}</span>
-                        <span className="font-semibold tabular-nums text-slate-600">{s.count}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            </div>
+              )}
+            </ChartCard>
           </div>
-        ) : null}
-      </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel>
+              <PanelHeader title="Cleaner hours" hint="Clocked hours on completed jobs" />
+              {data.cleaners.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">No clocked jobs in this period.</p> : (
+                <ul className="divide-y divide-slate-100">
+                  {data.cleaners.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                      <span className="flex items-center gap-3 font-medium text-slate-900"><Avatar name={c.name} size={30} />{c.name}</span>
+                      <span className="text-slate-500">{c.jobs} job{c.jobs === 1 ? "" : "s"} · <strong className="font-semibold text-slate-900">{c.hours}h</strong></span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+            <Panel>
+              <PanelHeader title="Where bookings come from" />
+              {data.bookings.bySource.length === 0 ? <p className="px-5 py-8 text-center text-sm text-slate-500">No bookings in this period.</p> : (
+                <ul className="divide-y divide-slate-100">
+                  {data.bookings.bySource.map((s) => (
+                    <li key={s.source} className="flex items-center justify-between px-5 py-3 text-sm">
+                      <span className="font-medium capitalize text-slate-900">{s.source.replace(/_/g, " ")}</span>
+                      <span className="font-semibold tabular-nums text-slate-700">{s.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+          </div>
+        </div>
+      ) : null}
 
       <MarketingReport days={days} />
-    </div>
+    </AdminPage>
   );
 }

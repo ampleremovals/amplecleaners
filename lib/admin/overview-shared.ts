@@ -27,6 +27,17 @@ export function greetingFor(now = new Date()): string {
   return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 }
 
+/** A few activity entries are stored as codes rather than sentences; show them as the sentence a person would write. */
+const ACTION_TEXT: Record<string, string> = {
+  booking_created: "New booking received",
+  deposit_claimed: "Customer says they've paid the deposit by bank transfer",
+  instant_quote: "Instant quote sent to the customer",
+};
+export function activitySentence(action: string): string {
+  const t = ACTION_TEXT[action] ?? action;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 /** "3 min ago", "2h ago", "yesterday", "5 Oct" — compact relative time for the activity feed. */
 export function timeAgo(iso: string, now = Date.now()): string {
   const mins = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000));

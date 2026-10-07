@@ -18,7 +18,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 /** The one surface used everywhere: white, hairline border, 12px radius, almost no shadow. */
 export function Panel({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("flex h-full min-w-0 flex-col rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>{children}</section>;
+  return <section className={cn("flex min-w-0 flex-col rounded-xl border border-slate-200/90 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]", className)}>{children}</section>;
 }
 
 export function PanelHeader({ title, hint, right }: { title: string; hint?: ReactNode; right?: ReactNode }) {

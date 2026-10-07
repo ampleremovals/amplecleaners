@@ -2,23 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 import { DEFAULT_PRICING, regularCleaningPrice, type PricingConfig } from "@/lib/pricing";
 import { formatCurrency } from "@/lib/utils";
-
-const inputCls = "h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-brand-green-600";
-
-function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="mb-1 block text-xs font-medium text-slate-500">{label}</span>
-      {children}
-    </label>
-  );
-}
+import { AdminHero, AdminPage, BTN, Field, INPUT, TEXTAREA } from "@/components/admin/kit";
+import { Panel, PanelHeader } from "@/components/admin/ui";
 
 export default function NewBookingPage() {
   const router = useRouter();
@@ -76,74 +66,84 @@ export default function NewBookingPage() {
   }
 
   return (
-    <div className="p-4 sm:p-8">
-      <Link href="/admin/bookings" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-800"><ArrowLeft className="h-4 w-4" /> Bookings</Link>
-      <h1 className="mt-2 text-[1.65rem] font-semibold leading-tight text-slate-900">New booking</h1>
-      <p className="mt-1 text-sm text-slate-500">For phone and WhatsApp enquiries. It follows the same automation as a website booking.</p>
+    <AdminPage>
+      <AdminHero
+        back={{ href: "/admin/bookings", label: "Bookings" }}
+        eyebrow="Operations"
+        title="New booking"
+        description="For phone and WhatsApp enquiries. It follows the same automation as a website booking."
+        stats={[
+          { label: "Price", value: price != null ? formatCurrency(price) : "Quote later", hint: price != null ? `${Math.round(cfg.depositPercentage)}% deposit: ${formatCurrency(Math.round(price * cfg.depositPercentage) / 100)}` : "Set a price to send a quote" },
+        ]}
+      />
 
-      <form onSubmit={submit} className="mt-6 max-w-3xl space-y-6">
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
-          <h2 className="font-bold text-slate-900 sm:col-span-2">Customer</h2>
-          <Field label="Full name"><input required className={inputCls} value={form.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
-          <Field label="Phone"><input required className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="07…" /></Field>
-          <Field label="Email" className="sm:col-span-2"><input required type="email" className={inputCls} value={form.email} onChange={(e) => set("email", e.target.value)} /></Field>
-        </section>
-
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
-          <h2 className="font-bold text-slate-900 sm:col-span-2">The job</h2>
-          <Field label="Service">
-            <select className={inputCls} value={form.serviceType} onChange={(e) => set("serviceType", e.target.value as ServiceType)}>
-              {(Object.keys(SERVICE_LABELS) as ServiceType[]).map((s) => <option key={s} value={s}>{SERVICE_LABELS[s]}</option>)}
-            </select>
-          </Field>
-          <Field label="Property type">
-            <select className={inputCls} value={form.propertyType} onChange={(e) => set("propertyType", e.target.value)}>
-              {["flat", "house", "studio", "office", "other"].map((p) => <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>)}
-            </select>
-          </Field>
-          <Field label="Bedrooms"><input type="number" min={0} max={10} className={inputCls} value={form.bedrooms} onChange={(e) => set("bedrooms", Number(e.target.value))} /></Field>
-          <Field label="Bathrooms"><input type="number" min={0} max={10} className={inputCls} value={form.bathrooms} onChange={(e) => set("bathrooms", Number(e.target.value))} /></Field>
-          {isRegular && (
-            <>
-              <Field label="How often">
-                <select className={inputCls} value={form.frequency} onChange={(e) => set("frequency", e.target.value)}>
-                  {["one_off", "weekly", "fortnightly", "monthly"].map((f) => <option key={f} value={f}>{f.replace("_", " ")}</option>)}
-                </select>
-              </Field>
-              <Field label={`Hours (£${cfg.hourlyRate}/hr, min ${cfg.minHours})`}>
-                <input type="number" min={cfg.minHours} step={0.5} className={inputCls} value={form.hours} onChange={(e) => set("hours", Number(e.target.value))} />
-              </Field>
-            </>
-          )}
-          <Field label={isRegular ? "Override price (£, optional)" : "Agreed price (£, optional)"}>
-            <input type="number" min={0} step={0.01} className={inputCls} value={form.quoteTotal} onChange={(e) => set("quoteTotal", e.target.value)} placeholder={isRegular ? `Leave blank to use £${cfg.hourlyRate}/hr` : "Leave blank to quote later"} />
-          </Field>
-          <Field label="Date"><input type="date" className={inputCls} value={form.cleanDate} onChange={(e) => set("cleanDate", e.target.value)} /></Field>
-          <Field label="Start time"><input type="time" className={inputCls} value={form.cleanTime} onChange={(e) => set("cleanTime", e.target.value)} /></Field>
-        </section>
-
-        <section className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2">
-          <h2 className="font-bold text-slate-900 sm:col-span-2">Address</h2>
-          <Field label="Address line 1" className="sm:col-span-2"><input required className={inputCls} value={form.line1} onChange={(e) => set("line1", e.target.value)} /></Field>
-          <Field label="Town / city"><input className={inputCls} value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
-          <Field label="Postcode"><input required className={inputCls} value={form.postcode} onChange={(e) => set("postcode", e.target.value)} /></Field>
-          <Field label="Notes for the cleaner (optional)" className="sm:col-span-2"><textarea rows={3} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-green-600" value={form.specialInstructions} onChange={(e) => set("specialInstructions", e.target.value)} /></Field>
-        </section>
-
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Price</p>
-            <p className="font-display text-2xl font-semibold text-brand-green-800">{price != null ? formatCurrency(price) : "Quote later"}</p>
+      <form onSubmit={submit} className="max-w-3xl space-y-6">
+        <Panel>
+          <PanelHeader title="Customer" hint="Who is booking?" />
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <Field label="Full name"><input required className={INPUT} value={form.fullName} onChange={(e) => set("fullName", e.target.value)} /></Field>
+            <Field label="Phone"><input required className={INPUT} value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="07…" /></Field>
+            <Field label="Email" className="sm:col-span-2"><input required type="email" className={INPUT} value={form.email} onChange={(e) => set("email", e.target.value)} /></Field>
           </div>
-          <label className={`flex items-center gap-2 text-sm ${price == null ? "opacity-40" : ""}`}>
-            <input type="checkbox" disabled={price == null} checked={form.sendQuote && price != null} onChange={(e) => set("sendQuote", e.target.checked)} className="h-4 w-4" />
-            Send the quote and deposit link now (email, SMS, WhatsApp)
-          </label>
-          <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-brand-green-700 px-6 py-3 text-sm font-bold text-white hover:bg-brand-green-800 disabled:opacity-60">
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Create booking
-          </button>
-        </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="The job" hint="What needs cleaning, and when." />
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <Field label="Service">
+              <select className={INPUT} value={form.serviceType} onChange={(e) => set("serviceType", e.target.value as ServiceType)}>
+                {(Object.keys(SERVICE_LABELS) as ServiceType[]).map((s) => <option key={s} value={s}>{SERVICE_LABELS[s]}</option>)}
+              </select>
+            </Field>
+            <Field label="Property type">
+              <select className={INPUT} value={form.propertyType} onChange={(e) => set("propertyType", e.target.value)}>
+                {["flat", "house", "studio", "office", "other"].map((p) => <option key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</option>)}
+              </select>
+            </Field>
+            <Field label="Bedrooms"><input type="number" min={0} max={10} className={INPUT} value={form.bedrooms} onChange={(e) => set("bedrooms", Number(e.target.value))} /></Field>
+            <Field label="Bathrooms"><input type="number" min={0} max={10} className={INPUT} value={form.bathrooms} onChange={(e) => set("bathrooms", Number(e.target.value))} /></Field>
+            {isRegular && (
+              <>
+                <Field label="How often">
+                  <select className={INPUT} value={form.frequency} onChange={(e) => set("frequency", e.target.value)}>
+                    {["one_off", "weekly", "fortnightly", "monthly"].map((f) => <option key={f} value={f}>{f.replace("_", " ")}</option>)}
+                  </select>
+                </Field>
+                <Field label={`Hours (£${cfg.hourlyRate}/hr, min ${cfg.minHours})`}>
+                  <input type="number" min={cfg.minHours} step={0.5} className={INPUT} value={form.hours} onChange={(e) => set("hours", Number(e.target.value))} />
+                </Field>
+              </>
+            )}
+            <Field label={isRegular ? "Override price (£, optional)" : "Agreed price (£, optional)"}>
+              <input type="number" min={0} step={0.01} className={INPUT} value={form.quoteTotal} onChange={(e) => set("quoteTotal", e.target.value)} placeholder={isRegular ? `Leave blank to use £${cfg.hourlyRate}/hr` : "Leave blank to quote later"} />
+            </Field>
+            <Field label="Date"><input type="date" className={INPUT} value={form.cleanDate} onChange={(e) => set("cleanDate", e.target.value)} /></Field>
+            <Field label="Start time"><input type="time" className={INPUT} value={form.cleanTime} onChange={(e) => set("cleanTime", e.target.value)} /></Field>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Address" hint="Where the clean takes place." />
+          <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <Field label="Address line 1" className="sm:col-span-2"><input required className={INPUT} value={form.line1} onChange={(e) => set("line1", e.target.value)} /></Field>
+            <Field label="Town / city"><input className={INPUT} value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
+            <Field label="Postcode"><input required className={INPUT} value={form.postcode} onChange={(e) => set("postcode", e.target.value)} /></Field>
+            <Field label="Notes for the cleaner (optional)" className="sm:col-span-2"><textarea rows={3} className={TEXTAREA} value={form.specialInstructions} onChange={(e) => set("specialInstructions", e.target.value)} /></Field>
+          </div>
+        </Panel>
+
+        <Panel>
+          <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <label className={`flex items-center gap-2.5 text-sm text-slate-700 ${price == null ? "opacity-40" : ""}`}>
+              <input type="checkbox" disabled={price == null} checked={form.sendQuote && price != null} onChange={(e) => set("sendQuote", e.target.checked)} className="h-4 w-4 accent-brand-green-700" />
+              Send the quote and deposit link now (email, SMS, WhatsApp)
+            </label>
+            <button type="submit" disabled={busy} className={BTN.primary}>
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />} Create booking
+            </button>
+          </div>
+        </Panel>
       </form>
-    </div>
+    </AdminPage>
   );
 }
