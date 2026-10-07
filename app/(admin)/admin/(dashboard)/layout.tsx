@@ -3,8 +3,6 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { AdminShell } from "@/components/admin/AdminShell";
 
 export const dynamic = "force-dynamic";
-// The admin renders from several database calls: run it beside the Supabase database (Ireland), not in the default US region.
-export const preferredRegion = "dub1";
 
 /** Identity + the two nav badges. Failure-tolerant: a hiccup here must never take the whole admin down. */
 async function loadShellData() {

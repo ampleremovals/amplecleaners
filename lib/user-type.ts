@@ -45,8 +45,14 @@ export async function isCleaner(userId: string | undefined): Promise<boolean> {
  * someone there actually revokes access, not just hides a menu item).
  */
 export async function isAdmin(userId: string | undefined): Promise<boolean> {
-  const userType = await getUserType(userId);
-  if (userType !== "admin" || !userId) return false;
+  if (!userId) return false;
+  // The role lookup and the active-flag lookup are independent, so they run together (one round trip instead of two).
+  const [userType, active] = await Promise.all([getUserType(userId), adminIsActive(userId)]);
+  return userType === "admin" && active;
+}
+
+/** False only when an admin_users row exists AND is explicitly deactivated. A failed lookup never locks everyone out. */
+async function adminIsActive(userId: string): Promise<boolean> {
   try {
     const supabase = createAdminClient();
     const { data } = await supabase
@@ -54,9 +60,8 @@ export async function isAdmin(userId: string | undefined): Promise<boolean> {
       .select("is_active")
       .eq("supabase_user_id", userId)
       .maybeSingle();
-    if (data && data.is_active === false) return false;
+    return !(data && data.is_active === false);
   } catch {
-    /* admin_users lookup failing shouldn't lock everyone out */
+    return true;
   }
-  return true;
 }

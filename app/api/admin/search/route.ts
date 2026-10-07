@@ -5,8 +5,6 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 
 export const dynamic = "force-dynamic";
-/** Run next to the Supabase database (Ireland) instead of the default US region: this endpoint makes several sequential database calls. */
-export const preferredRegion = "dub1";
 
 const LIMIT = 5;
 const oneOf = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
