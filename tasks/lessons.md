@@ -162,3 +162,7 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 25 — Importing a constant from a server-only module into a client component breaks at runtime, and tsc cannot see it
 **What happened:** The new client chart imported `RANGE_DAYS` from the dashboard data loader, which imports `next/headers` via the Supabase server client. `tsc` and `lint` were clean; the dev server returned a 500 for every page.
 **Rule going forward:** Constants, types and pure helpers that a client component needs live in a module with NO server imports (`*-shared.ts`). After adding any client component that touches shared code, load the page in the dev server (or run `next build`) before calling it done.
+
+## Lesson 26 — Serverless code in the wrong region turns every database call into an ocean crossing
+**What happened:** On the live site `x-vercel-id` read `lhr1::iad1` — requests enter in London but the functions run in Washington D.C., while the Supabase database is in Ireland. The ⌘K search made ~5 sequential database calls and took ~1s warm; locally it took milliseconds, so no local test could show it.
+**Rule going forward:** Measure latency on the LIVE site, not just locally, for anything interactive. Keep sequential database round trips to a minimum (run independent queries in parallel; use embedded filters instead of "find ids, then query again"), and run database-heavy routes next to the database (`export const preferredRegion = "dub1"`). Whole-site region (`vercel.json` "regions") is an owner decision — flagged, not changed.

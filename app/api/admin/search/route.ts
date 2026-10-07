@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 
 export const dynamic = "force-dynamic";
+/** Run next to the Supabase database (Ireland) instead of the default US region: this endpoint makes several sequential database calls. */
+export const preferredRegion = "dub1";
 
 const LIMIT = 5;
 const oneOf = <T,>(v: T | T[] | null | undefined): T | null => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
@@ -25,27 +27,30 @@ export async function GET(request: Request) {
   const db: any = createAdminClient();
 
   try {
-    const [cByName, cByEmail, cByPhone, kByName, kByEmail, bByRef] = await Promise.all([
+    // One round trip: every lookup runs in parallel. Bookings are matched by reference, or by their customer's
+    // name / email / phone through an embedded (inner-join) filter, so no second dependent query is needed.
+    const bookingCols = "id, reference, status, service_type, created_at";
+    const byCustomer = (col: string) =>
+      db.from("bookings").select(`${bookingCols}, customers!inner(full_name)`).ilike(`customers.${col}`, like).order("created_at", { ascending: false }).limit(LIMIT);
+    const [cByName, cByEmail, cByPhone, kByName, kByEmail, bByRef, bByName, bByEmail, bByPhone] = await Promise.all([
       db.from("customers").select("id, full_name, email").ilike("full_name", like).limit(LIMIT),
       db.from("customers").select("id, full_name, email").ilike("email", like).limit(LIMIT),
       db.from("customers").select("id, full_name, email").ilike("phone", like).limit(LIMIT),
       db.from("cleaners").select("id, full_name, email").ilike("full_name", like).limit(LIMIT),
       db.from("cleaners").select("id, full_name, email").ilike("email", like).limit(LIMIT),
-      db.from("bookings").select("id, reference, status, service_type, customer:customers(full_name)").ilike("reference", like).limit(LIMIT),
+      db.from("bookings").select(`${bookingCols}, customers(full_name)`).ilike("reference", like).limit(LIMIT),
+      byCustomer("full_name"),
+      byCustomer("email"),
+      byCustomer("phone"),
     ]);
 
     const uniq = <T extends { id: string }>(...lists: T[][]) => [...new Map(lists.flat().map((x) => [x.id, x])).values()].slice(0, LIMIT);
     const customers = uniq<any>(cByName.data ?? [], cByEmail.data ?? [], cByPhone.data ?? []);
     const cleaners = uniq<any>(kByName.data ?? [], kByEmail.data ?? []);
-
-    // Bookings: by reference, plus bookings belonging to the customers that matched.
-    const byCustomer = customers.length
-      ? await db.from("bookings").select("id, reference, status, service_type, customer:customers(full_name)").in("customer_id", customers.map((c: any) => c.id)).order("created_at", { ascending: false }).limit(LIMIT)
-      : { data: [] };
-    const bookings = uniq<any>(bByRef.data ?? [], byCustomer.data ?? []).map((b: any) => ({
+    const bookings = uniq<any>(bByRef.data ?? [], bByName.data ?? [], bByEmail.data ?? [], bByPhone.data ?? []).map((b: any) => ({
       id: b.id as string,
       title: b.reference as string,
-      sub: `${oneOf<{ full_name: string }>(b.customer)?.full_name ?? "Customer"} · ${SERVICE_LABELS[b.service_type as ServiceType] ?? b.service_type}`,
+      sub: `${oneOf<{ full_name: string }>(b.customers)?.full_name ?? "Customer"} · ${SERVICE_LABELS[b.service_type as ServiceType] ?? b.service_type}`,
       status: b.status as string,
     }));
 
