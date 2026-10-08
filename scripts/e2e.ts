@@ -5,7 +5,7 @@
  *
  *   npx next build
  *   DISABLE_OUTBOUND_MESSAGES=1 STRIPE_WEBHOOK_SECRET=whsec_e2e_test npx next start -p 3120
- *   DISABLE_OUTBOUND_MESSAGES=1 E2E_ADMIN_PW=... npx tsx --env-file=.env.local scripts/e2e.ts
+ *   DISABLE_OUTBOUND_MESSAGES=1 E2E_ADMIN_PW=... [E2E_ADMIN_EMAIL=...] npx tsx --env-file=.env.local scripts/e2e.ts
  */
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
@@ -22,6 +22,8 @@ if (process.env.DISABLE_OUTBOUND_MESSAGES !== "1") {
   process.exit(2);
 }
 
+/** Which admin the admin-side checks sign in as (a throwaway one works; defaults to the real owner login). */
+const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "amplecleaner@gmail.com";
 const BASE = process.env.E2E_BASE ?? "http://localhost:3120";
 const WEBHOOK_SECRET = "whsec_e2e_test";
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -102,6 +104,7 @@ async function stripeWebhook(invoiceId: string) {
 
 async function main() {
   console.log(`\nE2E against ${URL_} via ${BASE}\n`);
+  await sweepStale("before the run");
 
   // ── 1. RLS hardening ───────────────────────────────────────────────────
   console.log("— RLS / hardening");
@@ -390,7 +393,7 @@ async function phase11() {
   const ADMIN_PW = process.env.E2E_ADMIN_PW;
   if (!ADMIN_PW) { console.log("SKIP  marketing report checks (set E2E_ADMIN_PW)"); await cleanupEvents(); return; }
   check("marketing report needs admin", (await http("/api/admin/marketing")).status === 401);
-  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const { data: as } = await anon().auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
   const at = as!.session!.access_token;
   const before = await http("/api/admin/marketing?days=30", { token: at });
   check("marketing report loads for admin", before.json.success === true && before.json.experiment?.a && before.json.experiment?.b, before.text.slice(0, 160));
@@ -415,6 +418,53 @@ async function phase11() {
   const fb = (after.json.channels ?? []).find((c: { channel: string }) => c.channel === "facebook");
   check("channel table shows facebook with its campaign", !!fb && fb.bookings >= 1 && fb.campaigns.includes("e2e"), JSON.stringify(after.json.channels).slice(0, 200));
   await cleanupEvents();
+}
+
+/**
+ * Removes anything an earlier (crashed or older) run left in the REAL database. Keyed only on unmistakable test
+ * markers: `…e2e-…@resend.dev` emails and `E2E-` references. The per-run cleanup below only knows what THIS run
+ * created, so a crashed run used to leave fake bookings behind for days while still reporting "left-over: 0".
+ * Realistic demo data carries neither marker, so it is never touched. Returns how many rows it removed.
+ */
+async function sweepStale(label: string): Promise<number> {
+  const EMAIL = "%e2e-%@resend.dev";
+  const MAX = 300; // a pattern mistake must never be able to wipe real data
+  const { data: custs } = await admin.from("customers").select("id").ilike("email", EMAIL);
+  const custIds = (custs ?? []).map((c) => c.id as string);
+  const { data: byRef } = await admin.from("bookings").select("id, address_id").ilike("reference", "E2E-%");
+  const { data: byCust } = custIds.length ? await admin.from("bookings").select("id, address_id").in("customer_id", custIds) : { data: [] };
+  const bookings = new Map<string, string | null>();
+  for (const b of [...(byRef ?? []), ...(byCust ?? [])]) bookings.set(b.id as string, (b.address_id as string | null) ?? null);
+  const { data: cls } = await admin.from("cleaners").select("id").ilike("email", EMAIL);
+  const cleanerIds = (cls ?? []).map((c) => c.id as string);
+  if (custIds.length > MAX || bookings.size > MAX || cleanerIds.length > MAX) throw new Error(`sweep(${label}) refused: ${custIds.length} customers / ${bookings.size} bookings / ${cleanerIds.length} cleaners match — more than expected for test data`);
+
+  const bookingIds = [...bookings.keys()];
+  const addressIds = [...new Set([...bookings.values()].filter((a): a is string => !!a))];
+  if (bookingIds.length) {
+    await admin.from("bookings").delete().in("parent_booking_id", bookingIds);
+    await admin.from("bookings").delete().in("id", bookingIds);
+  }
+  if (custIds.length) await admin.from("customers").delete().in("id", custIds);
+  if (addressIds.length) await admin.from("addresses").delete().in("id", addressIds);
+  if (cleanerIds.length) await admin.from("cleaners").delete().in("id", cleanerIds);
+  await admin.from("cleaner_applications").delete().ilike("email", EMAIL);
+  await admin.from("server_logs").delete().ilike("metadata->>to", "%e2e-%");
+
+  // test logins (cleaners, admins) — paged, matched strictly by the same email marker
+  let authRemoved = 0;
+  for (let page = 1; page <= 20; page++) {
+    const { data } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+    const users = data?.users ?? [];
+    for (const u of users) {
+      if (/e2e-[^@]*@resend\.dev$/i.test(u.email ?? "")) { await admin.auth.admin.deleteUser(u.id); authRemoved++; }
+    }
+    if (users.length < 200) break;
+  }
+  await cleanupEvents();
+  const removed = custIds.length + bookingIds.length + cleanerIds.length + authRemoved;
+  console.log(`sweep (${label}): removed ${custIds.length} customers, ${bookingIds.length} bookings, ${cleanerIds.length} cleaners, ${authRemoved} test logins`);
+  return removed;
 }
 
 async function cleanupEvents() {
@@ -458,7 +508,7 @@ async function phase10() {
   // ── erase personal data ──
   const ADMIN_PW = process.env.E2E_ADMIN_PW;
   if (!ADMIN_PW) { console.log("SKIP  erase checks (set E2E_ADMIN_PW)"); return; }
-  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const { data: as } = await anon().auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
   const at = as!.session!.access_token;
 
   const done = await makeBooking({ status: "paid", special_instructions: "Key is under the blue pot, dog is friendly", clean_date: dayShift(-3) });
@@ -567,7 +617,7 @@ async function phase9() {
 
   // ── admin pricing settings ──
   if (!ADMIN_PW) { console.log("SKIP  admin pricing checks (set E2E_ADMIN_PW)"); return; }
-  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const { data: as } = await anon().auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
   const at = as!.session!.access_token;
   const detail = await http(`/api/admin/cleaners/${a.id}`, { token: at });
   check("admin sees the decline count on the cleaner", detail.json.success && detail.json.declines30d === 1, String(detail.json.declines30d));
@@ -658,7 +708,7 @@ async function phase8() {
 
   // ── admin side ──
   if (!ADMIN_PW) { console.log("SKIP  admin edit checks (set E2E_ADMIN_PW)"); return; }
-  const { data: as } = await anon().auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const { data: as } = await anon().auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
   const at = as!.session!.access_token;
   const eb = await makeBooking({ status: "booking_confirmed", clean_date: dayShift(7) });
   await autoAssignBooking(eb.id, "system");
@@ -693,7 +743,7 @@ async function phase7() {
   const ADMIN_PW = process.env.E2E_ADMIN_PW;
   if (!ADMIN_PW) { console.log("SKIP  admin checks (set E2E_ADMIN_PW)"); return; }
   const adminClient = anon();
-  const { data: as, error: ae } = await adminClient.auth.signInWithPassword({ email: "amplecleaner@gmail.com", password: ADMIN_PW });
+  const { data: as, error: ae } = await adminClient.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
   check("admin can sign in", !ae && !!as.session, ae?.message);
   const at = as!.session!.access_token;
 
@@ -782,6 +832,11 @@ main()
   .catch((e) => { failures++; console.error("E2E crashed:", e); })
   .finally(async () => {
     await cleanup();
+    // Belt and braces: anything this run's own cleanup missed is a bug in the test — remove it AND fail loudly.
+    try {
+      const missed = await sweepStale("after the run");
+      if (missed > 0) { failures++; console.log(`FAIL  this run's cleanup left ${missed} test rows behind (now swept) — fix the tracking in scripts/e2e.ts`); }
+    } catch (e) { failures++; console.log("FAIL  final sweep:", e instanceof Error ? e.message : e); }
     console.log(`\n${failures === 0 ? "ALL PASSED" : `${failures} FAILED`}`);
     process.exit(failures === 0 ? 0 : 1);
   });
