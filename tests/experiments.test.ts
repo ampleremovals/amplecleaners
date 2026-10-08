@@ -19,6 +19,36 @@ test("bots, crawlers, Lighthouse and missing data always get the control", () =>
   assert.equal(isBot(UA), false);
 });
 
+test("search-engine and link-preview tools are never shown the noindex variant", () => {
+  const tools = [
+    "Mozilla/5.0 (Linux; Android 6.0.1; Nexus 5X Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36 (compatible; Google-InspectionTool/1.0)",
+    "Mozilla/5.0 (compatible; GoogleOther)",
+    "Mediapartners-Google",
+    "Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)",
+    "DuckDuckGo-Favicons-Bot/1.0",
+    "Mozilla/5.0 (compatible; Yahoo! Slurp)",
+    "Slackbot-LinkExpanding 1.0",
+    "LinkedInBot/1.0",
+    "Mozilla/5.0 Google Page Speed Insights",
+  ];
+  for (const ua of tools) assert.equal(variantFor("203.0.113.9", ua), "a", ua);
+});
+
+test("genuine browsers are NOT mistaken for bots (so the test still gets real traffic)", () => {
+  const people = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) GSA/320.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/24.0 Chrome/117.0.0.0 Mobile Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (Linux; Android 13; Pixel 7; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/124.0.0.0 Mobile Safari/537.36 Instagram 330.0",
+  ];
+  for (const ua of people) assert.equal(isBot(ua), false, ua);
+});
+
 test("the split is close to 50/50 across many visitors", () => {
   let b = 0;
   const n = 4000;

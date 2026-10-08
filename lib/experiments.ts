@@ -12,7 +12,9 @@ export const VARIANTS: Variant[] = ["a", "b"];
 /** Bump when you start a NEW test so everyone is re-split (and old data stays separate). */
 export const EXPERIMENT_ID = "hero-2026-10";
 
-const BOT_PATTERN = /bot|crawl|spider|slurp|lighthouse|headless|preview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|node-fetch|go-http|pingdom|uptime|monitor/i;
+// Anything that is not a person. Search-engine tools matter most: a crawler that slips through would be shown the
+// (noindex) variant B. Names are chosen so they never occur in a real browser's User-Agent.
+const BOT_PATTERN = /bot|crawl|spider|slurp|lighthouse|headless|preview|facebookexternalhit|whatsapp|telegram|curl|wget|python|axios|node-fetch|go-http|pingdom|uptime|monitor|google|bing|yahoo|duckduck|yandex|baidu|inspection|pagespeed|gtmetrix|ahrefs|semrush|linkedin|twitter|slack|discord|skype|embedly|validator/i;
 
 export function isBot(userAgent: string | null | undefined): boolean {
   return !userAgent || BOT_PATTERN.test(userAgent);

@@ -11,7 +11,8 @@ export function Navbar() {
     <header className="print:hidden sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-3 sm:h-[4.5rem]">
         <Link href="/" className="flex shrink-0 items-center" aria-label="Ample Cleaners home">
-          <Image src="/logo-full.png" alt="Ample Cleaners" width={330} height={132} priority className="h-11 w-auto sm:h-[3.25rem]" />
+          {/* Shown ~110-130px wide: `sizes` makes the optimiser serve a small file instead of the 750px default (48KB -> ~12KB on the critical path). */}
+          <Image src="/logo-full.png" alt="Ample Cleaners" width={330} height={132} sizes="132px" priority className="h-11 w-auto sm:h-[3.25rem]" />
         </Link>
         <nav className="hidden items-center gap-1 text-sm font-semibold text-slate-700 md:flex">
           <Link href="/#services" className={LINK}>Services</Link>
