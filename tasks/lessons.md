@@ -182,3 +182,11 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 30 — A cleanup that only knows what THIS run created can't clean up after a crashed run
 **What happened:** `e2e.ts` deleted only the ids it tracked in memory, so any run that crashed left fake bookings/customers in the real database, while every later run still reported "left-over: 0".
 **Rule going forward:** Test cleanup must also sweep by an unmistakable marker (here `e2e-…@resend.dev`, `E2E-` refs) before AND after the run, cap how much it may delete, and fail the run if the final sweep finds anything. Keep realistic demo data free of those markers, and never give a throwaway admin a marked email.
+
+## Lesson 31 — Scan the database for "what is due" instead of hooking every place state can change
+**What happened:** A booking's status can change from five places (customer, admin, cleaner app, Stripe webhook, cron). Hooking each one to enqueue emails would have missed some and drifted over time.
+**Rule going forward:** For lifecycle messaging, a scanner that runs every few minutes and derives "who should get what now" from the data (with a dedupe key per email and a guard re-checked at send time) is simpler and cannot miss a path. Limit it to a recent window so turning it on never mails old history.
+
+## Lesson 32 — `kill $!` on Windows kills the wrapper, not the server
+**What happened:** `npx next start &` then `kill $SP` left the real node server listening, so the next run silently tested the OLD build.
+**Rule going forward:** Stop test servers by port (`netstat -ano | grep :PORT | … taskkill //PID`) and check the port is free before starting; a green test against a stale server proves nothing.

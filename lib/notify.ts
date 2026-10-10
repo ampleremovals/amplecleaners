@@ -11,6 +11,8 @@ import { resend, resendFrom, OUTBOUND_DISABLED } from "@/lib/resend";
 import { sendSMS, sendWhatsApp, type SendResult } from "@/lib/twilio";
 import { createAdminClient } from "@/lib/supabase/server";
 import { logError } from "@/lib/log-error";
+import { recordDirectSend } from "@/lib/email/outbox";
+import { suppressionFor } from "@/lib/email/suppression";
 
 export async function sendEmailSafe(params: {
   to: string;
@@ -20,7 +22,12 @@ export async function sendEmailSafe(params: {
 }): Promise<boolean> {
   if (OUTBOUND_DISABLED) return true;
   try {
-    const { error } = await resend.emails.send({ from: resendFrom, to: params.to, subject: params.subject, html: params.html });
+    if ((await suppressionFor(params.to)) === "all") {
+      await recordDirectSend({ to: params.to, subject: params.subject, context: params.context, error: "not sent: address bounced or complained before" });
+      return false;
+    }
+    const { data, error } = await resend.emails.send({ from: resendFrom, to: params.to, subject: params.subject, html: params.html });
+    await recordDirectSend({ to: params.to, subject: params.subject, context: params.context, resendId: data?.id, error: error?.message });
     if (error) throw new Error(error.message);
     return true;
   } catch (e) {

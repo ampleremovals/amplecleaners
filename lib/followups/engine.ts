@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { sendEmail } from "@/lib/resend";
 import { sendSMS, sendWhatsApp } from "@/lib/twilio";
 import { formatCurrency } from "@/lib/utils";
-import { COMPANY_PHONE } from "@/lib/constants";
+import { COMPANY_ADDRESS, COMPANY_PHONE } from "@/lib/constants";
 import { generateQuoteConfirmToken } from "@/lib/tokens";
 import { QUOTE_FOLLOWUP_DAYS, DEPOSIT_FOLLOWUP_DAYS, type FollowupVars } from "@/lib/followups/content";
 
@@ -33,7 +33,7 @@ function wrapEmail(subject: string, bodyHtml: string): string {
     </div>
     <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:28px;">
       ${bodyHtml}
-      <p style="margin:20px 0 0;font-size:13px;color:#94a3b8;">Ample Cleaners · ${COMPANY_PHONE}</p>
+      <p style="margin:20px 0 0;font-size:13px;color:#94a3b8;">Ample Cleaners · ${COMPANY_ADDRESS} · ${COMPANY_PHONE}</p>
     </div>
   </body></html>`;
 }
@@ -100,7 +100,7 @@ export async function runQuoteFollowupMorning(): Promise<{ sent: number; flagged
     const v = quoteVars(b, customer);
 
     try {
-      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)) });
+      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)), context: "quote follow-up day " + day });
       if (customer.phone && day <= SMS_CUTOFF_DAY && content.sms) await sendSMS(customer.phone, content.sms(v));
     } catch { /* best-effort, still stamp so we don't retry-storm on a broken address */ }
 
@@ -180,7 +180,7 @@ export async function runDepositFollowupMorning(): Promise<{ sent: number; flagg
     const v = depositVars(b, customer);
 
     try {
-      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)) });
+      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)), context: "deposit follow-up day " + day });
       if (customer.phone && day <= SMS_CUTOFF_DAY && content.sms) await sendSMS(customer.phone, content.sms(v));
     } catch { /* best-effort */ }
 

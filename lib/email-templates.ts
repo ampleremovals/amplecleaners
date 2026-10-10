@@ -1,7 +1,9 @@
 /** Shared branded email shell — green brand, one CTA, mobile-safe single column. */
+import { COMPANY_ADDRESS, COMPANY_PHONE } from "@/lib/constants";
+
+export { COMPANY_PHONE };
 
 export const BRAND = { green: "#15803d", greenDark: "#14532d", greenSoft: "#f0fdf4", ink: "#1e293b", muted: "#64748b" } as const;
-export const COMPANY_PHONE = "0333 000 0000";
 
 export function emailShell(opts: {
   heading: string;
@@ -26,6 +28,7 @@ export function emailShell(opts: {
       ${cta}
       <p style="font-size:15px;margin:24px 0 0;">Any questions? Call us on ${COMPANY_PHONE}.<br><br>Ample Cleaners</p>
       ${ref}
+      <p style="font-size:12px;color:#94a3b8;margin:14px 0 0;">Ample Cleaners · ${COMPANY_ADDRESS}</p>
     </div>
   </div>`;
 }

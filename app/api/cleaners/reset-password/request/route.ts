@@ -45,7 +45,7 @@ export async function POST(req: Request) {
         await logError({ message: `Cleaner reset generateLink failed: ${error?.message ?? "no link"}`, metadata: { email } });
       } else {
         try {
-          await sendEmail({ to: cleaner.email, subject: "Set your Ample Cleaners password", html: resetEmailHtml(cleaner.full_name ?? "there", actionLink) });
+          await sendEmail({ to: cleaner.email, subject: "Set your Ample Cleaners password", context: "cleaner: password reset", html: resetEmailHtml(cleaner.full_name ?? "there", actionLink) });
         } catch (mailErr) {
           await logError({ message: `Cleaner reset email send failed: ${mailErr instanceof Error ? mailErr.message : String(mailErr)}`, metadata: { email } });
         }

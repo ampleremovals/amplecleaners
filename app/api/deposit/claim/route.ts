@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     const amount = booking.deposit_amount != null ? `£${Number(booking.deposit_amount).toFixed(2)}` : "the deposit";
     await sendEmail({
+      context: "admin: deposit claimed",
       to: resendAdminEmail,
       subject: `💷 Deposit claimed — verify transfer (${booking.reference})`,
       html: `<p><strong>${customer?.full_name ?? "A customer"}</strong> says they've paid ${amount} for booking <strong>${booking.reference}</strong>.</p><p>Please check the bank account and confirm the transfer.</p>`,

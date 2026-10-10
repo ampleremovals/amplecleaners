@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runQuoteFollowupMorning, runDepositFollowupMorning } from "@/lib/followups/engine";
 import { runMorningAutomation } from "@/lib/automation/daily";
+import { runEmailEngine } from "@/lib/email/dispatch";
 import { logError } from "@/lib/log-error";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +20,13 @@ export async function GET(req: Request) {
   if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
-  const [followups, automation] = await Promise.allSettled([
+  const [followups, automation, email] = await Promise.allSettled([
     Promise.all([runQuoteFollowupMorning(), runDepositFollowupMorning()]),
     runMorningAutomation(),
+    // Safety net: the email engine normally ticks every 5 minutes from Supabase pg_cron; this catches up if that ever stops.
+    runEmailEngine(),
   ]);
+  if (email.status === "rejected") await logError({ message: "email engine (cron safety net) failed", metadata: { error: String(email.reason) } });
   if (followups.status === "rejected") await logError({ message: "followup-morning failed", metadata: { error: String(followups.reason) } });
   if (automation.status === "rejected") await logError({ message: "morning automation failed", metadata: { error: String(automation.reason) } });
 
@@ -30,5 +34,6 @@ export async function GET(req: Request) {
     success: followups.status === "fulfilled" && automation.status === "fulfilled",
     followups: followups.status === "fulfilled" ? { quote: followups.value[0], deposit: followups.value[1] } : null,
     automation: automation.status === "fulfilled" ? automation.value : null,
+    email: email.status === "fulfilled" ? email.value : null,
   });
 }

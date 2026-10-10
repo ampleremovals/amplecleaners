@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard, CalendarDays, Users, UserPlus, UserRound, Receipt, BarChart3, Settings, Activity, Menu, X, LogOut, Plus, Search,
+  LayoutDashboard, CalendarDays, Users, UserPlus, UserRound, Receipt, BarChart3, Settings, Activity, Menu, X, LogOut, Plus, Search, Mailbox,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/admin/ui";
@@ -24,6 +24,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
       { href: "/admin/customers", label: "Customers", icon: UserRound },
     ],
   },
+  { label: "Growth", items: [{ href: "/admin/automations", label: "Automations", icon: Mailbox }] },
   { label: "Finance", items: [{ href: "/admin/invoices", label: "Invoices", icon: Receipt }, { href: "/admin/reports", label: "Reports", icon: BarChart3 }] },
   { label: "System", items: [{ href: "/admin/settings", label: "Settings", icon: Settings }, { href: "/admin/logs", label: "System log", icon: Activity }] },
 ];

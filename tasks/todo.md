@@ -660,7 +660,7 @@ Lighthouse (mobile) on 6 key public pages, production build.
 - [x] `E2E_ADMIN_EMAIL` env var (defaults to the real owner login) so the admin-side checks can use a throwaway admin — previously they were skipped without the owner's password. Throwaway admin must NOT use an `e2e-` email (the sweep would delete it).
 - Review: full run with throwaway admin = 174 PASS / 0 FAIL (up from 124 because the admin checks now run). Planted a stale customer + auth login → "before" sweep removed both; after-run sweep removed 0. Throwaway admin deleted afterwards. tsc + lint clean.
 
-## Task: Email system, templates & lifecycle automations (planned 2026-10-10 — NOT started, awaiting owner go-ahead)
+## Task: Email system, templates & lifecycle automations (built 2026-10-10)
 **Goal:** convert as many leads as possible and bring past customers back. Target is measured, not promised — see the funnel report (E4).
 
 ### What already exists (don't rebuild)
@@ -671,10 +671,10 @@ All of it is hard-coded in `lib/**` with no send log, no open/click/bounce data,
 No consent/unsubscribe anywhere · no delivery tracking · no abandoned-booking capture · no pre-quote speed-to-lead step · no same-day post-clean flow · no rebook / win-back / recurring upsell · no frequency cap or quiet hours · no admin UI for templates.
 
 ### Phases
-- [ ] **E1 Foundation** — migration `0007`: `email_templates`, `email_outbox` (scheduled sends, dedupe_key, status), `email_events` (sent/delivered/opened/clicked/bounced/complained), `email_suppressions`, `customers.marketing_opt_out_at`. `lib/email/` render + send + unsubscribe token + Resend webhook (`/api/webhooks/resend`). Dispatcher `/api/cron/dispatch` secured by `CRON_SECRET`, triggered every 5 min by Supabase `pg_cron` + `pg_net` (both available, not installed) so we are not limited by Vercel Hobby. Move the 11 existing customer emails onto it with byte-identical output first (regression-test), then switch the call sites.
-- [ ] **E2 Admin UI** — "Automations" menu: Templates (edit subject/body with variables, preview, send test), Sequences (on/off, step timing), Send log (per customer + global), Suppressions.
-- [ ] **E3 New journeys** — see list below.
-- [ ] **E4 Campaigns + funnel report** — one-off sends to a segment (lapsed 90d, recurring-paused, by service/postcode); lead→quote→deposit→paid conversion per sequence step and per template; unsubscribe/bounce rates.
+- [x] **E1 Foundation** — migration `0007`: `email_templates`, `email_outbox` (scheduled sends, dedupe_key, status), `email_events` (sent/delivered/opened/clicked/bounced/complained), `email_suppressions`, `customers.marketing_opt_out_at`. `lib/email/` render + send + unsubscribe token + Resend webhook (`/api/webhooks/resend`). Dispatcher `/api/cron/dispatch` secured by `CRON_SECRET`, triggered every 5 min by Supabase `pg_cron` + `pg_net` (both available, not installed) so we are not limited by Vercel Hobby. Move the 11 existing customer emails onto it with byte-identical output first (regression-test), then switch the call sites.
+- [x] **E2 Admin UI** — "Automations" menu: Templates (edit subject/body with variables, preview, send test), Sequences (on/off, step timing), Send log (per customer + global), Suppressions.
+- [x] **E3 New journeys** — see list below.
+- [x] **E4 Campaigns + funnel report** — one-off sends to a segment (lapsed 90d, recurring-paused, by service/postcode); lead→quote→deposit→paid conversion per sequence step and per template; unsubscribe/bounce rates.
 
 ### Journeys (E3)
 1. **Speed-to-lead:** instant acknowledgement (exists) → "tried to call" email if not answered in 30 min → quote ready.
@@ -693,6 +693,16 @@ No consent/unsubscribe anywhere · no delivery tracking · no abandoned-booking 
 - `DISABLE_OUTBOUND_MESSAGES=1` stays honoured everywhere; e2e covers: scheduling, dedupe, stop-on-pay, unsubscribe, suppression, webhook signature.
 
 ### Needs the owner (cannot be scripted)
-- [ ] Verify `amplecleaners.com` in Resend (SPF/DKIM/DMARC) — the current key is send-only, so I can't see the domain's status; until it is verified, mail to real customers may be rejected.
-- [ ] Real phone number + postal address for the email footer.
+- [x] Verify `amplecleaners.com` in Resend (owner confirmed 2026-10-10).
+- [x] Postal address: 363 Heathway, Dagenham RM9 5AG (owner, 2026-10-10). Phone still the placeholder until a London business number exists.
 - [ ] Solicitor/ICO check of the consent + soft opt-in wording (UK PECR/GDPR) before any marketing email goes to real people.
+
+### Review (2026-10-10)
+**Built:** migration 0007 (templates, journey switches, outbox, events, suppressions, abandoned leads, campaigns); `lib/email/*` (markup → safe HTML, layout with address + unsubscribe, token-signed unsubscribe, journey scanner, dispatcher, segments, stats); `/api/cron/email-dispatch`, `/api/webhooks/resend` (Svix-verified), `/api/unsubscribe/[token]` (+ page, RFC 8058 one-click), `/api/leads/capture`; admin **Automations** (Journeys, Templates with live preview + send-me-a-test, Campaigns, Results funnel, Send log, Do-not-email). Every email the platform sends (old and new) is now in the Send log; bounced/complained/erased addresses are never emailed.
+**Design decision:** a *scanner* looks at the database every 5 minutes and schedules what is due (dedupe keys; guards re-checked at send time) instead of hooking each place a booking can change status. Journeys only look at the last 10-14 days, so switching on never blasts old customers.
+**Not done / honest limits:**
+- The existing quote + deposit 7-day ladders and the transactional emails (quote, invoice, reminders) are still code-defined (not editable in the admin yet); they are logged and bounce-protected. Moving their copy into editable templates is a follow-up.
+- Win-back is 60 and 180 days (plan said 45/90/180). Not built: paused/skipped-recurring check-in (no pause feature yet), referral ask (no referral feature to point at), commercial renewal nurture.
+- Opens/clicks/bounces need the Resend webhook registered (owner step below). Until then the numbers show "needs delivery tracking".
+**Needs the owner:** (1) create the Resend webhook → `https://www.amplecleaners.com/api/webhooks/resend` (events: delivered, opened, clicked, bounced, complained) and put its signing secret in Vercel as `RESEND_WEBHOOK_SECRET`; turn on open/click tracking for the domain in Resend; (2) after the next deploy run `npx tsx --env-file=.env.local scripts/schedule-email-dispatch.ts` (installs the 5-minute pg_cron timer, fires it once and prints the site's answer); (3) legal check of the consent wording.
+**Verified:** tsc, lint, 48 unit tests (12 new: markup safety, copy honesty lint, Svix signature), e2e 229 checks incl. a new phase 13 (scheduling, dedupe, stop-on-pay, unsubscribe, bounce, frequency cap, erased customers, webhook, lead capture, admin API authz), Playwright pass on desktop and 390px mobile with no sideways scroll.

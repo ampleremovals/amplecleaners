@@ -118,6 +118,8 @@ export async function createBooking(input: BookingInput, source: string, actor: 
   if (bookingErr || !booking) throw new Error(`Booking insert failed: ${bookingErr?.message}`);
 
   await Promise.allSettled([
+    // They finished the form: stop any "unfinished booking" reminders.
+    supabase.from("abandoned_leads").update({ converted_at: new Date().toISOString() }).eq("email", input.email.trim().toLowerCase()).is("converted_at", null),
     supabase.from("status_history").insert({ booking_id: booking.id, previous_status: null, new_status: "inquiry", changed_by: actor }),
     supabase.from("activity_log").insert({ booking_id: booking.id, action: "booking_created", metadata: { source, service_type: input.serviceType }, performed_by: actor }),
   ]);

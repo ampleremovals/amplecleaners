@@ -55,6 +55,18 @@ export default function BookingWizardPage() {
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  // Once the visitor has given a name and a valid email, tell the server so a reminder can follow if they never finish.
+  const lastCaptured = useRef("");
+  const captureLead = () => {
+    const email = form.email.trim().toLowerCase();
+    if (!form.fullName.trim() || !/^[^s@]+@[^s@]+.[^s@]{2,}$/.test(email) || lastCaptured.current === email) return;
+    lastCaptured.current = email;
+    void fetch("/api/leads/capture", {
+      method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+      body: JSON.stringify({ email, fullName: form.fullName.trim(), phone: form.phone.trim(), serviceType }),
+    }).catch(() => undefined);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -112,8 +124,9 @@ export default function BookingWizardPage() {
                 </Field>
               </div>
               <Field label="Email">
-                <input required type="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={INPUT} />
+                <input required type="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} onBlur={captureLead} className={INPUT} />
               </Field>
+              <p className="text-xs leading-relaxed text-slate-500">If you don&apos;t finish, we may email you a reminder. You can unsubscribe at any time.</p>
             </Section>
 
             <Section n={2} title={isRegular ? "Your home and your clean" : "Your property"}>

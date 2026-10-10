@@ -167,6 +167,9 @@ lib/
   user-type.ts           ← admin vs cleaner role detection
   admin-auth.ts
 
+lib/email/               ← email engine: templates (editable in Admin → Automations), journey scanner,
+                           dispatcher, unsubscribe, segments, stats. See tasks/todo.md "Email system".
+
 types/index.ts           ← ALL TypeScript interfaces
 middleware.ts             ← protects /admin/* and /cleaners/* routes
 supabase/migrations/      ← schema SQL, run via scripts/run-migrations.ts
@@ -313,6 +316,8 @@ DATABASE_URL=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=bookings@amplecleaners.com
 RESEND_ADMIN_EMAIL=admin@amplecleaners.com
+RESEND_WEBHOOK_SECRET=            # signing secret of the Resend webhook -> /api/webhooks/resend
+CRON_SECRET=                      # same value on Vercel and in the pg_cron job (scripts/schedule-email-dispatch.ts)
 
 TWILIO_ACCOUNT_SID=
 TWILIO_AUTH_TOKEN=

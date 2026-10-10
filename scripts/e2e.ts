@@ -4,10 +4,11 @@
  * prefixed E2E) and deletes all of it at the end, pass or fail.
  *
  *   npx next build
- *   DISABLE_OUTBOUND_MESSAGES=1 STRIPE_WEBHOOK_SECRET=whsec_e2e_test npx next start -p 3120
+ *   DISABLE_OUTBOUND_MESSAGES=1 STRIPE_WEBHOOK_SECRET=whsec_e2e_test RESEND_WEBHOOK_SECRET=whsec_ZTJlLXdlYmhvb2stc2VjcmV0 npx next start -p 3120
  *   DISABLE_OUTBOUND_MESSAGES=1 E2E_ADMIN_PW=... [E2E_ADMIN_EMAIL=...] npx tsx --env-file=.env.local scripts/e2e.ts
  */
 import { createClient } from "@supabase/supabase-js";
+import crypto from "node:crypto";
 import Stripe from "stripe";
 import { autoAssignBooking } from "../lib/automation/autoAssign";
 import { generateRecurringVisits } from "../lib/automation/recurrence";
@@ -15,6 +16,13 @@ import { getOrCreateBookingInvoice } from "../lib/bookings/booking-invoice";
 import { generateInvoiceToken } from "../lib/tokens";
 import { todayInLondon } from "../lib/cleaner-auth";
 import { defaultTasks } from "../lib/tasks-template";
+import { scanJourneys } from "../lib/email/journeys";
+import { dispatchDue, withinSendHours } from "../lib/email/dispatch";
+import { ensureSeeded } from "../lib/email/store";
+import { loadCompany } from "../lib/email/config";
+import { renderTemplate } from "../lib/email/render";
+import { unsubscribeToken } from "../lib/email/unsubscribe";
+import { AUTOMATIONS } from "../lib/email/defaults";
 
 // Safety: a test run must never email/text real people or burn the daily Resend quota.
 if (process.env.DISABLE_OUTBOUND_MESSAGES !== "1") {
@@ -294,6 +302,274 @@ async function main() {
   await phase10();
   await phase11();
   await phase12();
+  await phase13();
+}
+
+/**
+ * Email engine: scheduling, de-duplication, stop-on-pay, unsubscribe, suppression, the delivery webhook,
+ * the unsubscribe page API, lead capture and the admin Automations API. Runs with outbound mail disabled
+ * (nothing leaves the building) and restricts the dispatcher to this run's own e2e addresses.
+ */
+async function phase13() {
+  console.log("— phase 13: email system");
+  const MINE = `%e2e-%${stamp}@resend.dev`;
+  const hours = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
+  // The dispatcher only sends 08:00-20:00 London. Move the test clock forward into that window if we're outside it.
+  let now = new Date();
+  for (let i = 0; i < 24 && !withinSendHours(now); i++) now = new Date(now.getTime() + 3_600_000);
+  const mkCust = async (label: string) => {
+    const email = `delivered+e2e-mail-${label}-${stamp}@resend.dev`;
+    const { data } = await admin.from("customers").insert({ full_name: `E2E ${label} Person`, email, phone: "07700900555" }).select("id").single();
+    ids.customers.push(data!.id);
+    return { id: data!.id as string, email };
+  };
+  const mkBk = async (customerId: string, over: Record<string, unknown>) => {
+    const { data: addr } = await admin.from("addresses").insert({ line_1: "2 Mail Street", postcode: "SW1A 1AA" }).select("id").single();
+    ids.addresses.push(addr!.id);
+    const { data: b, error } = await admin.from("bookings").insert({
+      reference: `E2E-${stamp}-m${ids.bookings.length}`, service_type: "deep_cleaning", status: "quote_sent", customer_id: customerId, address_id: addr!.id,
+      frequency: "one_off", quote_total: 90, quote_subtotal: 90, deposit_percentage: 20, quote_line_items: [], source: "e2e", ...over,
+    }).select("id, reference").single();
+    if (error || !b) throw new Error(`mail booking: ${error?.message}`);
+    ids.bookings.push(b.id);
+    return b as { id: string; reference: string };
+  };
+  const rowsFor = async (email: string) => (await admin.from("email_outbox").select("template_key, category, status, status_note, resend_id, delivered_at, bounced_at, subject").ilike("to_email", email)).data ?? [];
+  const one = async (email: string, template: string) => (await rowsFor(email)).find((r) => r.template_key === template);
+  const run = async () => { await scanJourneys(now); return dispatchDue(now, { onlyEmailLike: MINE }); };
+
+  // ── defaults seeded, address in the footer ──
+  await ensureSeeded();
+  const { data: tpls } = await admin.from("email_templates").select("key");
+  check("default templates are seeded", (tpls ?? []).length >= 14, String(tpls?.length));
+  const co = await loadCompany();
+  check("company address is in the email footer", co.address.includes("363 Heathway"));
+  const { data: tq } = await admin.from("email_templates").select("*").eq("key", "quote_close_file").single();
+  const shell = renderTemplate(tq, { firstName: "Sam", quoteLink: "https://www.amplecleaners.com/quote/x" }, co, "someone@example.com");
+  check("service email: address, no unsubscribe link", shell.html.includes("363 Heathway") && !shell.html.includes("/unsubscribe/") && shell.oneClickHref === null);
+  const { data: tm } = await admin.from("email_templates").select("*").eq("key", "rebook_nudge").single();
+  const mk = renderTemplate(tm, { firstName: "Sam", bookingLink: "https://www.amplecleaners.com/booking/deep_cleaning" }, co, "someone@example.com");
+  check("marketing email: unsubscribe link + one-click header URL", mk.html.includes("/unsubscribe/") && !!mk.oneClickHref?.includes("/api/unsubscribe/"));
+
+  // ── quote went quiet → "close your file", exactly once ──
+  const quiet = await mkCust("quiet");
+  const qb = await mkBk(quiet.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await run();
+  let r = await one(quiet.email, "quote_close_file");
+  check("a quote untouched for 9 days gets the 'close your file' email", r?.status === "sent", JSON.stringify(r));
+  await run(); await run();
+  check("scanning again never sends it twice", (await rowsFor(quiet.email)).filter((x) => x.template_key === "quote_close_file").length === 1);
+
+  // ── customer pays before the email goes out → cancelled ──
+  const payer = await mkCust("payer");
+  const pb = await mkBk(payer.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await scanJourneys(now);
+  await admin.from("bookings").update({ status: "booking_confirmed" }).eq("id", pb.id);
+  await dispatchDue(now, { onlyEmailLike: MINE });
+  r = await one(payer.email, "quote_close_file");
+  check("if they pay before it sends, the email is cancelled (stop-on-pay)", r?.status === "cancelled" && /booking_confirmed/.test(r.status_note ?? ""), JSON.stringify(r));
+
+  // ── unsubscribed: marketing blocked, booking emails still delivered ──
+  const unsub = await mkCust("unsub");
+  await admin.from("email_suppressions").upsert({ email: unsub.email, scope: "marketing", reason: "e2e" }, { onConflict: "email" });
+  await mkBk(unsub.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });         // service: close file
+  await mkBk(unsub.id, { status: "quote_sent", quote_sent_at: hours(-31 * 24) });        // marketing: winback
+  await run();
+  const ur = await rowsFor(unsub.email);
+  check("unsubscribed customer: marketing email skipped", ur.find((x) => x.template_key === "quote_winback")?.status === "skipped", JSON.stringify(ur));
+  check("unsubscribed customer: booking email still sent", ur.find((x) => x.template_key === "quote_close_file")?.status === "sent");
+
+  // ── hard bounce blocks everything ──
+  const bounced = await mkCust("bounced");
+  await admin.from("email_suppressions").upsert({ email: bounced.email, scope: "all", reason: "e2e hard bounce" }, { onConflict: "email" });
+  await mkBk(bounced.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await run();
+  check("bounced address: even booking emails are skipped", (await one(bounced.email, "quote_close_file"))?.status === "skipped");
+
+  // ── marketing frequency cap ──
+  const cap = await mkCust("cap");
+  await mkBk(cap.id, { status: "quote_sent", quote_sent_at: hours(-31 * 24) });   // two old quotes → two marketing emails due at once
+  await mkBk(cap.id, { status: "quote_sent", quote_sent_at: hours(-32 * 24) });
+  await run();
+  const cr = (await rowsFor(cap.email)).filter((x) => x.category === "marketing");
+  check("never two marketing emails within 3 days", cr.filter((x) => x.status === "sent").length === 1 && cr.some((x) => x.status === "skipped" && /within 3 days/.test(x.status_note ?? "")), JSON.stringify(cr));
+
+  // ── erased (GDPR) customers are never emailed ──
+  const { data: erasedCust } = await admin.from("customers").insert({ full_name: "Erased customer", email: `erased+e2e${stamp}@invalid.local`, phone: "00000000000" }).select("id").single();
+  ids.customers.push(erasedCust!.id);
+  await mkBk(erasedCust!.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await scanJourneys(now);
+  const { count: erasedRows } = await admin.from("email_outbox").select("id", { count: "exact", head: true }).ilike("to_email", `erased+e2e${stamp}@invalid.local`);
+  check("erased customers are never queued for email", erasedRows === 0, String(erasedRows));
+
+  // ── switches: template off / journey off ──
+  const sw = await mkCust("switch");
+  await mkBk(sw.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await admin.from("email_automations").update({ enabled: false }).eq("key", "quote_close_file");
+  await scanJourneys(now);
+  check("a journey that is switched off schedules nothing", (await rowsFor(sw.email)).length === 0);
+  await admin.from("email_automations").update({ enabled: true }).eq("key", "quote_close_file");
+
+  // ── after the clean: rating ask; a rating stops it; a low rating triggers recovery ──
+  const done = await mkCust("done");
+  const db1 = await mkBk(done.id, { status: "job_completed", clean_date: todayInLondon(), service_type: "regular_cleaning" });
+  await admin.from("status_history").insert({ booking_id: db1.id, previous_status: "in_progress", new_status: "job_completed", changed_by: "e2e", created_at: hours(-5) });
+  await run();
+  check("after a clean, the rating email goes out", (await one(done.email, "post_clean_thanks"))?.status === "sent");
+  const rated = await mkCust("rated");
+  const db2 = await mkBk(rated.id, { status: "job_completed", clean_date: todayInLondon(), service_type: "regular_cleaning" });
+  await admin.from("status_history").insert({ booking_id: db2.id, previous_status: "in_progress", new_status: "job_completed", changed_by: "e2e", created_at: hours(-5) });
+  await scanJourneys(now);
+  await admin.from("ratings").insert({ booking_id: db2.id, rating: 2, feedback: "e2e" });
+  await dispatchDue(now, { onlyEmailLike: MINE });
+  check("already rated: the rating email is cancelled", (await one(rated.email, "post_clean_thanks"))?.status === "cancelled");
+  await run();
+  check("a 2-star rating triggers the recovery email", (await one(rated.email, "rating_recovery"))?.status === "sent");
+
+  // ── abandoned form → reminder; booking afterwards cancels ──
+  const ab = await mkCust("abandon");
+  await admin.from("abandoned_leads").upsert({ email: ab.email, full_name: "E2E Abandon", service_type: "deep_cleaning", updated_at: hours(-2), created_at: hours(-2) }, { onConflict: "email" });
+  await run();
+  check("unfinished booking form → reminder sent", (await one(ab.email, "abandoned_1"))?.status === "sent");
+  const ab2email = `delivered+e2e-mail-abandon2-${stamp}@resend.dev`;
+  const ab2 = await mkCust("abandon2");
+  const { data: lead2 } = await admin.from("abandoned_leads").upsert({ email: ab2email, full_name: "E2E Abandon2", service_type: "deep_cleaning", updated_at: hours(-2), created_at: hours(-3) }, { onConflict: "email" }).select("id").single();
+  await scanJourneys(now);
+  await mkBk(ab2.id, { status: "inquiry" });
+  await dispatchDue(now, { onlyEmailLike: MINE });
+  check("if they finish the booking, the reminder is cancelled", (await one(ab2email, "abandoned_1"))?.status === "cancelled" && !!lead2);
+
+  // ── prep checklist 3 days out ──
+  const prep = await mkCust("prep");
+  await mkBk(prep.id, { status: "booking_confirmed", clean_date: dayShift(3), service_type: "end_of_tenancy" });
+  await run();
+  const pr = await one(prep.email, "prep_checklist");
+  check("prep checklist goes out 3 days before the first clean", pr?.status === "sent" && /on /.test(pr.subject ?? ""), JSON.stringify(pr));
+
+  // ── one-off customer, no repeat booking: upsell is due ──
+  const up = await mkCust("upsell");
+  await mkBk(up.id, { status: "paid", clean_date: dayShift(-3), service_type: "deep_cleaning" });
+  await run();
+  check("one-off customer gets the 'make it regular' email 2 days after the clean", (await one(up.email, "upsell_recurring"))?.status === "sent");
+  const back = await mkCust("back");
+  await mkBk(back.id, { status: "paid", clean_date: dayShift(-3), service_type: "deep_cleaning" });
+  await mkBk(back.id, { status: "booking_confirmed", clean_date: dayShift(10), service_type: "deep_cleaning" });
+  await run();
+  check("a customer who has already booked again is not nagged", !(await rowsFor(back.email)).some((x) => x.category === "marketing"));
+
+  // ── unsubscribe API (the page + Gmail's one-click) ──
+  const tok = unsubscribeToken(`delivered+e2e-mail-link-${stamp}@resend.dev`)!;
+  const g1 = await http(`/api/unsubscribe/${tok}`);
+  check("unsubscribe link validates and masks the address", g1.json.success && /•••@/.test(g1.json.email) && g1.json.unsubscribed === false, g1.text.slice(0, 120));
+  check("a forged unsubscribe link is rejected", (await http(`/api/unsubscribe/${tok.slice(0, -4)}beef`)).status === 400);
+  const p1 = await http(`/api/unsubscribe/${tok}`, { method: "POST", headers: fwd() });
+  const sup = await admin.from("email_suppressions").select("scope").eq("email", `delivered+e2e-mail-link-${stamp}@resend.dev`).maybeSingle();
+  check("one-click unsubscribe (no cookies, no body) works", p1.json.success && sup.data?.scope === "marketing");
+  const p2 = await http(`/api/unsubscribe/${tok}?undo=1`, { method: "POST", headers: fwd() });
+  const sup2 = await admin.from("email_suppressions").select("scope").eq("email", `delivered+e2e-mail-link-${stamp}@resend.dev`).maybeSingle();
+  check("'I changed my mind' re-subscribes", p2.json.success && !sup2.data);
+  const page = await http(`/unsubscribe/${tok}`);
+  check("unsubscribe page loads", page.status === 200);
+
+  // ── Resend webhook: signature, tracking, bounce → suppression, replay-safe ──
+  const wh = await mkCust("hook");
+  const resendId = `re_e2e_${stamp}`;
+  await admin.from("email_outbox").insert({ template_key: "e2e hook", category: "system", to_email: wh.email, status: "sent", sent_at: new Date().toISOString(), resend_id: resendId });
+  const whsec = process.env.RESEND_WEBHOOK_SECRET_E2E ?? "whsec_ZTJlLXdlYmhvb2stc2VjcmV0";
+  const send = async (type: string, id: string, extra: Record<string, unknown> = {}, secret = whsec) => {
+    const payload = JSON.stringify({ type, created_at: new Date().toISOString(), data: { email_id: resendId, to: [wh.email], ...extra } });
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = crypto.createHmac("sha256", Buffer.from(secret.replace(/^whsec_/, ""), "base64")).update(`${id}.${ts}.${payload}`).digest("base64");
+    return http("/api/webhooks/resend", { method: "POST", raw: payload, headers: { "Content-Type": "application/json", "svix-id": id, "svix-timestamp": ts, "svix-signature": `v1,${sig}` } });
+  };
+  const bad = await send("email.delivered", `msg_bad_${stamp}`, {}, "whsec_d3Jvbmctc2VjcmV0");
+  check("webhook with a wrong signature is rejected", bad.status === 400 || bad.status === 503, `${bad.status}`);
+  if (bad.status === 503) {
+    console.log("SKIP  webhook checks (start the server with RESEND_WEBHOOK_SECRET=whsec_ZTJlLXdlYmhvb2stc2VjcmV0)");
+  } else {
+    check("signed 'delivered' event is accepted", (await send("email.delivered", `msg_d_${stamp}`)).json.success === true);
+    await send("email.opened", `msg_o_${stamp}`);
+    await send("email.opened", `msg_o_${stamp}`); // replay of the same event id
+    const row = (await admin.from("email_outbox").select("delivered_at, opened_at").eq("resend_id", resendId).single()).data;
+    check("delivery + open are recorded on the send log", !!row?.delivered_at && !!row?.opened_at);
+    const { count: ev } = await admin.from("email_events").select("id", { count: "exact", head: true }).eq("resend_id", resendId);
+    check("a replayed event is stored once", ev === 2, String(ev));
+    await send("email.bounced", `msg_b_${stamp}`, { bounce: { type: "Permanent" } });
+    const bs = await admin.from("email_suppressions").select("scope").eq("email", wh.email).maybeSingle();
+    check("a hard bounce blocks the address from all email", bs.data?.scope === "all");
+    const wh2 = await mkCust("hook2");
+    await admin.from("email_outbox").insert({ template_key: "e2e hook", category: "system", to_email: wh2.email, status: "sent", sent_at: new Date().toISOString(), resend_id: `${resendId}_t` });
+    const payload = JSON.stringify({ type: "email.bounced", data: { email_id: `${resendId}_t`, to: [wh2.email], bounce: { type: "Transient" } } });
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = crypto.createHmac("sha256", Buffer.from(whsec.replace(/^whsec_/, ""), "base64")).update(`msg_t_${stamp}.${ts}.${payload}`).digest("base64");
+    await http("/api/webhooks/resend", { method: "POST", raw: payload, headers: { "Content-Type": "application/json", "svix-id": `msg_t_${stamp}`, "svix-timestamp": ts, "svix-signature": `v1,${sig}` } });
+    check("a temporary bounce (full mailbox) does NOT block the address", !(await admin.from("email_suppressions").select("scope").eq("email", wh2.email).maybeSingle()).data);
+  }
+
+  // ── cron endpoint is locked ──
+  check("email cron endpoint rejects callers without the secret", (await http("/api/cron/email-dispatch")).status === 401);
+  check("email cron endpoint rejects a wrong secret", (await http("/api/cron/email-dispatch", { token: "nope" })).status === 401);
+
+  // ── lead capture API ──
+  const leadEmail = `delivered+e2e-lead-${stamp}@resend.dev`;
+  const lc = await http("/api/leads/capture", { method: "POST", headers: fwd(), body: { email: leadEmail, fullName: "E2E Lead", serviceType: "deep_cleaning" } });
+  const stored = await admin.from("abandoned_leads").select("service_type, converted_at").eq("email", leadEmail).maybeSingle();
+  check("booking form lead capture stores the lead", lc.json.success && stored.data?.service_type === "deep_cleaning" && !stored.data.converted_at);
+  check("lead capture ignores garbage input", (await http("/api/leads/capture", { method: "POST", headers: fwd(), body: { email: "nope", serviceType: "x" } })).json.success === true && !(await admin.from("abandoned_leads").select("id").eq("email", "nope").maybeSingle()).data);
+  const sub = await http("/api/bookings", { method: "POST", headers: fwd(), body: { serviceType: "deep_cleaning", fullName: "E2E Lead", email: leadEmail, phone: "07700900777", propertyType: "flat", bedrooms: 1, bathrooms: 1, line1: "9 Lead Street", postcode: "SW1A 1AA", isFlexibleDate: true } });
+  if (sub.json.reference) {
+    const { data: lb } = await admin.from("bookings").select("id, customer_id, address_id").eq("reference", sub.json.reference).single();
+    if (lb) { ids.bookings.push(lb.id); ids.customers.push(lb.customer_id); ids.addresses.push(lb.address_id); }
+  }
+  const conv = await admin.from("abandoned_leads").select("converted_at").eq("email", leadEmail).maybeSingle();
+  check("submitting the booking marks the lead converted", sub.json.success === true && !!conv.data?.converted_at, sub.text.slice(0, 120));
+
+  // ── admin API ──
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  if (!ADMIN_PW) { console.log("SKIP  email admin API checks (set E2E_ADMIN_PW)"); return; }
+  const adm = anon();
+  const { data: as } = await adm.auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
+  const at = as!.session!.access_token;
+  const cl = await makeCleaner("mailauthz", { dbs: true });
+  const cs = await signInAs(cl);
+  check("email admin API: anonymous → 401", (await http("/api/admin/email/overview")).status === 401);
+  check("email admin API: a cleaner → 403", (await http("/api/admin/email/overview", { token: cs.token })).status === 403);
+  const ov = await http("/api/admin/email/overview", { token: at });
+  check("overview lists every journey with its emails", ov.json.success && ov.json.journeys.length === AUTOMATIONS.length && ov.json.journeys.every((j: { steps: unknown[] }) => j.steps.length > 0), ov.text.slice(0, 120));
+  const tl = await http("/api/admin/email/templates", { token: at });
+  check("template list loads", tl.json.success && tl.json.templates.length >= 14);
+  const bad1 = await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { subject: "Hi {{nonsense}}", heading: "Heading here", body: "Hello there {{firstName}} friend" } });
+  check("a template using an unknown {{variable}} is rejected", bad1.status === 400 && /nonsense/.test(bad1.json.error ?? ""), bad1.text.slice(0, 120));
+  const bad2 = await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { subject: "Hi {{firstName}}", heading: "Heading here", body: "Hello there {{firstName}} friend", cta_label: "Go", cta_url: "javascript:alert(1)" } });
+  check("a button link that isn't https or a variable is rejected", bad2.status === 400);
+  const orig = tl.json.templates.find((t: { key: string }) => t.key === "rebook_nudge");
+  const ok1 = await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { subject: "E2E edit for {{firstName}}", heading: orig.heading, body: orig.body, cta_label: orig.cta_label, cta_url: orig.cta_url } });
+  const pv = await http("/api/admin/email/templates/rebook_nudge/preview", { method: "POST", token: at, body: {} });
+  check("saved edits show up in the preview (sample data filled in)", ok1.json.success && pv.json.subject === "E2E edit for Sam" && pv.json.html.includes("363 Heathway") && pv.json.html.includes("/unsubscribe/"), pv.text.slice(0, 160));
+  const live = renderTemplate((await admin.from("email_templates").select("*").eq("key", "rebook_nudge").single()).data, { firstName: "Pat" }, co, "x@example.com");
+  check("the sender uses the edited text", live.subject === "E2E edit for Pat");
+  await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { reset: true } });
+  const rs = (await admin.from("email_templates").select("subject").eq("key", "rebook_nudge").single()).data;
+  check("'Restore default' puts the original wording back", rs?.subject === "Time for another clean, {{firstName}}?");
+  const testSend = await http("/api/admin/email/templates/rebook_nudge/preview", { method: "POST", token: at, body: { send: true } });
+  check("'Send me a test' works (mail is disabled in this run)", testSend.json.success === true && !!testSend.json.sentTo, testSend.text.slice(0, 120));
+  const aut = await http("/api/admin/email/automations/winback", { method: "PATCH", token: at, body: { hours: [2000, 5000] } });
+  const autRow = (await admin.from("email_automations").select("steps").eq("key", "winback").single()).data;
+  check("journey timing can be changed", aut.json.success && autRow?.steps?.[0]?.hours === 2000 && autRow?.steps?.[1]?.hours === 5000);
+  check("wrong number of timing values is rejected", (await http("/api/admin/email/automations/winback", { method: "PATCH", token: at, body: { hours: [1] } })).status === 400);
+  await http("/api/admin/email/automations/winback", { method: "PATCH", token: at, body: { hours: [1440, 4320] } });
+  const seg = await http("/api/admin/email/campaigns", { method: "POST", token: at, body: { name: "E2E count", templateKey: "campaign_spring", segment: "customers_all", dryRun: true } });
+  check("campaign audience can be counted before sending", seg.json.success && typeof seg.json.count === "number", seg.text.slice(0, 120));
+  check("a campaign can't use a non-marketing template", (await http("/api/admin/email/campaigns", { method: "POST", token: at, body: { name: "E2E bad", templateKey: "prep_checklist", segment: "customers_all", dryRun: true } })).status === 400);
+  const addSup = await http("/api/admin/email/suppressions", { method: "POST", token: at, body: { email: `delivered+e2e-mail-manual-${stamp}@resend.dev` } });
+  const lift = await http(`/api/admin/email/suppressions?email=${encodeURIComponent(`delivered+e2e-mail-manual-${stamp}@resend.dev`)}`, { method: "DELETE", token: at });
+  check("admin can stop and re-allow marketing to an address", addSup.json.success && lift.json.success);
+  const liftBounce = await http(`/api/admin/email/suppressions?email=${encodeURIComponent(bounced.email)}`, { method: "DELETE", token: at });
+  check("a bounced address cannot be un-blocked from the screen", liftBounce.status === 400);
+  const lg = await http("/api/admin/email/log?status=sent", { token: at });
+  check("send log loads and filters", lg.json.success && Array.isArray(lg.json.rows));
+  const fn = await http("/api/admin/email/funnel?days=30", { token: at });
+  check("funnel report loads", fn.json.success && fn.json.stages.length === 5 && typeof fn.json.conversion === "number", fn.text.slice(0, 120));
 }
 
 async function phase12() {
@@ -449,6 +725,9 @@ async function sweepStale(label: string): Promise<number> {
   if (addressIds.length) await admin.from("addresses").delete().in("id", addressIds);
   if (cleanerIds.length) await admin.from("cleaners").delete().in("id", cleanerIds);
   await admin.from("cleaner_applications").delete().ilike("email", EMAIL);
+  await admin.from("email_outbox").delete().ilike("to_email", EMAIL);
+  await admin.from("email_suppressions").delete().ilike("email", EMAIL);
+  await admin.from("abandoned_leads").delete().ilike("email", EMAIL);
   await admin.from("server_logs").delete().ilike("metadata->>to", "%e2e-%");
 
   // test logins (cleaners, admins) — paged, matched strictly by the same email marker
