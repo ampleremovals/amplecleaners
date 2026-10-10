@@ -659,3 +659,40 @@ Lighthouse (mobile) on 6 key public pages, production build.
 - [x] Runs at the start of `main()` and again after the per-run `cleanup()`; anything the final sweep still finds fails the run (the test's own tracking has a gap).
 - [x] `E2E_ADMIN_EMAIL` env var (defaults to the real owner login) so the admin-side checks can use a throwaway admin — previously they were skipped without the owner's password. Throwaway admin must NOT use an `e2e-` email (the sweep would delete it).
 - Review: full run with throwaway admin = 174 PASS / 0 FAIL (up from 124 because the admin checks now run). Planted a stale customer + auth login → "before" sweep removed both; after-run sweep removed 0. Throwaway admin deleted afterwards. tsc + lint clean.
+
+## Task: Email system, templates & lifecycle automations (planned 2026-10-10 — NOT started, awaiting owner go-ahead)
+**Goal:** convert as many leads as possible and bring past customers back. Target is measured, not promised — see the funnel report (E4).
+
+### What already exists (don't rebuild)
+Acknowledgement, quote, deposit instructions, deposit confirmed, 7-day quote + deposit follow-up ladders (email+SMS+WhatsApp, 10:00/18:00), day-before reminder, invoice + 3 overdue reminders, review/rating request after payment (`lib/bookings/settle.ts`, `/rate`), cleaner/applicant emails, admin alerts.
+All of it is hard-coded in `lib/**` with no send log, no open/click/bounce data, no unsubscribe, no way to edit copy without a deploy, and only 2 daily cron slots (Vercel Hobby).
+
+### Gaps
+No consent/unsubscribe anywhere · no delivery tracking · no abandoned-booking capture · no pre-quote speed-to-lead step · no same-day post-clean flow · no rebook / win-back / recurring upsell · no frequency cap or quiet hours · no admin UI for templates.
+
+### Phases
+- [ ] **E1 Foundation** — migration `0007`: `email_templates`, `email_outbox` (scheduled sends, dedupe_key, status), `email_events` (sent/delivered/opened/clicked/bounced/complained), `email_suppressions`, `customers.marketing_opt_out_at`. `lib/email/` render + send + unsubscribe token + Resend webhook (`/api/webhooks/resend`). Dispatcher `/api/cron/dispatch` secured by `CRON_SECRET`, triggered every 5 min by Supabase `pg_cron` + `pg_net` (both available, not installed) so we are not limited by Vercel Hobby. Move the 11 existing customer emails onto it with byte-identical output first (regression-test), then switch the call sites.
+- [ ] **E2 Admin UI** — "Automations" menu: Templates (edit subject/body with variables, preview, send test), Sequences (on/off, step timing), Send log (per customer + global), Suppressions.
+- [ ] **E3 New journeys** — see list below.
+- [ ] **E4 Campaigns + funnel report** — one-off sends to a segment (lapsed 90d, recurring-paused, by service/postcode); lead→quote→deposit→paid conversion per sequence step and per template; unsubscribe/bounce rates.
+
+### Journeys (E3)
+1. **Speed-to-lead:** instant acknowledgement (exists) → "tried to call" email if not answered in 30 min → quote ready.
+2. **Quote ladder + deposit ladder:** migrate existing day 1-7 copy; add a "Should we close your file?" final step and a 30-day gentle win-back for lost leads.
+3. **Abandoned booking:** capture email at step 1 of the form (needs consent wording) → one reminder after ~1h, one next morning.
+4. **Pre-clean:** confirmed (exists) → prep checklist per service (e.g. end of tenancy) 3 days before → day-before (exists).
+5. **Post-clean:** same-day thank-you + rating link → 4-5★ gets Google review ask, ≤3★ gets a recovery email + admin task (admin alert exists).
+6. **Rebook / upsell:** one-off customers get "make it fortnightly" at ~2 days; rebook nudge at ~14/30 days.
+7. **Retention:** lapsed 45/90/180 days win-back; seasonal (spring clean, pre-Christmas); paused/skipped recurring check-in; referral ask after a 5★.
+8. **Commercial:** office-quote nurture and renewal reminder.
+
+### Rules
+- Only the four owner-confirmed claims; no invented stats, reviews or deadlines (see `amplecleaners-copy-claims`). Pay-deposit CTA, never "confirm quote".
+- Transactional (booking, invoice, reminders) and marketing (rebook, win-back, campaigns) are separate streams; every marketing mail carries a one-click unsubscribe (List-Unsubscribe header + footer link) and the company address.
+- A sequence stops itself when the customer pays, books, replies, or unsubscribes; max 1 marketing email per customer per 3 days; send only 08:00-20:00 London.
+- `DISABLE_OUTBOUND_MESSAGES=1` stays honoured everywhere; e2e covers: scheduling, dedupe, stop-on-pay, unsubscribe, suppression, webhook signature.
+
+### Needs the owner (cannot be scripted)
+- [ ] Verify `amplecleaners.com` in Resend (SPF/DKIM/DMARC) — the current key is send-only, so I can't see the domain's status; until it is verified, mail to real customers may be rejected.
+- [ ] Real phone number + postal address for the email footer.
+- [ ] Solicitor/ICO check of the consent + soft opt-in wording (UK PECR/GDPR) before any marketing email goes to real people.
