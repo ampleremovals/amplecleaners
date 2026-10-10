@@ -11,15 +11,17 @@ async function loadShellData() {
     const { data: { user } } = await session.auth.getUser();
     const db: any = createAdminClient();
     const count = (q: any) => q.then((r: any) => r.count ?? 0);
-    const [profile, bookings, applications] = await Promise.all([
+    const [profile, bookings, applications, inboxRows] = await Promise.all([
       user ? db.from("admin_users").select("full_name").eq("supabase_user_id", user.id).maybeSingle() : Promise.resolve({ data: null }),
       count(db.from("bookings").select("id", { count: "exact", head: true }).eq("status", "inquiry")),
       count(db.from("cleaner_applications").select("id", { count: "exact", head: true }).eq("status", "new")),
+      db.from("inbox_messages").select("email").eq("direction", "in").eq("auto_reply", false).is("read_at", null).limit(200).then((r: any) => r.data ?? []),
     ]);
+    const inbox = new Set(inboxRows.map((r: any) => String(r.email).toLowerCase())).size;
     const email = user?.email ?? "";
-    return { user: { name: profile.data?.full_name || email.split("@")[0] || "Admin", email }, badges: { bookings, applications } };
+    return { user: { name: profile.data?.full_name || email.split("@")[0] || "Admin", email }, badges: { bookings, applications, inbox } };
   } catch {
-    return { user: { name: "Admin", email: "" }, badges: { bookings: 0, applications: 0 } };
+    return { user: { name: "Admin", email: "" }, badges: { bookings: 0, applications: 0, inbox: 0 } };
   }
 }
 

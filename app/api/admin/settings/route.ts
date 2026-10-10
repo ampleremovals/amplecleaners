@@ -6,7 +6,7 @@ import { clearPricingCache } from "@/lib/pricing-config";
 
 export const dynamic = "force-dynamic";
 
-const COLUMNS = "company_name, company_address, company_phone, company_email, google_review_link, customer_sms_enabled, customer_whatsapp_enabled, hourly_rate, min_hours, deposit_percentage";
+const COLUMNS = "company_name, company_address, company_phone, company_email, google_review_link, customer_sms_enabled, customer_whatsapp_enabled, hourly_rate, min_hours, deposit_percentage, email_daily_limit";
 
 export async function GET() {
   const auth = await requireAdmin();
@@ -28,6 +28,7 @@ const patchSchema = z.object({
   hourly_rate: z.number().min(5).max(200).optional(),
   min_hours: z.number().min(1).max(12).optional(),
   deposit_percentage: z.number().min(5).max(100).optional(),
+  email_daily_limit: z.number().int().min(20).max(100000).optional(),
 });
 
 /** PATCH — update business details and messaging switches (singleton row id=1). */

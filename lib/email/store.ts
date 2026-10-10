@@ -4,13 +4,13 @@ import { AUTOMATIONS, TEMPLATES, type AutomationDef, type TemplateDef } from "@/
 
 export interface TemplateRow {
   key: string; name: string; category: "service" | "marketing"; description: string | null; subject: string; heading: string; body: string;
-  cta_label: string | null; cta_url: string | null; enabled: boolean; is_custom: boolean; updated_at: string; updated_by: string | null;
+  cta_label: string | null; cta_url: string | null; sms_body: string | null; whatsapp_body: string | null; subject_b: string | null; enabled: boolean; is_custom: boolean; updated_at: string; updated_by: string | null;
 }
 export interface AutomationRow { key: string; enabled: boolean; steps: { template: string; hours: number }[]; updated_at: string }
 
 export const templateToRow = (t: TemplateDef) => ({
   key: t.key, name: t.name, category: t.category, description: t.description, subject: t.subject, heading: t.heading,
-  body: t.body, cta_label: t.ctaLabel ?? null, cta_url: t.ctaUrl ?? null, is_custom: !!t.campaign,
+  body: t.body, cta_label: t.ctaLabel ?? null, cta_url: t.ctaUrl ?? null, sms_body: t.sms ?? null, whatsapp_body: t.whatsapp ?? null, subject_b: null, is_custom: !!t.campaign,
 });
 
 /** Inserts any default template or journey that doesn't exist yet. Never overwrites the owner's edits. */

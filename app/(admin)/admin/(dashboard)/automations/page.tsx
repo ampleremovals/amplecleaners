@@ -12,11 +12,11 @@ import { LogTab } from "@/components/admin/email/LogTab";
 import { CampaignsTab } from "@/components/admin/email/CampaignsTab";
 import { FunnelTab } from "@/components/admin/email/FunnelTab";
 import { AudienceTab } from "@/components/admin/email/AudienceTab";
-import { pct } from "@/components/admin/email/parts";
+import { pct, type TemplateStat } from "@/components/admin/email/parts";
 
 interface Overview {
   success: boolean; journeys: Journey[]; health: Health; suppressed: number; variables: Record<string, string>;
-  stats: { total: { sent: number; delivered: number; opened: number; clicked: number; bounced: number }; queue: { scheduled: number; failed: number; skipped: number } };
+  stats: { templates: TemplateStat[]; total: { sent: number; delivered: number; opened: number; clicked: number; bounced: number }; queue: { scheduled: number; failed: number; skipped: number } };
 }
 
 const TABS = [
@@ -52,7 +52,7 @@ function AutomationsInner() {
       {error ? <ErrorState message={error} onRetry={reload} /> : loading && !data ? <Skeleton className="h-96 w-full rounded-xl" /> : data && (
         <>
           {tab === "journeys" && <JourneysTab journeys={data.journeys} health={data.health} onChanged={reload} onEdit={(k) => { setFocusTemplate(k); setTab("templates"); }} />}
-          {tab === "templates" && <TemplatesTab variables={data.variables} focusKey={focusTemplate} onChanged={reload} />}
+          {tab === "templates" && <TemplatesTab variables={data.variables} stats={data.stats.templates} focusKey={focusTemplate} onChanged={reload} />}
           {tab === "campaigns" && <CampaignsTab />}
           {tab === "funnel" && <FunnelTab stats={data.stats.total} />}
           {tab === "log" && <LogTab />}

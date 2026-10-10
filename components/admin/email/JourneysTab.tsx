@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Panel, PanelHeader, Pill } from "@/components/admin/ui";
@@ -9,7 +10,7 @@ import { Switch, humanHours, pct, type TemplateStat } from "@/components/admin/e
 
 export interface JourneyStep { template: string; hours: number; defaultHours: number; name: string; category: "service" | "marketing"; stats: TemplateStat | null }
 export interface Journey { key: string; name: string; description: string; timing: string; enabled: boolean; steps: JourneyStep[] }
-export interface Health { trackingConfigured: boolean; schedulerConfigured: boolean; lastAutomatedSend: string | null; sendingNow: boolean; sendHours: string; marketingGapDays: number }
+export interface Health { trackingConfigured: boolean; schedulerConfigured: boolean; lastAutomatedSend: string | null; sendingNow: boolean; sendHours: string; marketingGapDays: number; googleReviewLinkSet: boolean; sendLimit: { limit: number; reserve: number; sent24h: number; remaining: number } }
 
 function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => void; onEdit: (templateKey: string) => void }) {
   const [hours, setHours] = useState<number[]>(j.steps.map((s) => s.hours));
@@ -81,6 +82,12 @@ function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => vo
 export function JourneysTab({ journeys, health, onChanged, onEdit }: { journeys: Journey[]; health: Health; onChanged: () => void; onEdit: (templateKey: string) => void }) {
   return (
     <div className="space-y-4">
+      {!health.googleReviewLinkSet && (
+        <div role="status" className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <p><strong>Google review requests are switched off until you add your Google review link.</strong> Add it in <Link href="/admin/settings" className="font-semibold underline">Settings</Link> and happy customers will start getting the ask.</p>
+        </div>
+      )}
       {(!health.trackingConfigured || !health.schedulerConfigured) && (
         <div role="status" className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
@@ -97,6 +104,7 @@ export function JourneysTab({ journeys, health, onChanged, onEdit }: { journeys:
           <li>A customer gets at most <strong>one marketing email every {health.marketingGapDays} days</strong>.</li>
           <li>Every journey stops by itself when the customer pays, books again or unsubscribes.</li>
           <li>Marketing emails carry an unsubscribe link. Bounced addresses are blocked automatically.</li>
+          <li>Sent in the last 24 hours: <strong>{health.sendLimit.sent24h} of {health.sendLimit.limit}</strong>. Automation stops {health.sendLimit.reserve} short of the limit so booking emails always get through. <Link href="/admin/settings" className="font-medium text-brand-green-800 underline">Change limit</Link></li>
         </ul>
       </Panel>
       <div className="gap-4 xl:columns-2 [&>*]:mb-4 [&>*]:break-inside-avoid">

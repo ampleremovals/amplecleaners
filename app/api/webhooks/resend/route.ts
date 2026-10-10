@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { suppress } from "@/lib/email/suppression";
 import { verifySvix } from "@/lib/email/svix";
+import { handleInboundEmail } from "@/lib/email/inbound";
+import { logError } from "@/lib/log-error";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -25,6 +27,11 @@ export async function POST(req: Request) {
   let event: any;
   try { event = JSON.parse(body); } catch { return NextResponse.json({ success: false, error: "Bad payload" }, { status: 400 }); }
   const type: string = event?.type ?? "";
+  if (type === "email.received") {
+    // A customer wrote back to us: file it in the Inbox and pause the sales follow-ups.
+    try { await handleInboundEmail(event.data); } catch (e) { await logError({ message: "inbound email handling failed", metadata: { error: String(e) } }); return NextResponse.json({ success: false, error: "inbound handling failed" }, { status: 500 }); }
+    return NextResponse.json({ success: true });
+  }
   const resendId: string | undefined = event?.data?.email_id;
   if (!type.startsWith("email.") || !resendId) return NextResponse.json({ success: true, ignored: true });
 

@@ -24,6 +24,9 @@ export interface TemplateDef {
   ctaLabel?: string;
   /** A URL variable such as {{quoteLink}} (or a literal https URL). */
   ctaUrl?: string;
+  /** Optional text-message versions (booking-critical templates only; never marketing). */
+  sms?: string;
+  whatsapp?: string;
   /** Appears in the Campaigns picker. */
   campaign?: boolean;
 }
@@ -63,6 +66,8 @@ We tried to call you about your {{serviceLower}} request ({{reference}}) but cou
 No problem. The quickest way forward is to **reply to this email** with a good time to call, or call us on {{phone}}.
 
 Your request stays open, so we can pick up exactly where we left off.`,
+    sms: "Hi {{firstName}}, it's Ample Cleaners. We tried to call about your {{serviceLower}} request ({{reference}}) but missed you. Reply here or call {{phone}} whenever suits.",
+    whatsapp: "Hi {{firstName}}, it's Ample Cleaners. We tried to call about your {{serviceLower}} request ({{reference}}) but couldn't get through. Reply here with a good time, or call us on {{phone}}.",
   },
   {
     key: "quote_close_file",
@@ -80,6 +85,8 @@ If you'd still like it, a small deposit secures your date. Our popular slots do 
 Not the right time, or something not quite right? Just reply and tell us. We'd genuinely like to know.`,
     ctaLabel: "Secure my date",
     ctaUrl: "{{quoteLink}}",
+    sms: "Hi {{firstName}}, it's Ample Cleaners. Your {{serviceLower}} quote ({{quoteTotal}}, ref {{reference}}) is still waiting. A small deposit secures your date: {{quoteLink}}",
+    whatsapp: "Hi {{firstName}}, it's Ample Cleaners. We haven't heard back about your {{serviceLower}} quote ({{quoteTotal}}, ref {{reference}}), so we'll close it for now unless you'd still like it. A small deposit secures your date: {{quoteLink}}",
   },
   {
     key: "quote_winback",
@@ -142,6 +149,8 @@ Your {{serviceLower}} is booked for **{{cleanDate}}** (ref {{reference}}). A lit
 Need to change something? You can reschedule or cancel from the link below.`,
     ctaLabel: "Manage my booking",
     ctaUrl: "{{manageLink}}",
+    sms: "Ample Cleaners: your {{serviceLower}} is booked for {{cleanDate}} (ref {{reference}}). Please make sure we can get in. Change or cancel: {{manageLink}}",
+    whatsapp: "Hi {{firstName}}, your {{serviceLower}} is booked for {{cleanDate}} (ref {{reference}}). A little preparation helps: please make sure we can get in and tidy away valuables. Need to change something? {{manageLink}}",
   },
   {
     key: "post_clean_thanks",

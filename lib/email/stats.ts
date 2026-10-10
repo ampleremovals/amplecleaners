@@ -4,13 +4,14 @@ import { createAdminClient } from "@/lib/supabase/server";
 const DAY = 86_400_000;
 const pct = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
 
-export interface TemplateStat { key: string; sent: number; delivered: number; opened: number; clicked: number; bounced: number }
+export interface ArmStat { sent: number; opened: number; clicked: number }
+export interface TemplateStat { key: string; sent: number; delivered: number; opened: number; clicked: number; bounced: number; variants: { A: ArmStat; B: ArmStat } }
 
 /** Email performance over the last `days` days, per template and in total. Only emails sent via Resend count. */
 export async function emailStats(days: number) {
   const db: any = createAdminClient();
   const since = new Date(Date.now() - days * DAY).toISOString();
-  const { data } = await db.from("email_outbox").select("template_key, category, status, delivered_at, opened_at, clicked_at, bounced_at").gte("created_at", since).limit(20000);
+  const { data } = await db.from("email_outbox").select("template_key, category, status, variant, delivered_at, opened_at, clicked_at, bounced_at").gte("created_at", since).limit(20000);
   const perTemplate = new Map<string, TemplateStat>();
   const queue = { scheduled: 0, failed: 0, skipped: 0 };
   const total = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0 };
@@ -19,7 +20,8 @@ export async function emailStats(days: number) {
     if (r.status === "failed") queue.failed++;
     if (r.status === "skipped" || r.status === "cancelled") queue.skipped++;
     if (r.status !== "sent") continue;
-    const t = perTemplate.get(r.template_key) ?? { key: r.template_key, sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0 };
+    const t = perTemplate.get(r.template_key) ?? { key: r.template_key, sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, variants: { A: { sent: 0, opened: 0, clicked: 0 }, B: { sent: 0, opened: 0, clicked: 0 } } };
+    if (r.variant === "A" || r.variant === "B") { const arm = t.variants[r.variant as "A" | "B"]; arm.sent++; if (r.opened_at) arm.opened++; if (r.clicked_at) arm.clicked++; }
     t.sent++; total.sent++;
     if (r.delivered_at) { t.delivered++; total.delivered++; }
     if (r.opened_at) { t.opened++; total.opened++; }

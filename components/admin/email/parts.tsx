@@ -28,4 +28,5 @@ export function formatWhen(iso: string | null | undefined): string {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" }).format(new Date(iso));
 }
 
-export interface TemplateStat { key: string; sent: number; delivered: number; opened: number; clicked: number; bounced: number }
+export interface ArmStat { sent: number; opened: number; clicked: number }
+export interface TemplateStat { key: string; sent: number; delivered: number; opened: number; clicked: number; bounced: number; variants?: { A: ArmStat; B: ArmStat } }

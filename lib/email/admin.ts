@@ -20,6 +20,9 @@ export const templateEditSchema = z.object({
   body: z.string().trim().min(10).max(8000),
   cta_label: z.string().trim().max(60).nullable().optional(),
   cta_url: urlField.nullable().optional(),
+  sms_body: z.string().trim().max(480).nullable().optional(),
+  whatsapp_body: z.string().trim().max(1000).nullable().optional(),
+  subject_b: z.string().trim().max(200).nullable().optional(),
   enabled: z.boolean().optional(),
 });
 

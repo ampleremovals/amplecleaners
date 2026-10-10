@@ -38,3 +38,14 @@ export function renderEmailHtml(opts: {
   </div>
 </body></html>`;
 }
+
+/** A person-to-person email (Inbox replies): just their words and a signature. No banner, no button. */
+export function renderPlainEmailHtml(bodyHtml: string, company: Company): string {
+  return `<!DOCTYPE html><html><body style="margin:0;padding:16px;background:#ffffff;">
+  <div style="font-family:Arial,Helvetica,sans-serif;color:#1e293b;max-width:600px;">
+    ${bodyHtml}
+    <p style="font-size:14px;margin:20px 0 0;color:#334155;">${escapeHtml(company.name)}<br>${escapeHtml(company.phone)}</p>
+    <p style="font-size:12px;color:#94a3b8;margin:14px 0 0;">${escapeHtml(company.name)} · ${escapeHtml(company.address)}</p>
+  </div>
+</body></html>`;
+}

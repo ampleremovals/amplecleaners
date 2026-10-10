@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Command } from "cmdk";
 import {
-  Activity, BarChart3, CalendarDays, CalendarPlus, CornerDownLeft, LayoutDashboard, Loader2, Mailbox, Receipt, Search, Settings, UserPlus, UserRound, Users,
+  Activity, BarChart3, CalendarDays, CalendarPlus, CornerDownLeft, Inbox, LayoutDashboard, Loader2, Mailbox, Receipt, Search, Settings, UserPlus, UserRound, Users,
 } from "lucide-react";
 import { BOOKING_STATUS_LABELS, type BookingStatus } from "@/types";
 
@@ -18,6 +18,7 @@ const PAGES = [
   { label: "Cleaners", href: "/admin/cleaners", icon: Users, keywords: "roster staff team" },
   { label: "Applications", href: "/admin/applications", icon: UserPlus, keywords: "recruit new cleaners" },
   { label: "Customers", href: "/admin/customers", icon: UserRound, keywords: "clients" },
+  { label: "Inbox", href: "/admin/inbox", icon: Inbox, keywords: "messages replies email conversations customers wrote" },
   { label: "Automations", href: "/admin/automations", icon: Mailbox, keywords: "email templates campaigns follow up journeys send log unsubscribe" },
   { label: "Invoices", href: "/admin/invoices", icon: Receipt, keywords: "payments billing money" },
   { label: "Reports", href: "/admin/reports", icon: BarChart3, keywords: "analytics marketing revenue" },

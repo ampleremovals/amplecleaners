@@ -26,14 +26,15 @@ export async function POST(req: Request, { params }: { params: { key: string } }
   if (body?.draft) {
     const parsed = templateEditSchema.safeParse(body.draft);
     if (!parsed.success) return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message ?? "Invalid draft" }, { status: 400 });
-    tpl = { ...saved, ...parsed.data, cta_label: parsed.data.cta_label || null, cta_url: parsed.data.cta_url || null };
+    tpl = { ...saved, ...parsed.data, cta_label: parsed.data.cta_label || null, cta_url: parsed.data.cta_url || null, sms_body: parsed.data.sms_body || null, whatsapp_body: parsed.data.whatsapp_body || null, subject_b: parsed.data.subject_b || null };
   }
   const company = await loadCompany();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const to = user?.email ?? "preview@example.com";
   const rendered = renderTemplate(tpl, SAMPLE_VARS, company, to);
-  const unknown = unknownVariables(tpl.subject, tpl.heading, tpl.body, tpl.cta_label, tpl.cta_url);
+  const unknown = unknownVariables(tpl.subject, tpl.heading, tpl.body, tpl.cta_label, tpl.cta_url, tpl.sms_body, tpl.whatsapp_body, tpl.subject_b);
+  const subjectB = tpl.subject_b ? renderTemplate(tpl, SAMPLE_VARS, company, to, "B").subject : null;
 
   let sentTo: string | null = null;
   if (body?.send === true) {
@@ -44,5 +45,5 @@ export async function POST(req: Request, { params }: { params: { key: string } }
     if (res.error) return NextResponse.json({ success: false, error: `The test email couldn't be sent: ${res.error}` }, { status: 502 });
     sentTo = user.email;
   }
-  return NextResponse.json({ success: true, subject: rendered.subject, html: rendered.html, unknownVariables: unknown, sentTo });
+  return NextResponse.json({ success: true, subject: rendered.subject, subjectB, sms: rendered.sms, whatsapp: rendered.whatsapp, html: rendered.html, unknownVariables: unknown, sentTo });
 }

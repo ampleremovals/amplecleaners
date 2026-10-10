@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Settings {
   company_name: string; company_address: string | null; company_phone: string | null; company_email: string | null;
   google_review_link: string | null; customer_sms_enabled: boolean; customer_whatsapp_enabled: boolean;
-  hourly_rate: number; min_hours: number; deposit_percentage: number;
+  hourly_rate: number; min_hours: number; deposit_percentage: number; email_daily_limit: number;
 }
 interface Response { success: boolean; error?: string; settings: Settings }
 
@@ -85,7 +85,7 @@ export default function SettingsPage() {
                   <Field label="Email"><input type="email" className={INPUT} value={form.company_email ?? ""} onChange={(e) => set("company_email", e.target.value)} /></Field>
                   <Field label="Google review link" className="sm:col-span-2">
                     <input type="url" placeholder="https://g.page/r/…" className={INPUT} value={form.google_review_link ?? ""} onChange={(e) => set("google_review_link", e.target.value)} />
-                    <span className="mt-1.5 block text-xs text-slate-500">Added to the thank-you email after a customer pays.</span>
+                    <span className="mt-1.5 block text-xs text-slate-500">Used in the thank-you email and the automatic &ldquo;Happy customer: Google review&rdquo; email. Without it, those review requests are skipped.</span>
                   </Field>
                 </div>
               </Panel>
@@ -107,6 +107,14 @@ export default function SettingsPage() {
                 <div className="divide-y divide-slate-100">
                   <Toggle label="SMS" hint="Quotes, reminders, invoices and receipts by text message." checked={form.customer_sms_enabled} onChange={(v) => set("customer_sms_enabled", v)} />
                   <Toggle label="WhatsApp" hint="The same messages on WhatsApp." checked={form.customer_whatsapp_enabled} onChange={(v) => set("customer_whatsapp_enabled", v)} />
+                </div>
+              </Panel>
+
+              <Panel>
+                <PanelHeader title="Email sending limit" hint="Your email provider caps how many emails you can send. Booking emails always get through: automatic marketing stops before the cap so there is room left for them." />
+                <div className="grid gap-4 p-5 sm:grid-cols-3">
+                  <Field label="Emails per day your plan allows"><input type="number" min={20} max={100000} step={10} required className={INPUT} value={form.email_daily_limit} onChange={(e) => set("email_daily_limit", Number(e.target.value))} /></Field>
+                  <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:col-span-2">Resend&apos;s free plan allows 100 a day; paid plans allow far more. Raise this once you upgrade. About {Math.max(10, Math.ceil(form.email_daily_limit * 0.2))} a day are always kept free for booking emails.</p>
                 </div>
               </Panel>
 

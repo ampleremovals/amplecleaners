@@ -41,7 +41,8 @@ export async function sendEmail(params: {
     await recordDirectSend({ to, subject, context, error: "not sent: address bounced or complained before" });
     return { data: null, error: { name: "suppressed", message: "address is suppressed" } };
   }
-  const res = await resend.emails.send({ from, to, subject, html });
+  const replyTo = process.env.INBOUND_REPLY_ADDRESS?.trim();
+  const res = await resend.emails.send({ from, to, subject, html, ...(replyTo ? { replyTo } : {}) });
   await recordDirectSend({ to, subject, context, resendId: res.data?.id, error: res.error?.message });
   return res;
 }

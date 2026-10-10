@@ -5,7 +5,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { AUTOMATIONS, COMMON_VARIABLES } from "@/lib/email/defaults";
 import { ensureSeeded, loadAutomations, loadTemplates } from "@/lib/email/store";
 import { emailStats } from "@/lib/email/stats";
-import { londonHour, SEND_HOURS, MARKETING_GAP_DAYS } from "@/lib/email/dispatch";
+import { londonHour, SEND_HOURS, MARKETING_GAP_DAYS, emailBudget } from "@/lib/email/dispatch";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +15,12 @@ export async function GET() {
   if (!auth.ok) return auth.response;
   await ensureSeeded();
   const db: any = createAdminClient();
-  const [autos, tpls, stats, { count: suppressed }, { data: lastRun }] = await Promise.all([
+  const [autos, tpls, stats, { count: suppressed }, { data: lastRun }, budget, { data: settings }] = await Promise.all([
     loadAutomations(), loadTemplates(), emailStats(30),
     db.from("email_suppressions").select("email", { count: "exact", head: true }),
     db.from("email_outbox").select("sent_at").eq("status", "sent").in("category", ["service", "marketing"]).order("sent_at", { ascending: false }).limit(1),
+    emailBudget(db, new Date()),
+    db.from("settings").select("google_review_link").eq("id", 1).maybeSingle(),
   ]);
   const byTemplate = new Map(stats.templates.map((t) => [t.key, t]));
   const journeys = AUTOMATIONS.map((d) => {
@@ -39,6 +41,8 @@ export async function GET() {
       sendingNow: londonHour(new Date()) >= SEND_HOURS.from && londonHour(new Date()) < SEND_HOURS.until,
       sendHours: `${SEND_HOURS.from}:00 to ${SEND_HOURS.until}:00 London time`,
       marketingGapDays: MARKETING_GAP_DAYS,
+      sendLimit: budget,
+      googleReviewLinkSet: !!settings?.google_review_link,
     },
   });
 }

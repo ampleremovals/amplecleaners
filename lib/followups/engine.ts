@@ -4,6 +4,9 @@ import { sendSMS, sendWhatsApp } from "@/lib/twilio";
 import { formatCurrency } from "@/lib/utils";
 import { COMPANY_ADDRESS, COMPANY_PHONE } from "@/lib/constants";
 import { generateQuoteConfirmToken } from "@/lib/tokens";
+import { suppressionFor } from "@/lib/email/suppression";
+import { isPaused } from "@/lib/email/inbound";
+import { unsubscribeUrl } from "@/lib/email/unsubscribe";
 import { QUOTE_FOLLOWUP_DAYS, DEPOSIT_FOLLOWUP_DAYS, type FollowupVars } from "@/lib/followups/content";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.amplecleaners.com";
@@ -26,16 +29,28 @@ function todayISODate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function wrapEmail(subject: string, bodyHtml: string): string {
+function wrapEmail(subject: string, bodyHtml: string, toEmail: string): string {
+  const stop = unsubscribeUrl(toEmail);
   return `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;">
     <div style="background:#15803d;padding:22px 28px;border-radius:12px 12px 0 0;">
       <p style="color:#fff;margin:0;font-size:19px;font-weight:bold;">${subject}</p>
     </div>
     <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:28px;">
       ${bodyHtml}
-      <p style="margin:20px 0 0;font-size:13px;color:#94a3b8;">Ample Cleaners · ${COMPANY_ADDRESS} · ${COMPANY_PHONE}</p>
+      <p style="margin:20px 0 0;font-size:13px;color:#94a3b8;">Ample Cleaners · ${COMPANY_ADDRESS} · ${COMPANY_PHONE}${stop ? ` · <a href="${stop}" style="color:#94a3b8;">Stop these reminders</a>` : ""}</p>
     </div>
   </body></html>`;
+}
+
+/**
+ * The follow-up ladder obeys the same rules as every other sales email: nothing to someone who unsubscribed or
+ * bounced, and nothing while they are in conversation with us (they replied, or an admin paused them).
+ * Not stamped as sent, so it simply carries on when the pause ends.
+ */
+async function mayChase(email: string | null | undefined): Promise<boolean> {
+  if (!email) return true; // phone-only contacts: SMS/WhatsApp switches are handled in Settings
+  if ((await suppressionFor(email)) !== "none") return false;
+  return !(await isPaused(email, null));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -88,6 +103,7 @@ export async function runQuoteFollowupMorning(): Promise<{ sent: number; flagged
   for (const b of candidates) {
     const customer = oneCustomer(b.customer);
     if (!customer) continue;
+    if (!(await mayChase(customer.email))) continue;
     const day = dayNumberSince(b.quote_sent_at);
     if (day === null || day < 1) continue;
     if (day > MAX_DAY) {
@@ -100,7 +116,7 @@ export async function runQuoteFollowupMorning(): Promise<{ sent: number; flagged
     const v = quoteVars(b, customer);
 
     try {
-      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)), context: "quote follow-up day " + day });
+      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v), customer.email), context: "quote follow-up day " + day });
       if (customer.phone && day <= SMS_CUTOFF_DAY && content.sms) await sendSMS(customer.phone, content.sms(v));
     } catch { /* best-effort, still stamp so we don't retry-storm on a broken address */ }
 
@@ -118,6 +134,7 @@ export async function runQuoteFollowupEvening(): Promise<{ sent: number }> {
   for (const b of candidates) {
     const customer = oneCustomer(b.customer);
     if (!customer?.phone) continue;
+    if (!(await mayChase(customer.email))) continue;
     const day = dayNumberSince(b.quote_sent_at);
     if (day === null || day < 1 || day > MAX_DAY) continue;
     const content = QUOTE_FOLLOWUP_DAYS[day];
@@ -168,6 +185,7 @@ export async function runDepositFollowupMorning(): Promise<{ sent: number; flagg
   for (const b of candidates) {
     const customer = oneCustomer(b.customer);
     if (!customer) continue;
+    if (!(await mayChase(customer.email))) continue;
     const day = dayNumberSince(b.deposit_followup_started_at);
     if (day === null || day < 1) continue;
     if (day > MAX_DAY) {
@@ -180,7 +198,7 @@ export async function runDepositFollowupMorning(): Promise<{ sent: number; flagg
     const v = depositVars(b, customer);
 
     try {
-      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v)), context: "deposit follow-up day " + day });
+      if (customer.email) await sendEmail({ to: customer.email, subject: content.emailSubject(v), html: wrapEmail(content.emailSubject(v), content.emailBody(v), customer.email), context: "deposit follow-up day " + day });
       if (customer.phone && day <= SMS_CUTOFF_DAY && content.sms) await sendSMS(customer.phone, content.sms(v));
     } catch { /* best-effort */ }
 
@@ -198,6 +216,7 @@ export async function runDepositFollowupEvening(): Promise<{ sent: number }> {
   for (const b of candidates) {
     const customer = oneCustomer(b.customer);
     if (!customer?.phone) continue;
+    if (!(await mayChase(customer.email))) continue;
     const day = dayNumberSince(b.deposit_followup_started_at);
     if (day === null || day < 1 || day > MAX_DAY) continue;
     const content = DEPOSIT_FOLLOWUP_DAYS[day];

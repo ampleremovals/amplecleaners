@@ -26,7 +26,8 @@ export async function sendEmailSafe(params: {
       await recordDirectSend({ to: params.to, subject: params.subject, context: params.context, error: "not sent: address bounced or complained before" });
       return false;
     }
-    const { data, error } = await resend.emails.send({ from: resendFrom, to: params.to, subject: params.subject, html: params.html });
+    const replyTo = process.env.INBOUND_REPLY_ADDRESS?.trim();
+    const { data, error } = await resend.emails.send({ from: resendFrom, to: params.to, subject: params.subject, html: params.html, ...(replyTo ? { replyTo } : {}) });
     await recordDirectSend({ to: params.to, subject: params.subject, context: params.context, resendId: data?.id, error: error?.message });
     if (error) throw new Error(error.message);
     return true;
@@ -37,7 +38,7 @@ export async function sendEmailSafe(params: {
 }
 
 /** The admin's SMS/WhatsApp on-off switches (Settings). Defaults to ON if the row can't be read. */
-async function channelSwitches(): Promise<{ sms: boolean; whatsapp: boolean }> {
+export async function channelSwitches(): Promise<{ sms: boolean; whatsapp: boolean }> {
   try {
     const { data } = await createAdminClient().from("settings").select("customer_sms_enabled, customer_whatsapp_enabled").eq("id", 1).maybeSingle();
     return { sms: data?.customer_sms_enabled !== false, whatsapp: data?.customer_whatsapp_enabled !== false };

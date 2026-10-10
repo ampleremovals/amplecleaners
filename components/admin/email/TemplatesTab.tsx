@@ -8,17 +8,18 @@ import { ErrorState } from "@/components/admin/DataState";
 import { Panel, PanelHeader, Pill } from "@/components/admin/ui";
 import { BTN, Field, INPUT, TEXTAREA } from "@/components/admin/kit";
 import { Segmented } from "@/components/admin/controls";
-import { Switch } from "@/components/admin/email/parts";
+import { Switch, pct, type TemplateStat } from "@/components/admin/email/parts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 interface Template {
   key: string; name: string; category: "service" | "marketing"; description: string | null; subject: string; heading: string; body: string;
-  cta_label: string | null; cta_url: string | null; enabled: boolean; is_custom: boolean; used_by: string | null; edited: boolean;
+  cta_label: string | null; cta_url: string | null; sms_body: string | null; whatsapp_body: string | null; subject_b: string | null;
+  enabled: boolean; is_custom: boolean; used_by: string | null; edited: boolean;
 }
-interface Draft { name: string; subject: string; heading: string; body: string; cta_label: string; cta_url: string }
+interface Draft { name: string; subject: string; subject_b: string; heading: string; body: string; cta_label: string; cta_url: string; sms_body: string; whatsapp_body: string }
 
-const toDraft = (t: Template): Draft => ({ name: t.name, subject: t.subject, heading: t.heading, body: t.body, cta_label: t.cta_label ?? "", cta_url: t.cta_url ?? "" });
+const toDraft = (t: Template): Draft => ({ name: t.name, subject: t.subject, subject_b: t.subject_b ?? "", heading: t.heading, body: t.body, cta_label: t.cta_label ?? "", cta_url: t.cta_url ?? "", sms_body: t.sms_body ?? "", whatsapp_body: t.whatsapp_body ?? "" });
 
 async function call(url: string, method: string, body?: unknown) {
   const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
@@ -27,23 +28,23 @@ async function call(url: string, method: string, body?: unknown) {
   return json;
 }
 
-function Editor({ t, variables, onChanged, onDeleted }: { t: Template; variables: Record<string, string>; onChanged: () => void; onDeleted: () => void }) {
+function Editor({ t, variables, stat, onChanged, onDeleted }: { t: Template; variables: Record<string, string>; stat: TemplateStat | undefined; onChanged: () => void; onDeleted: () => void }) {
   const [draft, setDraft] = useState<Draft>(toDraft(t));
   const [busy, setBusy] = useState<"save" | "test" | "reset" | "delete" | null>(null);
-  const [preview, setPreview] = useState<{ subject: string; html: string; unknown: string[] } | null>(null);
+  const [preview, setPreview] = useState<{ subject: string; subjectB: string | null; sms: string | null; whatsapp: string | null; html: string; unknown: string[] } | null>(null);
   // Below 2xl the editor and the preview share the space: one at a time.
   const [view, setView] = useState<"edit" | "preview">("edit");
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(toDraft(t)), [draft, t]);
   const set = (k: keyof Draft, v: string) => setDraft((d) => ({ ...d, [k]: v }));
-  const payload = useCallback(() => ({ name: draft.name, subject: draft.subject, heading: draft.heading, body: draft.body, cta_label: draft.cta_label || null, cta_url: draft.cta_url || null }), [draft]);
+  const payload = useCallback(() => ({ name: draft.name, subject: draft.subject, subject_b: draft.subject_b || null, heading: draft.heading, body: draft.body, cta_label: draft.cta_label || null, cta_url: draft.cta_url || null, sms_body: draft.sms_body || null, whatsapp_body: draft.whatsapp_body || null }), [draft]);
 
   // live preview while typing (debounced)
   useEffect(() => {
     const h = setTimeout(async () => {
       try {
         const j = await call(`/api/admin/email/templates/${t.key}/preview`, "POST", { draft: payload() });
-        setPreview({ subject: j.subject, html: j.html, unknown: j.unknownVariables });
+        setPreview({ subject: j.subject, subjectB: j.subjectB, sms: j.sms, whatsapp: j.whatsapp, html: j.html, unknown: j.unknownVariables });
       } catch { /* the draft may be mid-edit and momentarily invalid */ }
     }, 350);
     return () => clearTimeout(h);
@@ -80,6 +81,7 @@ function Editor({ t, variables, onChanged, onDeleted }: { t: Template; variables
           </div>
           {t.is_custom && <Field label="Template name"><input className={INPUT} value={draft.name} onChange={(e) => set("name", e.target.value)} /></Field>}
           <Field label="Subject line"><input className={INPUT} value={draft.subject} onChange={(e) => set("subject", e.target.value)} maxLength={200} /></Field>
+          <Field label="Test a second subject line (optional)"><input className={INPUT} value={draft.subject_b} onChange={(e) => set("subject_b", e.target.value)} maxLength={200} placeholder="Half your customers see this one instead; the Results tab shows which gets opened more" /></Field>
           <Field label="Heading (the green bar)"><input className={INPUT} value={draft.heading} onChange={(e) => set("heading", e.target.value)} maxLength={150} /></Field>
           <Field label="Message">
             <textarea ref={bodyRef} className={cn(TEXTAREA, "min-h-[220px] font-mono text-[13px] leading-relaxed")} value={draft.body} onChange={(e) => set("body", e.target.value)} />
@@ -89,6 +91,13 @@ function Editor({ t, variables, onChanged, onDeleted }: { t: Template; variables
             <Field label="Button text (optional)"><input className={INPUT} value={draft.cta_label} onChange={(e) => set("cta_label", e.target.value)} maxLength={60} /></Field>
             <Field label="Button link"><input className={INPUT} value={draft.cta_url} onChange={(e) => set("cta_url", e.target.value)} placeholder="{{quoteLink}} or https://…" /></Field>
           </div>
+          {t.category === "service" ? (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+              <p className="text-xs text-slate-500">Also sent as a text message. Only for messages about their own booking, and only if SMS/WhatsApp are switched on in Settings. Leave empty to send the email only.</p>
+              <Field label="SMS"><textarea className={cn(TEXTAREA, "min-h-[72px]")} value={draft.sms_body} onChange={(e) => set("sms_body", e.target.value)} maxLength={480} /></Field>
+              <Field label="WhatsApp"><textarea className={cn(TEXTAREA, "min-h-[72px]")} value={draft.whatsapp_body} onChange={(e) => set("whatsapp_body", e.target.value)} maxLength={1000} /></Field>
+            </div>
+          ) : null}
           <div>
             <p className="mb-1.5 text-xs font-medium text-slate-500">Click to insert a personal detail into the message</p>
             <div className="flex flex-wrap gap-1.5">
@@ -124,7 +133,21 @@ function Editor({ t, variables, onChanged, onDeleted }: { t: Template; variables
       <Panel className={cn("self-start", view === "edit" && "hidden 2xl:flex")}>
         <PanelHeader title="Preview" hint="With sample details. Updates as you type." />
         <div className="space-y-3 p-5">
-          <p className="truncate text-sm"><span className="text-slate-500">Subject: </span><span className="font-medium text-slate-900">{preview?.subject ?? "…"}</span></p>
+          <p className="truncate text-sm"><span className="text-slate-500">Subject{preview?.subjectB ? " A" : ""}: </span><span className="font-medium text-slate-900">{preview?.subject ?? "…"}</span></p>
+          {preview?.subjectB && <p className="truncate text-sm"><span className="text-slate-500">Subject B: </span><span className="font-medium text-slate-900">{preview.subjectB}</span></p>}
+          {stat?.variants && (stat.variants.A.sent > 0 || stat.variants.B.sent > 0) && t.subject_b && (
+            <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+              <strong className="text-slate-500">Subject test so far: </strong>
+              A: {stat.variants.A.sent} sent, {pct(stat.variants.A.opened, stat.variants.A.sent)} opened · B: {stat.variants.B.sent} sent, {pct(stat.variants.B.opened, stat.variants.B.sent)} opened
+              {Math.min(stat.variants.A.sent, stat.variants.B.sent) < 30 ? ". Too few to call a winner yet; wait for at least 30 sends each." : ""}
+            </p>
+          )}
+          {(preview?.sms || preview?.whatsapp) && (
+            <div className="space-y-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+              {preview.sms && <p><strong className="text-slate-500">SMS: </strong>{preview.sms}</p>}
+              {preview.whatsapp && <p><strong className="text-slate-500">WhatsApp: </strong>{preview.whatsapp}</p>}
+            </div>
+          )}
           <iframe title="Email preview" sandbox="" srcDoc={preview?.html ?? ""} className="h-[560px] w-full rounded-lg border border-slate-200 bg-slate-100" />
         </div>
       </Panel>
@@ -132,7 +155,7 @@ function Editor({ t, variables, onChanged, onDeleted }: { t: Template; variables
   );
 }
 
-export function TemplatesTab({ variables, focusKey, onChanged }: { variables: Record<string, string>; focusKey: string | null; onChanged: () => void }) {
+export function TemplatesTab({ variables, stats, focusKey, onChanged }: { variables: Record<string, string>; stats: TemplateStat[]; focusKey: string | null; onChanged: () => void }) {
   const { data, loading, error, reload } = useAdminFetch<{ success: boolean; templates: Template[] }>("/api/admin/email/templates");
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -189,7 +212,7 @@ export function TemplatesTab({ variables, focusKey, onChanged }: { variables: Re
         </div>
       </Panel>
       <div className="min-w-0">
-        {current && <Editor key={current.key} t={current} variables={variables} onChanged={() => { reload(); onChanged(); }} onDeleted={() => { setSelected(null); reload(); onChanged(); }} />}
+        {current && <Editor key={current.key} t={current} variables={variables} stat={stats.find((s) => s.key === current.key)} onChanged={() => { reload(); onChanged(); }} onDeleted={() => { setSelected(null); reload(); onChanged(); }} />}
       </div>
     </div>
   );

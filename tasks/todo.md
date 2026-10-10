@@ -706,3 +706,20 @@ No consent/unsubscribe anywhere · no delivery tracking · no abandoned-booking 
 - Opens/clicks/bounces need the Resend webhook registered (owner step below). Until then the numbers show "needs delivery tracking".
 **Needs the owner:** (1) create the Resend webhook → `https://www.amplecleaners.com/api/webhooks/resend` (events: delivered, opened, clicked, bounced, complained) and put its signing secret in Vercel as `RESEND_WEBHOOK_SECRET`; turn on open/click tracking for the domain in Resend; (2) after the next deploy run `npx tsx --env-file=.env.local scripts/schedule-email-dispatch.ts` (installs the 5-minute pg_cron timer, fires it once and prints the site's answer); (3) legal check of the consent wording.
 **Verified:** tsc, lint, 48 unit tests (12 new: markup safety, copy honesty lint, Svix signature), e2e 229 checks incl. a new phase 13 (scheduling, dedupe, stop-on-pay, unsubscribe, bounce, frequency cap, erased customers, webhook, lead capture, admin API authz), Playwright pass on desktop and 390px mobile with no sideways scroll.
+
+## Task: Close the email-system gaps (2026-10-10)
+Owner asked to cover every gap listed after the email build. Plan (each step tested; push after each group):
+- [ ] **0. Migration 0008** — `customers.followups_paused_until`, quote-view columns on `bookings`, `bookings.lost_reason`, `settings.email_daily_limit`, template `sms_body/whatsapp_body/subject_b`, outbox `variant/sms_sent_at/whatsapp_sent_at`, `email_consents`, `inbox_messages`.
+- [ ] **1. Stop-on-reply + Inbox** — Resend inbound (`email.received` webhook → fetch body via `GET /emails/receiving/{id}`), match sender to customer, pause nurture journeys + cancel queued nurture mail for 7 days, alert the team, admin **Inbox** (threads, unread badge, reply from the platform, mark handled, resume follow-ups). Manual "pause follow-ups" works without inbound. Auto-replies/out-of-office never pause. Needs owner: receiving address (`INBOUND_REPLY_ADDRESS`) + a key that can read received mail.
+- [ ] **2. Old 7-day ladder under the same rules** — skip when paused (replied) / unsubscribed / bounced, unsubscribe link in its footer.
+- [ ] **3. SMS + WhatsApp on booking-critical journeys** — optional text fields on service templates (missed call, close file, prep, recovery); honours the Settings channel switches; never on marketing.
+- [ ] **4. Google review link warning + daily send limit with a reserve for booking emails** (Settings field).
+- [ ] **5. Consent log** for the form's reminder notice.
+- [ ] **6. Speed-to-lead alerts** — uncontacted enquiry → team alert at 15 and 60 min.
+- [ ] **7. Quote-viewed tracking** — count/last view on the quote page, shown on the booking, "viewed but didn't pay" nudge to the customer.
+- [ ] **8. Lost reasons** — one-click reason when moving a lead to Lost; reasons breakdown in Results.
+- [ ] **9. Subject-line A/B** — optional subject B per template, 50/50 split, per-variant open/click.
+- [ ] **10. Retention** — skipped recurring visit check-in; one-year thank-you.
+- [ ] **11. Email layout hardening** — table-based layout, Outlook-safe button, light colour-scheme hint.
+- [ ] **12. Verify** — unit + e2e (new checks), lint/tsc/build, UI screenshots, push, live check, docs + memory.
+Not doing (needs a decision, not code): price-change notice to recurring customers (a service-notice template type that skips unsubscribe is easy to abuse for promotions).
