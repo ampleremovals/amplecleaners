@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 /** Confirmation before any consequential admin action (CLAUDE.md design rule). */
 export function ConfirmDialog({
-  open, onOpenChange, title, description, confirmLabel, busy, onConfirm,
+  open, onOpenChange, title, description, confirmLabel, busy, onConfirm, children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -14,6 +14,8 @@ export function ConfirmDialog({
   confirmLabel: string;
   busy?: boolean;
   onConfirm: () => void;
+  /** Extra controls between the description and the buttons (e.g. a reason picker). */
+  children?: React.ReactNode;
 }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
@@ -22,6 +24,7 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children}
         <DialogFooter className="gap-2 sm:gap-0">
           <button onClick={() => onOpenChange(false)} disabled={busy} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50">
             Cancel

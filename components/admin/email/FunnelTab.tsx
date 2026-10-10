@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Stage { key: string; label: string; count: number; ofEnquiries: number; ofPrevious: number }
 interface Resp {
   success: boolean; days: number; stages: Stage[]; conversion: number; helpedByEmail: number; lost: number;
-  abandoned: { captured: number; recovered: number }; bySource: { source: string; enquiries: number; confirmed: number; rate: number }[];
+  abandoned: { captured: number; recovered: number }; lostReasons: { reason: string; count: number }[]; bySource: { source: string; enquiries: number; confirmed: number; rate: number }[];
 }
 
 export function FunnelTab({ stats }: { stats: { sent: number; delivered: number; opened: number; clicked: number; bounced: number } }) {
@@ -65,6 +65,16 @@ export function FunnelTab({ stats }: { stats: { sent: number; delivered: number;
               </Panel>
             </div>
           </div>
+          <Panel>
+            <PanelHeader title="Why leads were lost" hint="From the reason picked when a booking is moved to Lost" />
+            {data.lostReasons.length ? (
+              <ul className="divide-y divide-slate-100 text-sm">
+                {data.lostReasons.map((r) => (
+                  <li key={r.reason} className="flex items-center justify-between gap-3 px-5 py-3"><span className="text-slate-700">{r.reason}</span><span className="font-semibold tabular-nums text-slate-900">{r.count}</span></li>
+                ))}
+              </ul>
+            ) : <p className="px-5 py-8 text-center text-sm text-slate-500">No lost leads in this period.</p>}
+          </Panel>
           <Panel>
             <PanelHeader title="Where enquiries come from" hint="Conversion by source" />
             {data.bySource.length ? (

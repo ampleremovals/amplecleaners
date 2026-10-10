@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   const db: any = createAdminClient();
 
   const [{ data: msgs }, { data: auto }, { data: cust }] = await Promise.all([
-    db.from("inbox_messages").select("id, direction, subject, body_text, body_available, auto_reply, created_at, read_at, handled_at, sent_by").ilike("email", email.data).order("created_at", { ascending: true }).limit(200),
+    db.from("inbox_messages").select("id, direction, from_name, subject, body_text, body_available, auto_reply, created_at, read_at, handled_at, sent_by").ilike("email", email.data).order("created_at", { ascending: true }).limit(200),
     db.from("email_outbox").select("id, template_key, category, subject, sent_at, status").ilike("to_email", email.data).eq("status", "sent").neq("template_key", "inbox reply").order("sent_at", { ascending: true }).limit(100),
     db.from("customers").select("id, full_name, phone, followups_paused_until").ilike("email", email.data).limit(1).maybeSingle(),
   ]);
@@ -33,6 +33,7 @@ export async function GET(req: Request) {
     success: true, email: email.data, items,
     customer: cust ? { id: cust.id, name: cust.full_name, phone: cust.phone, paused, pausedUntil: paused ? cust.followups_paused_until : null } : null,
     bookings: bookings ?? [],
+    contactName: [...(msgs ?? [])].reverse().find((m: any) => m.direction === "in" && m.from_name)?.from_name ?? null,
     lastSubject: [...(msgs ?? [])].reverse().find((m: any) => m.subject)?.subject ?? null,
   });
 }

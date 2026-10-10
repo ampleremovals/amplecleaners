@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { afterBookingCreated, bookingInputSchema, createBooking } from "@/lib/bookings/create";
 import { recordEvent } from "@/lib/tracking";
+import { recordConsent } from "@/lib/email/consent";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
     }
     const booking = await createBooking(parsed.data, "website", "customer");
+    await recordConsent(parsed.data.email, "booking_form_submit");
     const { quotePath } = await afterBookingCreated(booking.id, { alertAdmin: true, messageCustomer: true });
     // Funnel + A/B result: ties this booking to the anonymous visitor (daily hash) who made it.
     await recordEvent(req, { event: "booking_submit", path: "/booking", utm_source: parsed.data.attribution?.utm_source, utm_medium: parsed.data.attribution?.utm_medium, utm_campaign: parsed.data.attribution?.utm_campaign });

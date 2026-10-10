@@ -15,6 +15,8 @@ import { bookingLink, manageLink, quoteLink, rateLink, regularLink } from "@/lib
 import { PREP_TIPS } from "@/lib/email/defaults";
 import { DEAD_STATUSES } from "@/lib/email/guards";
 import { todayInLondon } from "@/lib/cleaner-auth";
+import { SITE_URL } from "@/lib/email/config";
+import { resendAdminEmail } from "@/lib/resend";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 
@@ -220,6 +222,115 @@ async function scanLifecycle(c: Ctx): Promise<EnqueueInput[]> {
   return out;
 }
 
+// ── 8. Team alert: enquiry nobody has called ───────────────────────────────
+async function scanLeadSla(c: Ctx): Promise<EnqueueInput[]> {
+  if (!on(c, "lead_sla")) return [];
+  const { data: bs } = await c.db.from("bookings").select("id, reference, service_type, created_at, customer:customers(full_name, email, phone)")
+    .in("status", ["inquiry", "not_called"]).gte("created_at", new Date(c.now.getTime() - 3 * DAY).toISOString()).limit(200);
+  const out: EnqueueInput[] = [];
+  for (const b of bs ?? []) {
+    const cust = one<any>(b.customer);
+    for (const [i, s] of steps(c, "lead_sla").entries()) {
+      const sendAt = new Date(new Date(b.created_at).getTime() + s.hours * H);
+      if (!inWindow(c, sendAt, 3 * DAY)) continue;
+      out.push({
+        templateKey: s.template, category: category(c, s.template), to: resendAdminEmail, customerId: null, bookingId: b.id, automationKey: "lead_sla",
+        vars: { customerName: cust?.full_name ?? "A new lead", customerPhone: cust?.phone ?? "", customerEmail: cust?.email ?? "", minutesWaiting: Math.round(s.hours * 60), serviceLower: lower(b.service_type), reference: b.reference, adminLink: `${SITE_URL}/admin/bookings/${b.id}` },
+        guard: { statusIn: ["inquiry", "not_called"] }, dedupeKey: `lead_sla:${i}:${b.id}`, sendAt,
+      });
+    }
+  }
+  return out;
+}
+
+// ── 9. Quote opened but not paid ───────────────────────────────────────────
+async function scanQuoteViewed(c: Ctx): Promise<EnqueueInput[]> {
+  if (!on(c, "quote_viewed")) return [];
+  const { data: bs } = await c.db.from("bookings").select("id, reference, service_type, quote_total, quote_last_viewed_at, customer:customers(id, full_name, email)")
+    .in("status", ["quote_sent", "deposit_invoice_sent"]).gt("quote_view_count", 0).gte("quote_last_viewed_at", new Date(c.now.getTime() - 3 * DAY).toISOString()).limit(200);
+  const out: EnqueueInput[] = [];
+  for (const b of bs ?? []) {
+    const cust = one<any>(b.customer);
+    const link = quoteLink(b.id);
+    if (!cust?.email || !link) continue;
+    for (const [i, s] of steps(c, "quote_viewed").entries()) {
+      const sendAt = new Date(new Date(b.quote_last_viewed_at).getTime() + s.hours * H);
+      if (!inWindow(c, sendAt, 3 * DAY)) continue;
+      out.push({
+        templateKey: s.template, category: category(c, s.template), to: cust.email, customerId: cust.id, bookingId: b.id, automationKey: "quote_viewed",
+        vars: { firstName: first(cust.full_name), reference: b.reference, serviceLower: lower(b.service_type), quoteTotal: formatCurrency(Number(b.quote_total ?? 0)), quoteLink: link },
+        // not if the 7-day ladder (or anything else) has just written to them
+        guard: { statusIn: ["quote_sent", "deposit_invoice_sent"], quietForHours: 20 }, dedupeKey: `quote_viewed:${i}:${b.id}`, sendAt,
+      });
+    }
+  }
+  return out;
+}
+
+// ── 10. A regular customer skipped one visit ───────────────────────────────
+async function scanVisitSkipped(c: Ctx): Promise<EnqueueInput[]> {
+  if (!on(c, "visit_skipped")) return [];
+  const { data: hist } = await c.db.from("status_history").select("booking_id, created_at, changed_by").eq("new_status", "cancelled").eq("changed_by", "customer")
+    .gte("created_at", new Date(c.now.getTime() - 3 * DAY).toISOString()).order("created_at", { ascending: false }).limit(200);
+  const at = new Map<string, string>();
+  for (const h of hist ?? []) if (!at.has(h.booking_id)) at.set(h.booking_id, h.created_at);
+  if (!at.size) return [];
+  const { data: bs } = await c.db.from("bookings").select("id, reference, service_type, clean_date, parent_booking_id, customer:customers(id, full_name, email)")
+    .in("id", [...at.keys()]).eq("status", "cancelled").not("parent_booking_id", "is", null);
+  const parentIds = [...new Set((bs ?? []).map((b: any) => b.parent_booking_id))];
+  const { data: parents } = parentIds.length ? await c.db.from("bookings").select("id, status").in("id", parentIds) : { data: [] };
+  const parentStatus = new Map((parents ?? []).map((p: any) => [p.id, p.status]));
+  const out: EnqueueInput[] = [];
+  const seenCustomer = new Set<string>();
+  for (const b of bs ?? []) {
+    const cust = one<any>(b.customer);
+    if (!cust?.email || parentStatus.get(b.parent_booking_id) === "cancelled") continue; // the whole series ended: that's a cancellation, not a skipped visit
+    if (seenCustomer.has(cust.id)) continue; // one check-in per customer, however many visits they skipped
+    seenCustomer.add(cust.id);
+    for (const [i, s] of steps(c, "visit_skipped").entries()) {
+      const sendAt = new Date(new Date(at.get(b.id)!).getTime() + s.hours * H);
+      if (!inWindow(c, sendAt, 3 * DAY)) continue;
+      out.push({
+        templateKey: s.template, category: category(c, s.template), to: cust.email, customerId: cust.id, bookingId: b.id, automationKey: "visit_skipped",
+        vars: { firstName: first(cust.full_name), reference: b.reference, serviceLower: lower(b.service_type), cleanDate: b.clean_date ? formatDate(b.clean_date) : "your usual day" },
+        guard: { statusIn: ["cancelled"] }, dedupeKey: `visit_skipped:${i}:${b.id}`, sendAt,
+      });
+    }
+  }
+  return out;
+}
+
+// ── 11. One year together ──────────────────────────────────────────────────
+async function scanAnniversary(c: Ctx): Promise<EnqueueInput[]> {
+  if (!on(c, "anniversary")) return [];
+  const { data: bs } = await c.db.from("bookings").select("id, service_type, clean_date, customer:customers(id, full_name, email)")
+    .in("status", COMPLETED).not("clean_date", "is", null).gte("clean_date", plusDays(c.today, -400)).order("clean_date", { ascending: true }).limit(3000);
+  const firstOf = new Map<string, any>();
+  const lastDate = new Map<string, string>();
+  for (const b of bs ?? []) {
+    const cust = one<any>(b.customer);
+    if (!cust?.id) continue;
+    if (!firstOf.has(cust.id)) firstOf.set(cust.id, b);
+    lastDate.set(cust.id, b.clean_date);
+  }
+  const out: EnqueueInput[] = [];
+  for (const [id, b] of firstOf) {
+    if ((lastDate.get(id) ?? "") < plusDays(c.today, -60)) continue; // only customers still with us
+    const cust = one<any>(b.customer);
+    if (!cust?.email) continue;
+    for (const [i, s] of steps(c, "anniversary").entries()) {
+      const sendAt = new Date(new Date(`${b.clean_date}T12:00:00Z`).getTime() + 365 * DAY + s.hours * H);
+      if (!inWindow(c, sendAt, 7 * DAY)) continue;
+      out.push({
+        templateKey: s.template, category: category(c, s.template), to: cust.email, customerId: cust.id, bookingId: b.id, automationKey: "anniversary",
+        vars: { firstName: first(cust.full_name), serviceLower: lower(b.service_type) },
+        dedupeKey: `anniversary:${i}:${id}:${b.clean_date}`, sendAt,
+      });
+    }
+  }
+  return out;
+}
+
 /** Schedules every email that has become due. Safe to run as often as you like. */
 export async function scanJourneys(now: Date = new Date()): Promise<Record<string, number | string>> {
   await ensureSeeded();
@@ -228,7 +339,7 @@ export async function scanJourneys(now: Date = new Date()): Promise<Record<strin
   const scans: [string, () => Promise<EnqueueInput[]>][] = [
     ["missed_call", () => scanMissedCall(ctx)], ["abandoned", () => scanAbandoned(ctx)],
     ["quote_close_file", () => scanQuotes(ctx, "quote_close_file")], ["quote_winback", () => scanQuotes(ctx, "quote_winback")],
-    ["prep", () => scanPrep(ctx)], ["post_clean", () => scanPostClean(ctx)], ["ratings", () => scanRatings(ctx)], ["lifecycle", () => scanLifecycle(ctx)],
+    ["prep", () => scanPrep(ctx)], ["lead_sla", () => scanLeadSla(ctx)], ["quote_viewed", () => scanQuoteViewed(ctx)], ["visit_skipped", () => scanVisitSkipped(ctx)], ["anniversary", () => scanAnniversary(ctx)], ["post_clean", () => scanPostClean(ctx)], ["ratings", () => scanRatings(ctx)], ["lifecycle", () => scanLifecycle(ctx)],
   ];
   const result: Record<string, number | string> = {};
   for (const [name, run] of scans) {

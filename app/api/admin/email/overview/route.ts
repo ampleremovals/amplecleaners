@@ -20,7 +20,7 @@ export async function GET() {
     db.from("email_suppressions").select("email", { count: "exact", head: true }),
     db.from("email_outbox").select("sent_at").eq("status", "sent").in("category", ["service", "marketing"]).order("sent_at", { ascending: false }).limit(1),
     emailBudget(db, new Date()),
-    db.from("settings").select("google_review_link").eq("id", 1).maybeSingle(),
+    db.from("settings").select("google_review_link, email_paused").eq("id", 1).maybeSingle(),
   ]);
   const byTemplate = new Map(stats.templates.map((t) => [t.key, t]));
   const journeys = AUTOMATIONS.map((d) => {
@@ -43,6 +43,7 @@ export async function GET() {
       marketingGapDays: MARKETING_GAP_DAYS,
       sendLimit: budget,
       googleReviewLinkSet: !!settings?.google_review_link,
+      paused: !!settings?.email_paused,
     },
   });
 }

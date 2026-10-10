@@ -51,7 +51,7 @@ const STAGES = [
 export async function funnel(days: number) {
   const db: any = createAdminClient();
   const since = new Date(Date.now() - days * DAY).toISOString();
-  const { data: bs } = await db.from("bookings").select("id, status, source, utm_source, quote_sent_at, created_at, parent_booking_id").is("parent_booking_id", null).gte("created_at", since).limit(5000);
+  const { data: bs } = await db.from("bookings").select("id, status, source, utm_source, quote_sent_at, created_at, parent_booking_id, lost_reason").is("parent_booking_id", null).gte("created_at", since).limit(5000);
   const cohort = (bs ?? []).filter((b: any) => !["bad_lead"].includes(b.status));
   const ids = cohort.map((b: any) => b.id);
   const reached = new Map<string, Set<string>>();
@@ -99,11 +99,18 @@ export async function funnel(days: number) {
     bySource.set(k, s);
   }
 
+  const lostCounts = new Map<string, number>();
+  for (const b of cohort) {
+    if (!["cancelled", "not_a_good_fit"].includes(b.status)) continue;
+    const k = b.lost_reason || "No reason recorded";
+    lostCounts.set(k, (lostCounts.get(k) ?? 0) + 1);
+  }
   const { data: leads } = await db.from("abandoned_leads").select("converted_at").gte("created_at", since);
   const { data: lost } = await db.from("bookings").select("id").is("parent_booking_id", null).gte("created_at", since).in("status", ["cancelled", "not_a_good_fit", "bad_lead"]);
   return {
     days, stages, conversion: pct(counts.confirmed, counts.enquiry), helpedByEmail: helped,
     lost: lost?.length ?? 0,
+    lostReasons: [...lostCounts.entries()].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
     abandoned: { captured: leads?.length ?? 0, recovered: (leads ?? []).filter((l: any) => l.converted_at).length },
     bySource: [...bySource.entries()].map(([source, v]) => ({ source, ...v, rate: pct(v.confirmed, v.enquiries) })).sort((a, b) => b.enquiries - a.enquiries).slice(0, 8),
   };

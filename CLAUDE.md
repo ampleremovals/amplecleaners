@@ -317,6 +317,8 @@ RESEND_API_KEY=
 RESEND_FROM_EMAIL=bookings@amplecleaners.com
 RESEND_ADMIN_EMAIL=admin@amplecleaners.com
 RESEND_WEBHOOK_SECRET=            # signing secret of the Resend webhook -> /api/webhooks/resend
+INBOUND_REPLY_ADDRESS=            # Resend receiving address: customer replies land in Admin -> Inbox
+RESEND_RECEIVE_KEY=               # optional: a key allowed to read received mail (falls back to RESEND_API_KEY)
 CRON_SECRET=                      # same value on Vercel and in the pg_cron job (scripts/schedule-email-dispatch.ts)
 
 TWILIO_ACCOUNT_SID=

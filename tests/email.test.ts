@@ -94,3 +94,67 @@ test("svix: accepts a correct signature, rejects tampering, replays and wrong se
   assert.equal(verifySvix(body, { id: "msg_1", timestamp: ts, signature: sig }, secret, now + 10 * 60_000), false, "replayed after 10 minutes");
   assert.equal(verifySvix(body, { id: null, timestamp: ts, signature: sig }, secret, now), false, "missing header");
 });
+
+// ── round two ───────────────────────────────────────────────────────────────
+import { isAutoReply, parseAddress, stripQuotedReply } from "../lib/email/inbound-parse";
+import { abArm } from "../lib/email/ab";
+import { renderEmailHtml } from "../lib/email/layout";
+
+test("inbound: sender addresses are parsed from 'Name <email>' and bare forms", () => {
+  assert.deepEqual(parseAddress('"Pat Jones" <Pat@Example.com>'), { name: "Pat Jones", email: "pat@example.com" });
+  assert.deepEqual(parseAddress("Pat <pat@example.com>"), { name: "Pat", email: "pat@example.com" });
+  assert.deepEqual(parseAddress("pat@example.com"), { name: null, email: "pat@example.com" });
+});
+
+test("inbound: out-of-office, bounces and newsletters are recognised; a normal reply is not", () => {
+  assert.equal(isAutoReply({ from: "a@b.co", subject: "Out of office: back Monday" }), true);
+  assert.equal(isAutoReply({ from: "a@b.co", subject: "Automatic reply: Re: your quote" }), true);
+  assert.equal(isAutoReply({ from: "mailer-daemon@x.com", subject: "hi" }), true);
+  assert.equal(isAutoReply({ from: "a@b.co", subject: "Re: your quote", headers: { "Auto-Submitted": "auto-replied" } }), true);
+  assert.equal(isAutoReply({ from: "a@b.co", subject: "Re: your quote", headers: { Precedence: "bulk" } }), true);
+  assert.equal(isAutoReply({ from: "a@b.co", subject: "Re: your quote", headers: { "Auto-Submitted": "no" } }), false);
+  assert.equal(isAutoReply({ from: "pat@gmail.com", subject: "Re: Your fixed price: £85", headers: {} }), false);
+});
+
+test("inbound: only the new text is kept, not the quoted history", () => {
+  assert.equal(stripQuotedReply("Thursday works!\n\nOn Tue, 6 Oct 2026 at 10:00, Ample Cleaners <bookings@amplecleaners.com> wrote:\n> Hi Pat\n> your price"), "Thursday works!");
+  assert.equal(stripQuotedReply("Yes please\n> quoted line\nand thanks"), "Yes please\nand thanks");
+  assert.equal(stripQuotedReply("Just this."), "Just this.");
+});
+
+test("A/B: the same recipient always gets the same arm, and the split is roughly 50/50", () => {
+  assert.equal(abArm("a@b.co|x"), abArm("a@b.co|x"));
+  let b = 0;
+  for (let i = 0; i < 2000; i++) if (abArm(`user${i}@example.com|rebook_nudge`) === "B") b++;
+  assert.ok(b > 850 && b < 1150, `B share was ${b}/2000`);
+});
+
+test("layout: table-based, Outlook-safe button, light colour scheme, address and unsubscribe present", () => {
+  const html = renderEmailHtml({
+    heading: "Hello", bodyHtml: "<p>Hi</p>", cta: { label: "Go", href: "https://www.amplecleaners.com/x" },
+    company: { name: "Ample Cleaners", address: "363 Heathway, Dagenham RM9 5AG", phone: "0333 000 0000", replyTo: null, googleReviewLink: null },
+    unsubscribeHref: "https://www.amplecleaners.com/unsubscribe/abc",
+  });
+  assert.match(html, /<table role="presentation"/);
+  assert.match(html, /name="color-scheme" content="light"/);
+  assert.match(html, /<td[^>]*bgcolor="#15803d"[^>]*>\s*<a href="https:\/\/www\.amplecleaners\.com\/x"/);
+  assert.match(html, /363 Heathway/);
+  assert.match(html, /\/unsubscribe\/abc/);
+  assert.doesNotMatch(html, /<script/i);
+});
+
+test("defaults: new templates are categorised so booking-critical ones can't be unsubscribed away", () => {
+  const cat = (k: string) => TEMPLATES.find((t) => t.key === k)?.category;
+  for (const k of ["lead_sla_alert", "quote_viewed_nudge", "visit_skipped"]) assert.equal(cat(k), "service", k);
+  assert.equal(cat("anniversary_thanks"), "marketing");
+});
+
+test("defaults: text messages exist only on service templates, never marketing", () => {
+  for (const t of TEMPLATES) if (t.category === "marketing") assert.ok(!t.sms && !t.whatsapp, `${t.key} is marketing and must not have a text version`);
+  for (const t of TEMPLATES) for (const text of [t.sms, t.whatsapp]) if (text) assert.ok(text.length <= (text === t.sms ? 480 : 1000), t.key);
+});
+
+test("defaults: the team alert is never sent to the customer as a text", () => {
+  const t = TEMPLATES.find((x) => x.key === "lead_sla_alert")!;
+  assert.ok(!t.sms && !t.whatsapp);
+});

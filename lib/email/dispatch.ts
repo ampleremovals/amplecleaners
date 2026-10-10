@@ -8,6 +8,7 @@ import { scanJourneys } from "@/lib/email/journeys";
 import { loadAutomations, loadTemplates, ensureSeeded } from "@/lib/email/store";
 import { renderTemplate, type Rendered, type Vars } from "@/lib/email/render";
 import { suppressionFor } from "@/lib/email/suppression";
+import { abArm } from "@/lib/email/ab";
 import { isPaused, NURTURE_JOURNEYS } from "@/lib/email/inbound";
 import { channelSwitches } from "@/lib/notify";
 import { sendSMS, sendWhatsApp } from "@/lib/twilio";
@@ -19,13 +20,6 @@ export const MARKETING_GAP_DAYS = 3;
 const BATCH = 40;
 const SPACING_MS = 600; // Resend allows ~2 requests a second
 const MAX_ATTEMPTS = 3;
-
-/** Stable A/B arm from a string (FNV-1a). */
-export function abArm(key: string): "A" | "B" {
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return (h >>> 0) % 2 === 0 ? "A" : "B";
-}
 
 export function londonHour(now: Date): number {
   return Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hour12: false, timeZone: "Europe/London" }).format(now)) % 24;
@@ -135,7 +129,7 @@ export async function dispatchDue(now: Date = new Date(), opts: { onlyEmailLike?
       await skip(db, row.id, "customer replied recently", "cancelled"); out.skipped++; continue;
     }
 
-    const guard = await checkGuard(row.guard ?? {}, row.booking_id);
+    const guard = await checkGuard(row.guard ?? {}, row.booking_id, row.to_email);
     if (!guard.ok) { await skip(db, row.id, guard.reason, "cancelled"); out.skipped++; continue; }
 
     if (row.category === "marketing") {
@@ -176,6 +170,8 @@ export async function dispatchDue(now: Date = new Date(), opts: { onlyEmailLike?
 
 /** One dispatcher tick: schedule what's due, then send what's due. */
 export async function runEmailEngine(now: Date = new Date()) {
+  const { data: sw } = await (createAdminClient() as any).from("settings").select("email_paused").eq("id", 1).maybeSingle();
+  if (sw?.email_paused) return { paused: true as const, scanned: {}, dispatched: { sent: 0, skipped: 0, failed: 0, waiting: "all automatic email is paused" } };
   await ensureSeeded();
   const scanned = await scanJourneys(now);
   const dispatched = await dispatchDue(now);

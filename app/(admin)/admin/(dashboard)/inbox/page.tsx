@@ -18,7 +18,7 @@ interface Conversation { email: string; name: string | null; lastAt: string; las
 interface ListResp { success: boolean; conversations: Conversation[]; unreadTotal: number; total: number; receiving: { configured: boolean; address: string | null; webhookConfigured: boolean } }
 interface Item { kind: "in" | "out" | "auto"; id: string; at: string; subject: string | null; body: string | null; bodyAvailable?: boolean; autoReply?: boolean; sentBy?: string | null; handled?: boolean }
 interface ThreadResp {
-  success: boolean; email: string; items: Item[]; lastSubject: string | null;
+  success: boolean; email: string; items: Item[]; lastSubject: string | null; contactName: string | null;
   customer: { id: string; name: string; phone: string; paused: boolean; pausedUntil: string | null } | null;
   bookings: { id: string; reference: string; service_type: string; status: string; clean_date: string | null }[];
 }
@@ -53,7 +53,7 @@ function Thread({ email, onBack, onChanged }: { email: string; onBack: () => voi
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (loading && !data) return <Skeleton className="h-96 w-full rounded-xl" />;
   if (!data) return null;
-  const name = data.customer?.name ?? email;
+  const name = data.customer?.name ?? data.contactName ?? email;
   const lastIn = [...data.items].reverse().find((i) => i.kind === "in");
 
   return (

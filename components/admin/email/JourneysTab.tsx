@@ -7,10 +7,11 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { Panel, PanelHeader, Pill } from "@/components/admin/ui";
 import { BTN, INPUT } from "@/components/admin/kit";
 import { Switch, humanHours, pct, type TemplateStat } from "@/components/admin/email/parts";
+import { PauseCircle, PlayCircle } from "lucide-react";
 
 export interface JourneyStep { template: string; hours: number; defaultHours: number; name: string; category: "service" | "marketing"; stats: TemplateStat | null }
 export interface Journey { key: string; name: string; description: string; timing: string; enabled: boolean; steps: JourneyStep[] }
-export interface Health { trackingConfigured: boolean; schedulerConfigured: boolean; lastAutomatedSend: string | null; sendingNow: boolean; sendHours: string; marketingGapDays: number; googleReviewLinkSet: boolean; sendLimit: { limit: number; reserve: number; sent24h: number; remaining: number } }
+export interface Health { trackingConfigured: boolean; schedulerConfigured: boolean; lastAutomatedSend: string | null; sendingNow: boolean; sendHours: string; marketingGapDays: number; googleReviewLinkSet: boolean; paused: boolean; sendLimit: { limit: number; reserve: number; sent24h: number; remaining: number } }
 
 function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => void; onEdit: (templateKey: string) => void }) {
   const [hours, setHours] = useState<number[]>(j.steps.map((s) => s.hours));
@@ -46,7 +47,7 @@ function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => vo
       </div>
       <ol className="divide-y divide-slate-100 border-t border-slate-100">
         {j.steps.map((s, i) => (
-          <li key={s.template} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <li key={`${s.template}-${i}`} className="grid gap-3 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={() => onEdit(s.template)} className="text-left text-sm font-medium text-slate-900 underline-offset-2 hover:text-brand-green-800 hover:underline">{s.name}</button>
@@ -60,7 +61,7 @@ function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => vo
             </div>
             <label className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 sm:justify-end">
               <span className="whitespace-nowrap">Sends after</span>
-              <input type="number" min={0} max={8760} value={hours[i]} onChange={(e) => setHours((h) => h.map((x, k) => (k === i ? Math.max(0, Math.round(Number(e.target.value) || 0)) : x)))} className={`${INPUT} w-20 text-center`} aria-label={`Hours for ${s.name}`} />
+              <input type="number" min={0} max={8760} step={0.25} value={hours[i]} onChange={(e) => setHours((h) => h.map((x, k) => (k === i ? Math.max(0, Math.round((Number(e.target.value) || 0) * 4) / 4) : x)))} className={`${INPUT} w-20 text-center`} aria-label={`Hours for ${s.name}`} />
               <span>hours <span className="text-slate-400">({humanHours(hours[i])})</span></span>
             </label>
           </li>
@@ -79,9 +80,35 @@ function JourneyCard({ j, onChanged, onEdit }: { j: Journey; onChanged: () => vo
   );
 }
 
+function PauseBar({ paused, onChanged }: { paused: boolean; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
+  async function set(next: boolean) {
+    if (next && !confirm("Pause ALL automatic emails? Nothing from the journeys or campaigns will be sent until you resume. Booking emails (quotes, invoices, receipts) are not affected.")) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/email/pause", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: next }) });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error ?? "Couldn't save");
+      toast.success(next ? "All automatic emails paused" : "Automatic emails resumed");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save");
+    } finally { setBusy(false); }
+  }
+  return paused ? (
+    <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <p><strong>All automatic emails are paused.</strong> Nothing from the journeys or campaigns is being sent.</p>
+      <button type="button" disabled={busy} className={BTN.primary} onClick={() => set(false)}><PlayCircle className="h-4 w-4" /> Resume sending</button>
+    </div>
+  ) : (
+    <div className="flex justify-end"><button type="button" disabled={busy} className={BTN.secondary} onClick={() => set(true)}><PauseCircle className="h-4 w-4" /> Pause all automatic emails</button></div>
+  );
+}
+
 export function JourneysTab({ journeys, health, onChanged, onEdit }: { journeys: Journey[]; health: Health; onChanged: () => void; onEdit: (templateKey: string) => void }) {
   return (
     <div className="space-y-4">
+      <PauseBar paused={health.paused} onChanged={onChanged} />
       {!health.googleReviewLinkSet && (
         <div role="status" className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />

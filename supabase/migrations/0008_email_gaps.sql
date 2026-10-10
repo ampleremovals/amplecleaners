@@ -52,3 +52,7 @@ CREATE INDEX IF NOT EXISTS idx_inbox_unread ON inbox_messages (created_at DESC) 
 
 ALTER TABLE email_consents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inbox_messages ENABLE ROW LEVEL SECURITY;
+
+-- Global kill switch for automatic email (Automations → "Pause all"). The test suite also uses it so the live
+-- 5-minute timer never picks up throwaway test rows.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS email_paused BOOLEAN NOT NULL DEFAULT FALSE;

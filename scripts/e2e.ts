@@ -13,11 +13,15 @@ import Stripe from "stripe";
 import { autoAssignBooking } from "../lib/automation/autoAssign";
 import { generateRecurringVisits } from "../lib/automation/recurrence";
 import { getOrCreateBookingInvoice } from "../lib/bookings/booking-invoice";
-import { generateInvoiceToken } from "../lib/tokens";
+import { generateInvoiceToken, generateQuoteConfirmToken } from "../lib/tokens";
 import { todayInLondon } from "../lib/cleaner-auth";
 import { defaultTasks } from "../lib/tasks-template";
 import { scanJourneys } from "../lib/email/journeys";
-import { dispatchDue, withinSendHours } from "../lib/email/dispatch";
+import { dispatchDue, emailBudget, runEmailEngine, withinSendHours } from "../lib/email/dispatch";
+import { abArm } from "../lib/email/ab";
+import { mayChase } from "../lib/followups/engine";
+import { REMINDER_NOTICE } from "../lib/email/notice";
+import { resendAdminEmail } from "../lib/resend";
 import { ensureSeeded } from "../lib/email/store";
 import { loadCompany } from "../lib/email/config";
 import { renderTemplate } from "../lib/email/render";
@@ -110,8 +114,13 @@ async function stripeWebhook(invoiceId: string) {
   return http("/api/webhooks/stripe", { method: "POST", raw: payload, headers: { "Content-Type": "application/json", "stripe-signature": header } });
 }
 
+let priorPaused = false;
+
 async function main() {
   console.log(`\nE2E against ${URL_} via ${BASE}\n`);
+  // The live 5-minute email timer shares this database. Pause it for the run so it can never pick up throwaway test rows.
+  priorPaused = !!(await admin.from("settings").select("email_paused").eq("id", 1).single()).data?.email_paused;
+  await admin.from("settings").update({ email_paused: true }).eq("id", 1);
   await sweepStale("before the run");
 
   // ── 1. RLS hardening ───────────────────────────────────────────────────
@@ -303,6 +312,7 @@ async function main() {
   await phase11();
   await phase12();
   await phase13();
+  await phase14();
 }
 
 /**
@@ -315,7 +325,8 @@ async function phase13() {
   const MINE = `%e2e-%${stamp}@resend.dev`;
   const hours = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
   // The dispatcher only sends 08:00-20:00 London. Move the test clock forward into that window if we're outside it.
-  let now = new Date();
+  // Run the test clock 90 minutes ahead so rows queued "now" are already due, then move into sending hours if needed.
+  let now = new Date(Date.now() + 90 * 60_000);
   for (let i = 0; i < 24 && !withinSendHours(now); i++) now = new Date(now.getTime() + 3_600_000);
   const mkCust = async (label: string) => {
     const email = `delivered+e2e-mail-${label}-${stamp}@resend.dev`;
@@ -572,6 +583,232 @@ async function phase13() {
   check("funnel report loads", fn.json.success && fn.json.stages.length === 5 && typeof fn.json.conversion === "number", fn.text.slice(0, 120));
 }
 
+/**
+ * Email gaps: replies (inbound webhook → inbox + pause), the ladder's pause/suppression rules, text twins,
+ * send-limit reserve, consent log, speed-to-lead alerts, quote-view tracking, lost reasons, subject A/B,
+ * skipped-visit and anniversary journeys, the global pause switch. Outbound mail stays disabled.
+ */
+async function phase14() {
+  console.log("— phase 14: email gaps");
+  const MINE = `%e2e-%${stamp}@resend.dev`;
+  const hours = (n: number) => new Date(Date.now() + n * 3_600_000).toISOString();
+  // Run the test clock 90 minutes ahead so rows queued "now" are already due, then move into sending hours if needed.
+  let now = new Date(Date.now() + 90 * 60_000);
+  for (let i = 0; i < 24 && !withinSendHours(now); i++) now = new Date(now.getTime() + 3_600_000);
+  const mkCust = async (label: string) => {
+    const email = `delivered+e2e-gap-${label}-${stamp}@resend.dev`;
+    const { data } = await admin.from("customers").insert({ full_name: `E2E ${label} Person`, email, phone: "07700900666" }).select("id").single();
+    ids.customers.push(data!.id);
+    return { id: data!.id as string, email };
+  };
+  const mkBk = async (customerId: string, over: Record<string, unknown>) => {
+    const { data: addr } = await admin.from("addresses").insert({ line_1: "3 Gap Street", postcode: "SW1A 1AA" }).select("id").single();
+    ids.addresses.push(addr!.id);
+    const { data: b, error } = await admin.from("bookings").insert({
+      reference: `E2E-${stamp}-g${ids.bookings.length}`, service_type: "deep_cleaning", status: "quote_sent", customer_id: customerId, address_id: addr!.id,
+      frequency: "one_off", quote_total: 90, quote_subtotal: 90, deposit_percentage: 20, quote_line_items: [], source: "e2e", ...over,
+    }).select("id, reference").single();
+    if (error || !b) throw new Error(`gap booking: ${error?.message}`);
+    ids.bookings.push(b.id);
+    return b as { id: string; reference: string };
+  };
+  const rowsFor = async (email: string) => (await admin.from("email_outbox").select("template_key, category, status, status_note, variant, subject, customer_id, vars").ilike("to_email", email)).data ?? [];
+  const one = async (email: string, template: string) => (await rowsFor(email)).find((r) => r.template_key === template);
+  const run = async () => { await scanJourneys(now); return dispatchDue(now, { onlyEmailLike: MINE }); };
+  const whsec = "whsec_ZTJlLXdlYmhvb2stc2VjcmV0";
+  const hook = async (type: string, id: string, data: Record<string, unknown>) => {
+    const payload = JSON.stringify({ type, created_at: new Date().toISOString(), data });
+    const ts = String(Math.floor(Date.now() / 1000));
+    const sig = crypto.createHmac("sha256", Buffer.from(whsec.replace(/^whsec_/, ""), "base64")).update(`${id}.${ts}.${payload}`).digest("base64");
+    return http("/api/webhooks/resend", { method: "POST", raw: payload, headers: { "Content-Type": "application/json", "svix-id": id, "svix-timestamp": ts, "svix-signature": `v1,${sig}` } });
+  };
+
+  // ── global pause switch (the suite keeps it ON for the whole run) ──
+  const eng = await runEmailEngine();
+  check("with all automatic email paused, the engine does nothing", "paused" in eng && eng.paused === true);
+
+  // ── a reply pauses the sales follow-ups ──
+  const replier = await mkCust("replier");
+  await mkBk(replier.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await scanJourneys(now);
+  check("setup: a close-the-file email is queued for the customer", (await one(replier.email, "quote_close_file"))?.status === "scheduled");
+  const rcv = await hook("email.received", `msg_r1_${stamp}`, { email_id: `rcv_${stamp}_1`, from: `Pat Replier <${replier.email}>`, to: ["replies@example.resend.app"], subject: "Re: your fixed price", message_id: "<m1@example>" });
+  check("inbound reply webhook is accepted", rcv.json.success === true, rcv.text.slice(0, 120));
+  const inRow = (await admin.from("inbox_messages").select("customer_id, direction, auto_reply, body_available").ilike("email", replier.email)).data ?? [];
+  check("the reply is filed in the inbox against the right customer", inRow.length === 1 && inRow[0].direction === "in" && inRow[0].customer_id === replier.id && inRow[0].auto_reply === false, JSON.stringify(inRow));
+  check("a queued sales email is cancelled when the customer replies", (await one(replier.email, "quote_close_file"))?.status === "cancelled" && /replied/.test((await one(replier.email, "quote_close_file"))?.status_note ?? ""));
+  const pc = (await admin.from("customers").select("followups_paused_until").eq("id", replier.id).single()).data;
+  check("the customer's sales follow-ups are paused for about a week", !!pc?.followups_paused_until && new Date(pc.followups_paused_until).getTime() > Date.now() + 6 * 86_400_000);
+  await hook("email.received", `msg_r1b_${stamp}`, { email_id: `rcv_${stamp}_1`, from: `Pat Replier <${replier.email}>`, to: ["replies@example.resend.app"], subject: "Re: your fixed price" });
+  check("the same received email delivered twice is stored once", ((await admin.from("inbox_messages").select("id").ilike("email", replier.email)).data ?? []).length === 1);
+
+  const ooo = await mkCust("ooo");
+  await hook("email.received", `msg_r2_${stamp}`, { email_id: `rcv_${stamp}_2`, from: ooo.email, to: ["replies@example.resend.app"], subject: "Out of office: back Monday" });
+  const oooRow = (await admin.from("inbox_messages").select("auto_reply").ilike("email", ooo.email)).data ?? [];
+  const oooCust = (await admin.from("customers").select("followups_paused_until").eq("id", ooo.id).single()).data;
+  check("an out-of-office reply is stored but does NOT pause follow-ups", oooRow[0]?.auto_reply === true && !oooCust?.followups_paused_until);
+
+  const stranger = `delivered+e2e-gap-stranger-${stamp}@resend.dev`;
+  const sr = await hook("email.received", `msg_r3_${stamp}`, { email_id: `rcv_${stamp}_3`, from: stranger, to: ["replies@example.resend.app"], subject: "Hello" });
+  check("a message from someone who isn't a customer is still kept", sr.json.success === true && ((await admin.from("inbox_messages").select("customer_id").ilike("email", stranger)).data ?? [])[0]?.customer_id === null);
+
+  // ── paused customers are not nudged; booking-critical email still goes ──
+  const paused = await mkCust("paused");
+  await admin.from("customers").update({ followups_paused_until: hours(24) }).eq("id", paused.id);
+  await mkBk(paused.id, { status: "quote_sent", quote_sent_at: hours(-9 * 24) });
+  await mkBk(paused.id, { status: "booking_confirmed", clean_date: dayShift(3), service_type: "end_of_tenancy" });
+  await run();
+  check("paused customer: the sales nudge is cancelled", (await one(paused.email, "quote_close_file"))?.status === "cancelled");
+  check("paused customer: the prep checklist still goes out", (await one(paused.email, "prep_checklist"))?.status === "sent");
+  const unsubbed = await mkCust("unsubbed2");
+  await admin.from("email_suppressions").upsert({ email: unsubbed.email, scope: "marketing", reason: "e2e" }, { onConflict: "email" });
+  check("the 7-day ladder stays quiet for an unsubscribed customer", (await mayChase(unsubbed.email)) === false);
+  check("the 7-day ladder stays quiet for a customer in conversation", (await mayChase(paused.email)) === false);
+  check("the 7-day ladder continues for everyone else", (await mayChase(`nobody-${stamp}@example.com`)) === true);
+
+  // ── text twins ──
+  const lr = await admin.from("email_templates").select("sms_body, whatsapp_body").eq("key", "lead_not_answered").single();
+  check("booking-critical templates carry SMS and WhatsApp wording", !!lr.data?.sms_body && !!lr.data?.whatsapp_body);
+  const mk = await admin.from("email_templates").select("sms_body, whatsapp_body").eq("key", "rebook_nudge").single();
+  check("marketing templates have no text version", !mk.data?.sms_body && !mk.data?.whatsapp_body);
+
+  // ── consent log ──
+  const leadEmail = `delivered+e2e-lead-${stamp}@resend.dev`;
+  const cons = (await admin.from("email_consents").select("source, notice_text").ilike("email", leadEmail)).data ?? [];
+  check("the reminder notice shown on the form is logged with the form's exact wording", cons.some((c) => c.source === "booking_form_reminder" && c.notice_text === REMINDER_NOTICE) && cons.some((c) => c.source === "booking_form_submit"), JSON.stringify(cons));
+
+  // ── send limit leaves room for booking emails ──
+  const { data: lim0 } = await admin.from("settings").select("email_daily_limit").eq("id", 1).single();
+  await admin.from("settings").update({ email_daily_limit: 20 }).eq("id", 1);
+  const filler = await mkCust("filler");
+  await admin.from("email_outbox").insert(Array.from({ length: 12 }, (_, i) => ({ template_key: `e2e filler ${i}`, category: "system", to_email: filler.email, status: "sent", sent_at: new Date().toISOString() })));
+  const budget = await emailBudget(admin, now);
+  check("automation stops short of the daily limit (a reserve is kept)", budget.reserve === 10 && budget.remaining === 0, JSON.stringify(budget));
+  check("when out of room the dispatcher waits instead of sending", (await dispatchDue(now, { onlyEmailLike: MINE })).waiting?.includes("limit") === true);
+  await admin.from("email_outbox").delete().ilike("to_email", filler.email);
+  await admin.from("settings").update({ email_daily_limit: lim0?.email_daily_limit ?? 100 }).eq("id", 1);
+
+  // ── speed-to-lead alert ──
+  const sla = await mkCust("sla");
+  const slaBk = await mkBk(sla.id, { status: "inquiry", quote_total: null, quote_subtotal: null, created_at: hours(-0.4) });
+  await scanJourneys(now);
+  const slaAll = (await admin.from("email_outbox").select("to_email, customer_id, vars, status, category").eq("booking_id", slaBk.id).eq("template_key", "lead_sla_alert")).data ?? [];
+  check("both alerts (15 and 60 minutes) are queued; the later one waits", slaAll.length === 2);
+  const slaRow = slaAll.filter((r) => Number(r.vars?.minutesWaiting) === 15);
+  check("an uncontacted enquiry triggers a team alert at 15 minutes", slaRow.length === 1 && slaRow[0].to_email === resendAdminEmail.toLowerCase() && Number(slaRow[0].vars?.minutesWaiting) === 15, JSON.stringify(slaRow));
+  check("the team alert is addressed to the team, never tied to the customer", slaRow[0]?.customer_id === null);
+  const called = await mkBk(sla.id, { status: "called", quote_total: null, quote_subtotal: null, created_at: hours(-0.4) });
+  await scanJourneys(now);
+  check("a lead that has been called gets no alert", ((await admin.from("email_outbox").select("id").eq("booking_id", called.id)).data ?? []).length === 0);
+
+  // ── quote views ──
+  const viewer = await mkCust("viewer");
+  const vb = await mkBk(viewer.id, { status: "quote_sent", quote_sent_at: hours(-30) });
+  const vtoken = generateQuoteConfirmToken(vb.id)!;
+  const qv = () => http("/api/quote/details", { method: "POST", headers: fwd(), body: { bookingId: vb.id, token: vtoken } });
+  await qv();
+  const v1 = (await admin.from("bookings").select("quote_view_count, quote_first_viewed_at").eq("id", vb.id).single()).data;
+  check("opening the quote page is counted", v1?.quote_view_count === 1 && !!v1.quote_first_viewed_at, JSON.stringify(v1));
+  await qv();
+  check("reloading within 30 minutes is the same visit", (await admin.from("bookings").select("quote_view_count").eq("id", vb.id).single()).data?.quote_view_count === 1);
+  await admin.from("bookings").update({ quote_last_viewed_at: hours(-0.6) }).eq("id", vb.id);
+  await qv();
+  check("coming back later counts as a new visit", (await admin.from("bookings").select("quote_view_count").eq("id", vb.id).single()).data?.quote_view_count === 2);
+  await admin.from("bookings").update({ quote_last_viewed_at: hours(-4) }).eq("id", vb.id);
+  await run();
+  check("opened-but-unpaid quote gets a friendly 'any questions?' email", (await one(viewer.email, "quote_viewed_nudge"))?.status === "sent");
+  const busy = await mkCust("busy");
+  const bb = await mkBk(busy.id, { status: "quote_sent", quote_sent_at: hours(-30), quote_view_count: 1, quote_last_viewed_at: hours(-4) });
+  await admin.from("email_outbox").insert({ template_key: "quote follow-up day 1", category: "system", to_email: busy.email, status: "sent", sent_at: hours(-2), booking_id: bb.id });
+  await run();
+  check("…but not if another email just went to them", (await one(busy.email, "quote_viewed_nudge"))?.status === "cancelled" && /already emailed/.test((await one(busy.email, "quote_viewed_nudge"))?.status_note ?? ""));
+
+  // ── subject-line test ──
+  const abc = await mkCust("ab");
+  await mkBk(abc.id, { status: "paid", clean_date: dayShift(-22), service_type: "deep_cleaning" });
+  const ADMIN_PW = process.env.E2E_ADMIN_PW;
+  let at = "";
+  let rebookOrig: { subject: string; heading: string; body: string; cta_label: string | null; cta_url: string | null } | null = null;
+  if (ADMIN_PW) {
+    const { data: as } = await anon().auth.signInWithPassword({ email: ADMIN_EMAIL, password: ADMIN_PW });
+    at = as!.session!.access_token;
+    rebookOrig = (await admin.from("email_templates").select("subject, heading, body, cta_label, cta_url").eq("key", "rebook_nudge").single()).data;
+    const put = await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { ...rebookOrig, subject_b: "E2E B subject for {{firstName}}" } });
+    check("a second subject line can be saved", put.json.success === true, put.text.slice(0, 120));
+  }
+  await run();
+  const abRow = await one(abc.email, "rebook_nudge");
+  if (ADMIN_PW) {
+    const arm = abArm(`${abc.email}|rebook_nudge`);
+    check("each recipient is assigned an arm and sees that arm's subject", abRow?.variant === arm && (arm === "B" ? /^E2E B subject/.test(abRow.subject ?? "") : !/^E2E B subject/.test(abRow?.subject ?? "")), JSON.stringify(abRow));
+    await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { reset: true } });
+  } else check("rebook email sent (A/B admin checks skipped without E2E_ADMIN_PW)", abRow?.status === "sent");
+
+  // ── retention ──
+  const skipper = await mkCust("skipper");
+  const series = await mkBk(skipper.id, { status: "booking_confirmed", frequency: "weekly", service_type: "regular_cleaning", clean_date: dayShift(2) });
+  const visit = await mkBk(skipper.id, { status: "cancelled", frequency: "weekly", service_type: "regular_cleaning", clean_date: dayShift(9), parent_booking_id: series.id });
+  await admin.from("status_history").insert({ booking_id: visit.id, previous_status: "cleaner_assigned", new_status: "cancelled", changed_by: "customer", created_at: hours(-3) });
+  const ended = await mkCust("ended");
+  const deadSeries = await mkBk(ended.id, { status: "cancelled", frequency: "weekly", service_type: "regular_cleaning", clean_date: dayShift(2) });
+  const deadVisit = await mkBk(ended.id, { status: "cancelled", frequency: "weekly", service_type: "regular_cleaning", clean_date: dayShift(9), parent_booking_id: deadSeries.id });
+  await admin.from("status_history").insert({ booking_id: deadVisit.id, previous_status: "booking_confirmed", new_status: "cancelled", changed_by: "customer", created_at: hours(-3) });
+  const anniv = await mkCust("anniv");
+  await mkBk(anniv.id, { status: "paid", clean_date: dayShift(-366), frequency: "weekly", service_type: "regular_cleaning" });
+  await mkBk(anniv.id, { status: "paid", clean_date: dayShift(-20), frequency: "weekly", service_type: "regular_cleaning" });
+  await run();
+  check("a regular customer cancelling one visit gets a check-in", (await one(skipper.email, "visit_skipped"))?.status === "sent");
+  check("ending the whole series is NOT treated as a skipped visit", !(await one(ended.email, "visit_skipped")));
+  check("a regular customer gets a thank-you on their first anniversary", (await one(anniv.email, "anniversary_thanks"))?.status === "sent");
+
+  // ── lost reasons + inbox admin API ──
+  if (!ADMIN_PW) { console.log("SKIP  inbox / lost-reason admin checks (set E2E_ADMIN_PW)"); return; }
+  const cl = await makeCleaner("gapauthz", { dbs: true });
+  const cs = await signInAs(cl);
+  check("inbox API: anonymous → 401", (await http("/api/admin/inbox")).status === 401);
+  check("inbox API: a cleaner → 403", (await http("/api/admin/inbox", { token: cs.token })).status === 403);
+  const inbox = await http("/api/admin/inbox?filter=all", { token: at });
+  const conv = (inbox.json.conversations ?? []).find((c: { email: string }) => c.email === replier.email);
+  check("inbox lists the conversation as unread with the customer's name", !!conv && conv.unread >= 1 && /replier/i.test(conv.name ?? ""), JSON.stringify(conv));
+  check("inbox says whether replies can reach it yet", typeof inbox.json.receiving?.configured === "boolean");
+  const th = await http(`/api/admin/inbox/thread?email=${encodeURIComponent(replier.email)}`, { token: at });
+  check("thread shows the customer, their message and the automatic emails sent to them", th.json.success && th.json.items.some((i: { kind: string }) => i.kind === "in") && th.json.customer?.id === replier.id && th.json.customer?.paused === true, th.text.slice(0, 160));
+  await http("/api/admin/inbox/thread", { method: "POST", token: at, body: { email: replier.email, action: "read" } });
+  check("opening a conversation marks it read", ((await admin.from("inbox_messages").select("read_at").ilike("email", replier.email).eq("direction", "in")).data ?? []).every((m) => !!m.read_at));
+  const rep = await http("/api/admin/inbox/reply", { method: "POST", token: at, body: { email: replier.email, body: "Thursday works. See you then!" } });
+  const outMsg = (await admin.from("inbox_messages").select("direction, body_text, subject").ilike("email", replier.email).eq("direction", "out")).data ?? [];
+  check("replying from the inbox sends and records the message", rep.json.success === true && outMsg.length === 1 && /^Re:/.test(outMsg[0].subject ?? ""), rep.text.slice(0, 120));
+  check("replying marks their message as handled", ((await admin.from("inbox_messages").select("handled_at").ilike("email", replier.email).eq("direction", "in")).data ?? []).every((m) => !!m.handled_at));
+  check("an empty reply is rejected", (await http("/api/admin/inbox/reply", { method: "POST", token: at, body: { email: replier.email, body: "  " } })).status === 400);
+  await http("/api/admin/inbox/thread", { method: "POST", token: at, body: { email: replier.email, action: "resume" } });
+  check("follow-ups can be resumed by hand", !(await admin.from("customers").select("followups_paused_until").eq("id", replier.id).single()).data?.followups_paused_until);
+  await http("/api/admin/inbox/thread", { method: "POST", token: at, body: { email: replier.email, action: "pause" } });
+  check("…and paused by hand", !!(await admin.from("customers").select("followups_paused_until").eq("id", replier.id).single()).data?.followups_paused_until);
+
+  const tx1 = await http("/api/admin/email/templates/rebook_nudge", { method: "PATCH", token: at, body: { ...rebookOrig, sms_body: "Hi {{firstName}}" } });
+  check("a marketing email can't be given a text-message version", tx1.status === 400, tx1.text.slice(0, 100));
+  const pv = await http("/api/admin/email/templates/lead_not_answered/preview", { method: "POST", token: at, body: {} });
+  check("the preview shows the SMS and WhatsApp wording with sample details", /Ample Cleaners/.test(pv.json.sms ?? "") && /REG-2026/.test(pv.json.whatsapp ?? ""), pv.text.slice(0, 160));
+  check("send limit below the minimum is rejected", (await http("/api/admin/settings", { method: "PATCH", token: at, body: { email_daily_limit: 5 } })).status === 400);
+  const pauseApi = await http("/api/admin/email/pause", { method: "POST", token: at, body: { paused: true } });
+  const ov = await http("/api/admin/email/overview", { token: at });
+  check("pause switch API works and the overview reports it", pauseApi.json.success === true && ov.json.health.paused === true && typeof ov.json.health.sendLimit.remaining === "number");
+
+  const lost1 = await mkCust("lost1");
+  const lb1 = await mkBk(lost1.id, { status: "quote_sent", quote_sent_at: hours(-30) });
+  const l1 = await http(`/api/admin/bookings/${lb1.id}/status`, { method: "PATCH", token: at, body: { status: "not_a_good_fit", reason: "Too expensive" } });
+  const lb1row = (await admin.from("bookings").select("lost_reason").eq("id", lb1.id).single()).data;
+  const lh = (await admin.from("status_history").select("reason").eq("booking_id", lb1.id).eq("new_status", "not_a_good_fit")).data ?? [];
+  check("moving a lead to Lost records why", l1.json.success === true && lb1row?.lost_reason === "Too expensive" && lh[0]?.reason === "Too expensive", l1.text.slice(0, 120));
+  const lb2 = await mkBk(lost1.id, { status: "quote_sent", quote_sent_at: hours(-30) });
+  await http(`/api/admin/bookings/${lb2.id}/status`, { method: "PATCH", token: at, body: { status: "cancelled", reason: "Chose someone else" } });
+  check("cancelling a lead records why too", (await admin.from("bookings").select("lost_reason").eq("id", lb2.id).single()).data?.lost_reason === "Chose someone else");
+  const fn = await http("/api/admin/email/funnel?days=30", { token: at });
+  check("the Results funnel breaks lost leads down by reason", (fn.json.lostReasons ?? []).some((r: { reason: string }) => r.reason === "Too expensive") && (fn.json.lostReasons ?? []).some((r: { reason: string }) => r.reason === "Chose someone else"), JSON.stringify(fn.json.lostReasons));
+  const bd = await http(`/api/admin/bookings/${vb.id}`, { token: at });
+  check("the booking shows how many times the customer opened the quote", (bd.json.booking?.quote_view_count ?? 0) >= 2, bd.text.slice(0, 100));
+}
+
 async function phase12() {
   console.log("— phase 12: local SEO pages");
   const { AREAS } = await import("../lib/seo/areas");
@@ -726,6 +963,9 @@ async function sweepStale(label: string): Promise<number> {
   if (cleanerIds.length) await admin.from("cleaners").delete().in("id", cleanerIds);
   await admin.from("cleaner_applications").delete().ilike("email", EMAIL);
   await admin.from("email_outbox").delete().ilike("to_email", EMAIL);
+  if (bookingIds.length) await admin.from("email_outbox").delete().in("booking_id", bookingIds); // team alerts about test leads go to the admin address
+  await admin.from("inbox_messages").delete().ilike("email", EMAIL);
+  await admin.from("email_consents").delete().ilike("email", EMAIL);
   await admin.from("email_suppressions").delete().ilike("email", EMAIL);
   await admin.from("abandoned_leads").delete().ilike("email", EMAIL);
   await admin.from("server_logs").delete().ilike("metadata->>to", "%e2e-%");
@@ -1090,6 +1330,7 @@ async function cleanup() {
   try {
     if (ids.photos.length) await admin.storage.from("job-photos").remove(ids.photos);
     // children of series first (FK is SET NULL, but delete explicitly)
+    await admin.from("email_outbox").delete().in("booking_id", ids.bookings);
     await admin.from("bookings").delete().in("parent_booking_id", ids.bookings);
     await admin.from("bookings").delete().in("id", ids.bookings);
     await admin.from("customers").delete().in("id", ids.customers);
@@ -1111,6 +1352,7 @@ main()
   .catch((e) => { failures++; console.error("E2E crashed:", e); })
   .finally(async () => {
     await cleanup();
+    await admin.from("settings").update({ email_paused: priorPaused }).eq("id", 1);
     // Belt and braces: anything this run's own cleanup missed is a bug in the test — remove it AND fail loudly.
     try {
       const missed = await sweepStale("after the run");

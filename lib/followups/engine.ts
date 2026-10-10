@@ -47,7 +47,7 @@ function wrapEmail(subject: string, bodyHtml: string, toEmail: string): string {
  * bounced, and nothing while they are in conversation with us (they replied, or an admin paused them).
  * Not stamped as sent, so it simply carries on when the pause ends.
  */
-async function mayChase(email: string | null | undefined): Promise<boolean> {
+export async function mayChase(email: string | null | undefined): Promise<boolean> {
   if (!email) return true; // phone-only contacts: SMS/WhatsApp switches are handled in Settings
   if ((await suppressionFor(email)) !== "none") return false;
   return !(await isPaused(email, null));

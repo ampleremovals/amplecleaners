@@ -5,7 +5,7 @@ import type { Guard } from "@/lib/email/outbox";
 export const DEAD_STATUSES = ["cancelled", "bad_lead", "not_a_good_fit"];
 
 /** Re-checks the world at the moment of sending: a lot can change between scheduling and sending. */
-export async function checkGuard(g: Guard, bookingId: string | null): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function checkGuard(g: Guard, bookingId: string | null, toEmail?: string): Promise<{ ok: true } | { ok: false; reason: string }> {
   const db: any = createAdminClient();
   if (g.statusIn) {
     if (!bookingId) return { ok: false, reason: "no booking" };
@@ -28,6 +28,11 @@ export async function checkGuard(g: Guard, bookingId: string | null): Promise<{ 
         return { ok: false, reason: "booking completed" };
       }
     }
+  }
+  if (g.quietForHours && toEmail) {
+    const since = new Date(Date.now() - g.quietForHours * 3_600_000).toISOString();
+    const { data } = await db.from("email_outbox").select("id").ilike("to_email", toEmail).eq("status", "sent").gte("sent_at", since).limit(1);
+    if (data?.length) return { ok: false, reason: `already emailed within ${g.quietForHours} hours` };
   }
   if (g.noNewBooking) {
     const n = g.noNewBooking;

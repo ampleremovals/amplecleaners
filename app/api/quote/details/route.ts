@@ -39,11 +39,24 @@ export async function POST(req: NextRequest) {
         reference, service_type, status, quote_total, quote_line_items,
         deposit_percentage, deposit_amount, deposit_status, deposit_required,
         clean_date, is_flexible_date, property_type, bedrooms, bathrooms,
+        quote_view_count, quote_first_viewed_at, quote_last_viewed_at,
         customer:customers!inner(full_name)
       `)
       .eq("id", bookingId)
       .single();
     if (error || !booking) return NextResponse.json({ success: false, error: "Quote not found" }, { status: 404 });
+
+    // Count a visit when the customer opens their quote (a reload within 30 minutes is the same visit). Best effort.
+    try {
+      const nowIso = new Date().toISOString();
+      const lastSeen = booking.quote_last_viewed_at ? new Date(booking.quote_last_viewed_at).getTime() : 0;
+      const newVisit = Date.now() - lastSeen > 30 * 60_000;
+      await supabase.from("bookings").update({
+        quote_last_viewed_at: nowIso,
+        quote_first_viewed_at: booking.quote_first_viewed_at ?? nowIso,
+        ...(newVisit ? { quote_view_count: (booking.quote_view_count ?? 0) + 1 } : {}),
+      }).eq("id", bookingId);
+    } catch { /* tracking must never break the quote page */ }
 
     const customer = Array.isArray(booking.customer) ? booking.customer[0] : booking.customer;
     const firstName = (customer?.full_name ?? "there").split(" ")[0];

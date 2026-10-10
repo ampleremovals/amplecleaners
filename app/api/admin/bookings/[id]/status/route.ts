@@ -25,7 +25,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const auth = await requireAdmin();
   if (!auth.ok) return auth.response;
 
-  const body = await req.json().catch(() => null) as { status?: string } | null;
+  const body = await req.json().catch(() => null) as { status?: string; reason?: string } | null;
+  const reason = typeof body?.reason === "string" ? body.reason.trim().slice(0, 120) || undefined : undefined;
   const newStatus = body?.status as BookingStatus | undefined;
   if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
     return NextResponse.json({ success: false, error: "Invalid status" }, { status: 400 });
@@ -37,17 +38,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   // Cancelling releases the cleaner, voids unpaid invoices, stops a series and flags refunds.
   if (newStatus === "cancelled") {
-    const result = await cancelBooking(params.id, { actor: "admin", notifyCustomer: false });
+    const result = await cancelBooking(params.id, { actor: "admin", notifyCustomer: false, reason });
+    if (result.ok && reason) await supabase.from("bookings").update({ lost_reason: reason }).eq("id", params.id);
     if (!result.ok) return NextResponse.json({ success: false, error: result.error }, { status: result.status });
     return NextResponse.json({ success: true, refundDue: result.refundDue ?? 0 });
   }
 
-  const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", params.id);
+  const { error } = await supabase.from("bookings").update({ status: newStatus, ...((newStatus === "bad_lead" || newStatus === "not_a_good_fit") && reason ? { lost_reason: reason } : {}) }).eq("id", params.id);
   if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
 
   await Promise.allSettled([
     supabase.from("status_history").insert({
-      booking_id: params.id, previous_status: booking.status, new_status: newStatus, changed_by: "admin",
+      booking_id: params.id, previous_status: booking.status, new_status: newStatus, changed_by: "admin", ...(reason ? { reason } : {}),
     }),
     supabase.from("activity_log").insert({
       booking_id: params.id, action: `Status changed: ${booking.status} → ${newStatus}`, performed_by: "admin",

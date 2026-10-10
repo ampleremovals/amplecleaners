@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const schema = z.object({
   enabled: z.boolean().optional(),
   /** New timing for each step, in the same order as the journey's steps. */
-  hours: z.array(z.number().int().min(0).max(24 * 365)).max(10).optional(),
+  hours: z.array(z.number().min(0).max(24 * 365)).max(10).optional(),
 });
 
 /** PATCH — switch a journey on/off and/or change when each of its emails goes out. */

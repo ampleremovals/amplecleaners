@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { AlertTriangle, Plus, Repeat } from "lucide-react";
 import { TableSkeleton, ErrorState } from "@/components/admin/DataState";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { LOST_REASONS } from "@/lib/lost-reasons";
 import { AdminHero, AdminPage, HERO_BTN } from "@/components/admin/kit";
 import { Avatar } from "@/components/admin/ui";
 import { formatCurrency } from "@/lib/utils";
@@ -108,6 +109,7 @@ export default function BookingsBoardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pendingMove, setPendingMove] = useState<{ booking: BoardBooking; target: (typeof COLUMNS)[number] } | null>(null);
+  const [lostReason, setLostReason] = useState<string>("");
   const [moving, setMoving] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
@@ -156,14 +158,14 @@ export default function BookingsBoardPage() {
     await moveBooking(booking, targetCol);
   }
 
-  async function moveBooking(booking: BoardBooking, targetCol: (typeof COLUMNS)[number]) {
+  async function moveBooking(booking: BoardBooking, targetCol: (typeof COLUMNS)[number], reason?: string) {
     const prevStatus = booking.status;
     setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, status: targetCol.dropStatus } : b)));
 
     const res = await fetch(`/api/admin/bookings/${booking.id}/status`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: targetCol.dropStatus }),
+      body: JSON.stringify({ status: targetCol.dropStatus, ...(reason ? { reason } : {}) }),
     });
     if (!res.ok) {
       setBookings((prev) => prev.map((b) => (b.id === booking.id ? { ...b, status: prevStatus } : b)));
@@ -216,8 +218,19 @@ export default function BookingsBoardPage() {
         description={pendingMove?.target.key === "completed" ? "The customer is invoiced and messaged automatically (email, SMS and WhatsApp). Cleaners normally trigger this by clocking out." : "The booking is cancelled. If it's a recurring series, its future visits are cancelled too."}
         confirmLabel={pendingMove?.target.key === "completed" ? "Complete & invoice" : "Move to Lost"}
         busy={moving}
-        onConfirm={async () => { if (!pendingMove) return; setMoving(true); await moveBooking(pendingMove.booking, pendingMove.target); setMoving(false); setPendingMove(null); }}
-      />
+        onConfirm={async () => { if (!pendingMove) return; setMoving(true); await moveBooking(pendingMove.booking, pendingMove.target, pendingMove.target.key === "lost" ? lostReason || undefined : undefined); setMoving(false); setPendingMove(null); setLostReason(""); }}
+      >
+        {pendingMove?.target.key === "lost" && (
+          <fieldset className="space-y-2">
+            <legend className="mb-1 text-sm font-medium text-slate-700">Why was it lost? <span className="font-normal text-slate-500">(optional, but it shows in Automations → Results)</span></legend>
+            <div className="flex flex-wrap gap-2">
+              {LOST_REASONS.map((r) => (
+                <button key={r} type="button" aria-pressed={lostReason === r} onClick={() => setLostReason(lostReason === r ? "" : r)} className={`rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors ${lostReason === r ? "border-brand-green-700 bg-brand-green-50 text-brand-green-900" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}>{r}</button>
+              ))}
+            </div>
+          </fieldset>
+        )}
+      </ConfirmDialog>
     </AdminPage>
   );
 }

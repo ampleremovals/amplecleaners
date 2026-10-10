@@ -16,6 +16,7 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
 /** 0 → "straight away", 3 → "3 hours", 192 → "8 days". */
 export function humanHours(h: number): string {
   if (h <= 0) return "straight away";
+  if (h < 1) return `${Math.round(h * 60)} minutes`;
   if (h < 48) return `${h} hour${h === 1 ? "" : "s"}`;
   const d = Math.round((h / 24) * 10) / 10;
   return `${d} days`;

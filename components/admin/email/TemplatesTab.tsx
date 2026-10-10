@@ -19,6 +19,9 @@ interface Template {
 }
 interface Draft { name: string; subject: string; subject_b: string; heading: string; body: string; cta_label: string; cta_url: string; sms_body: string; whatsapp_body: string }
 
+/** Details that only make sense in the alert sent to your own team. */
+const TEAM_ONLY = ["customerName", "customerPhone", "customerEmail", "minutesWaiting", "adminLink"];
+
 const toDraft = (t: Template): Draft => ({ name: t.name, subject: t.subject, subject_b: t.subject_b ?? "", heading: t.heading, body: t.body, cta_label: t.cta_label ?? "", cta_url: t.cta_url ?? "", sms_body: t.sms_body ?? "", whatsapp_body: t.whatsapp_body ?? "" });
 
 async function call(url: string, method: string, body?: unknown) {
@@ -101,7 +104,7 @@ function Editor({ t, variables, stat, onChanged, onDeleted }: { t: Template; var
           <div>
             <p className="mb-1.5 text-xs font-medium text-slate-500">Click to insert a personal detail into the message</p>
             <div className="flex flex-wrap gap-1.5">
-              {Object.entries(variables).map(([name, hint]) => (
+              {Object.entries(variables).filter(([name]) => t.key === "lead_sla_alert" || !TEAM_ONLY.includes(name)).map(([name, hint]) => (
                 <button key={name} type="button" title={hint} onClick={() => insertVariable(name)} className="rounded-md border border-slate-200 bg-white px-2 py-1 font-mono text-[11.5px] text-slate-700 transition-colors hover:border-brand-green-600 hover:bg-brand-green-50">{`{{${name}}}`}</button>
               ))}
             </div>

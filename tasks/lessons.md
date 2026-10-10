@@ -190,3 +190,11 @@ gracefully at runtime instead of crashing the whole build.
 ## Lesson 32 — `kill $!` on Windows kills the wrapper, not the server
 **What happened:** `npx next start &` then `kill $SP` left the real node server listening, so the next run silently tested the OLD build.
 **Rule going forward:** Stop test servers by port (`netstat -ano | grep :PORT | … taskkill //PID`) and check the port is free before starting; a green test against a stale server proves nothing.
+
+## Lesson 33 — A shared database plus a live timer means tests need a kill switch
+**What happened:** Once the 5-minute pg_cron dispatcher was live, throwaway e2e rows in the same database could have been sent for real (including a team alert to the owner) in the seconds between creation and cleanup.
+**Rule going forward:** Any automation that acts on database rows needs a global pause flag that the test suite sets before it creates data and restores afterwards (remember the previous value). Build the switch into the product; owners want it anyway.
+
+## Lesson 34 — Test clocks: rows created "now" are a few seconds in the future of the clock you captured earlier
+**What happened:** Email tests passed overnight (the test clock had been moved into sending hours, hours ahead) and failed in the morning (clock = real time, rows due a moment later).
+**Rule going forward:** Run test clocks deliberately ahead of real time (+90 min) instead of relying on a side-effect of the time of day.

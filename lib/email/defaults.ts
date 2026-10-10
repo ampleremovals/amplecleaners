@@ -46,6 +46,11 @@ export const COMMON_VARIABLES: Record<string, string> = {
   regularLink: "Link to the regular-cleaning booking form",
   googleReviewLink: "Your Google review link (Settings)",
   prepTips: "Service-specific preparation checklist",
+  customerName: "Customer's full name (team alerts)",
+  customerPhone: "Customer's phone (team alerts)",
+  customerEmail: "Customer's email (team alerts)",
+  minutesWaiting: "How many minutes a lead has waited (team alerts)",
+  adminLink: "Link to the booking in the admin (team alerts)",
   rating: "The star rating the customer gave",
   phone: "Company phone number",
   siteUrl: "Website address",
@@ -254,6 +259,65 @@ Booking takes about two minutes.`,
     ctaUrl: "{{bookingLink}}",
   },
   {
+    key: "lead_sla_alert",
+    name: "Team alert: a new lead is waiting",
+    category: "service",
+    description: "Goes to YOUR team (not the customer) when an enquiry still hasn't been called after the waiting time.",
+    subject: "{{customerName}} has been waiting {{minutesWaiting}} minutes for a call",
+    heading: "A new lead is waiting",
+    body: `**{{customerName}}** asked about {{serviceLower}} ({{reference}}) {{minutesWaiting}} minutes ago and nobody has contacted them yet.
+
+Phone: {{customerPhone}}
+Email: {{customerEmail}}
+
+The sooner they hear from us, the better the chance of winning the booking.`,
+    ctaLabel: "Open the lead",
+    ctaUrl: "{{adminLink}}",
+  },
+  {
+    key: "quote_viewed_nudge",
+    name: "Quote opened but not paid — any questions?",
+    category: "service",
+    description: "A few hours after a customer looked at their quote page without paying.",
+    subject: "Any questions about your price, {{firstName}}?",
+    heading: "Happy to help",
+    body: `Hi {{firstName}},
+
+Just checking: is there anything about your {{serviceLower}} price ({{quoteTotal}}, ref {{reference}}) we can clear up? What's included, the date, the deposit.
+
+**Reply to this email** or call us on {{phone}} and we'll sort it. When you're ready, a small deposit secures your date.`,
+    ctaLabel: "Secure my date",
+    ctaUrl: "{{quoteLink}}",
+    sms: "Hi {{firstName}}, it's Ample Cleaners. Any questions about your {{serviceLower}} price ({{quoteTotal}})? Reply here or call {{phone}}. Ready? Secure your date: {{quoteLink}}",
+    whatsapp: "Hi {{firstName}}, it's Ample Cleaners. Is there anything about your {{serviceLower}} price ({{quoteTotal}}, ref {{reference}}) we can clear up? Ask me anything. When you're ready, a small deposit secures your date: {{quoteLink}}",
+  },
+  {
+    key: "visit_skipped",
+    name: "Skipped visit — we'll fit you back in",
+    category: "service",
+    description: "When a regular customer cancels a single visit, check in and keep them on the books.",
+    subject: "We'll miss you this time, {{firstName}}",
+    heading: "Your visit has been cancelled",
+    body: `Hi {{firstName}},
+
+Your {{serviceLower}} visit on **{{cleanDate}}** has been cancelled, so we won't be coming that day.
+
+If that wasn't what you meant, or you'd like another date, just **reply to this email** or call {{phone}} and we'll fit you back in. Our popular slots do fill up, so sooner is easier.`,
+  },
+  {
+    key: "anniversary_thanks",
+    name: "One year together — thank you",
+    category: "marketing",
+    description: "A year after a regular customer's first clean.",
+    subject: "A year together, {{firstName}}. Thank you",
+    heading: "Thank you for a year",
+    body: `Hi {{firstName}},
+
+It's been a year since your first clean with us. Thank you for trusting us with your home.
+
+If there's anything we could do better, **reply to this email** and tell us. We read every message.`,
+  },
+  {
     key: "campaign_spring",
     name: "Campaign — spring clean",
     category: "marketing",
@@ -311,6 +375,10 @@ export const AUTOMATIONS: AutomationDef[] = [
   { key: "rating_recovery", name: "Unhappy customer: recovery", description: "After a rating of 3 or below, reach out personally.", timing: "hours after the rating", steps: [{ template: "rating_recovery", hours: 1 }] },
   { key: "upsell_recurring", name: "One-off → regular clean", description: "Suggest a regular clean to one-off customers.", timing: "hours after the clean", steps: [{ template: "upsell_recurring", hours: 48 }] },
   { key: "rebook", name: "Rebook nudge", description: "Three weeks on, nothing booked since.", timing: "hours after the clean", steps: [{ template: "rebook_nudge", hours: 504 }] },
+  { key: "lead_sla", name: "Team alert: lead waiting", description: "Alerts you when an enquiry hasn't been called. Speed wins bookings.", timing: "hours after the enquiry came in (0.25 = 15 minutes)", steps: [{ template: "lead_sla_alert", hours: 0.25 }, { template: "lead_sla_alert", hours: 1 }] },
+  { key: "quote_viewed", name: "Quote opened, not paid", description: "A friendly check-in after a customer looked at their price but didn't pay.", timing: "hours after they last opened the quote page", steps: [{ template: "quote_viewed_nudge", hours: 3 }] },
+  { key: "visit_skipped", name: "Skipped visit check-in", description: "When a regular customer cancels one visit, reach out and keep them.", timing: "hours after they cancelled the visit", steps: [{ template: "visit_skipped", hours: 1 }] },
+  { key: "anniversary", name: "One-year thank-you", description: "Thank regular customers on the anniversary of their first clean.", timing: "hours after the anniversary date", steps: [{ template: "anniversary_thanks", hours: 0 }] },
   { key: "winback", name: "Win-back", description: "Bring lapsed customers back. Stops as soon as they book.", timing: "hours after their last clean", steps: [{ template: "winback_60", hours: 1440 }, { template: "winback_180", hours: 4320 }] },
 ];
 

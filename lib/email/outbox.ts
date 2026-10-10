@@ -10,6 +10,8 @@ export interface Guard {
   /** The abandoned-form lead must not have turned into a booking. */
   leadId?: string;
   /** The customer must have no other live booking created since `after` or dated after `afterDate`. */
+  /** Skip if we have emailed this address in the last N hours (stops two systems nudging the same person at once). */
+  quietForHours?: number;
   noNewBooking?: { customerId: string; after: string; afterDate: string; excludeBookingId?: string };
 }
 

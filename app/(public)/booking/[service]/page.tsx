@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowRight, BadgeCheck, CalendarClock, Loader2, Lock, Minus, Plus, ShieldCheck, Wallet } from "lucide-react";
 import { SERVICE_LABELS, type ServiceType } from "@/types";
 import { Steps } from "@/components/booking/Steps";
+import { REMINDER_NOTICE } from "@/lib/email/notice";
 import { usePricing } from "@/components/shared/PricingProvider";
 import { readAttribution } from "@/components/shared/attribution";
 
@@ -126,7 +127,7 @@ export default function BookingWizardPage() {
               <Field label="Email">
                 <input required type="email" autoComplete="email" value={form.email} onChange={(e) => set("email", e.target.value)} onBlur={captureLead} className={INPUT} />
               </Field>
-              <p className="text-xs leading-relaxed text-slate-500">If you don&apos;t finish, we may email you a reminder. You can unsubscribe at any time.</p>
+              <p className="text-xs leading-relaxed text-slate-500">{REMINDER_NOTICE}</p>
             </Section>
 
             <Section n={2} title={isRegular ? "Your home and your clean" : "Your property"}>

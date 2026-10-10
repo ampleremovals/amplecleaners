@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { SERVICE_TYPES } from "@/lib/bookings/create";
+import { recordConsent } from "@/lib/email/consent";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,7 @@ export async function POST(req: Request) {
     } else {
       await db.from("abandoned_leads").update({ full_name: fullName || null, phone: phone || null, service_type: serviceType, updated_at: now }).eq("id", existing.id);
     }
+    await recordConsent(email, "booking_form_reminder");
   } catch { /* best effort */ }
   return NextResponse.json({ success: true });
 }

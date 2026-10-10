@@ -10,7 +10,7 @@ import { BookingEdit } from "@/components/admin/BookingEdit";
 import { ErrorState } from "@/components/admin/DataState";
 import { AdminHero, AdminPage, BTN, INPUT } from "@/components/admin/kit";
 import { Avatar, Panel, PanelHeader, StatusBadge } from "@/components/admin/ui";
-import { activitySentence } from "@/lib/admin/overview-shared";
+import { activitySentence, timeAgo } from "@/lib/admin/overview-shared";
 import { SERVICE_LABELS, type QuoteLineItem, type BookingStatus } from "@/types";
 
 interface BookingDetail {
@@ -22,6 +22,7 @@ interface BookingDetail {
   assigned_cleaner_id: string | null; clean_time: string | null;
   deposit_status: "unpaid" | "claimed" | "verified"; deposit_amount: number | null;
   is_flagged: boolean; flag_reason: string | null; clock_in_at: string | null; clock_out_at: string | null;
+  quote_view_count: number | null; quote_last_viewed_at: string | null; lost_reason: string | null;
   customer: { id: string; full_name: string; email: string; phone: string } | null;
   address: { line_1: string; line_2: string | null; city: string | null; postcode: string } | null;
   cleaner: { id: string; full_name: string; phone: string } | null;
@@ -146,7 +147,7 @@ export default function BookingDetailPage() {
           { label: "Status", value: <StatusBadge status={booking.status} /> },
           { label: "When", value: <span className="text-[1.1rem]">{when}</span> },
           { label: "Cleaner", value: <span className="text-[1.1rem]">{booking.cleaner?.full_name ?? "Unassigned"}</span>, tone: booking.cleaner ? "default" : "warning", hint: booking.cleaner ? booking.cleaner.phone : "No cleaner yet" },
-          { label: "Quote", value: booking.quote_total != null ? formatCurrency(Number(booking.quote_total)) : "—", hint: booking.deposit_amount != null ? `Deposit ${formatCurrency(Number(booking.deposit_amount))}` : undefined },
+          { label: "Quote", value: booking.quote_total != null ? formatCurrency(Number(booking.quote_total)) : "—", hint: booking.quote_view_count ? `Opened ${booking.quote_view_count} time${booking.quote_view_count === 1 ? "" : "s"}, last ${timeAgo(booking.quote_last_viewed_at!)}` : booking.deposit_amount != null ? `Deposit ${formatCurrency(Number(booking.deposit_amount))}` : undefined, tone: booking.quote_view_count && ["quote_sent", "deposit_invoice_sent"].includes(booking.status) ? "positive" : "default" },
         ]}
       />
 

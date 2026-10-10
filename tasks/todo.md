@@ -709,17 +709,24 @@ No consent/unsubscribe anywhere · no delivery tracking · no abandoned-booking 
 
 ## Task: Close the email-system gaps (2026-10-10)
 Owner asked to cover every gap listed after the email build. Plan (each step tested; push after each group):
-- [ ] **0. Migration 0008** — `customers.followups_paused_until`, quote-view columns on `bookings`, `bookings.lost_reason`, `settings.email_daily_limit`, template `sms_body/whatsapp_body/subject_b`, outbox `variant/sms_sent_at/whatsapp_sent_at`, `email_consents`, `inbox_messages`.
-- [ ] **1. Stop-on-reply + Inbox** — Resend inbound (`email.received` webhook → fetch body via `GET /emails/receiving/{id}`), match sender to customer, pause nurture journeys + cancel queued nurture mail for 7 days, alert the team, admin **Inbox** (threads, unread badge, reply from the platform, mark handled, resume follow-ups). Manual "pause follow-ups" works without inbound. Auto-replies/out-of-office never pause. Needs owner: receiving address (`INBOUND_REPLY_ADDRESS`) + a key that can read received mail.
-- [ ] **2. Old 7-day ladder under the same rules** — skip when paused (replied) / unsubscribed / bounced, unsubscribe link in its footer.
-- [ ] **3. SMS + WhatsApp on booking-critical journeys** — optional text fields on service templates (missed call, close file, prep, recovery); honours the Settings channel switches; never on marketing.
-- [ ] **4. Google review link warning + daily send limit with a reserve for booking emails** (Settings field).
-- [ ] **5. Consent log** for the form's reminder notice.
-- [ ] **6. Speed-to-lead alerts** — uncontacted enquiry → team alert at 15 and 60 min.
-- [ ] **7. Quote-viewed tracking** — count/last view on the quote page, shown on the booking, "viewed but didn't pay" nudge to the customer.
-- [ ] **8. Lost reasons** — one-click reason when moving a lead to Lost; reasons breakdown in Results.
-- [ ] **9. Subject-line A/B** — optional subject B per template, 50/50 split, per-variant open/click.
-- [ ] **10. Retention** — skipped recurring visit check-in; one-year thank-you.
-- [ ] **11. Email layout hardening** — table-based layout, Outlook-safe button, light colour-scheme hint.
-- [ ] **12. Verify** — unit + e2e (new checks), lint/tsc/build, UI screenshots, push, live check, docs + memory.
+- [x] **0. Migration 0008** — `customers.followups_paused_until`, quote-view columns on `bookings`, `bookings.lost_reason`, `settings.email_daily_limit`, template `sms_body/whatsapp_body/subject_b`, outbox `variant/sms_sent_at/whatsapp_sent_at`, `email_consents`, `inbox_messages`.
+- [x] **1. Stop-on-reply + Inbox** — Resend inbound (`email.received` webhook → fetch body via `GET /emails/receiving/{id}`), match sender to customer, pause nurture journeys + cancel queued nurture mail for 7 days, alert the team, admin **Inbox** (threads, unread badge, reply from the platform, mark handled, resume follow-ups). Manual "pause follow-ups" works without inbound. Auto-replies/out-of-office never pause. Needs owner: receiving address (`INBOUND_REPLY_ADDRESS`) + a key that can read received mail.
+- [x] **2. Old 7-day ladder under the same rules** — skip when paused (replied) / unsubscribed / bounced, unsubscribe link in its footer.
+- [x] **3. SMS + WhatsApp on booking-critical journeys** — optional text fields on service templates (missed call, close file, prep, recovery); honours the Settings channel switches; never on marketing.
+- [x] **4. Google review link warning + daily send limit with a reserve for booking emails** (Settings field).
+- [x] **5. Consent log** for the form's reminder notice.
+- [x] **6. Speed-to-lead alerts** — uncontacted enquiry → team alert at 15 and 60 min.
+- [x] **7. Quote-viewed tracking** — count/last view on the quote page, shown on the booking, "viewed but didn't pay" nudge to the customer.
+- [x] **8. Lost reasons** — one-click reason when moving a lead to Lost; reasons breakdown in Results.
+- [x] **9. Subject-line A/B** — optional subject B per template, 50/50 split, per-variant open/click.
+- [x] **10. Retention** — skipped recurring visit check-in; one-year thank-you.
+- [x] **11. Email layout hardening** — table-based layout, Outlook-safe button, light colour-scheme hint.
+- [x] **12. Verify** — unit + e2e (new checks), lint/tsc/build, UI screenshots, push, live check, docs + memory.
 Not doing (needs a decision, not code): price-change notice to recurring customers (a service-notice template type that skips unsubscribe is easy to abuse for promotions).
+
+### Review (2026-10-10)
+**Built (all 12 steps):** migration 0008 (+ `email_paused`); Inbox (Resend `email.received` webhook → body fetch → threads, unread badge, reply from the platform, mark handled, pause/resume follow-ups; auto-replies never pause); the 7-day ladder now skips paused/unsubscribed/bounced customers and carries a "Stop these reminders" link; SMS/WhatsApp twins on three booking-critical templates (missed call, close-the-file, quote-opened) via the Settings switches, never on marketing; Google-review-link warning; daily send limit with a reserve for booking emails (Settings); consent log (exact notice wording); team alert for uncontacted enquiries at 15 and 60 min; quote-view tracking (count, last viewed, booking page hint, "any questions?" nudge guarded against collisions); lost reasons (picker on Move to Lost, funnel breakdown); subject-line A/B (stable 50/50, per-arm stats); skipped-visit check-in and one-year thank-you; table-based, Outlook-safe layout; global "Pause all automatic emails" switch.
+**Extra found while testing:** the live 5-minute timer shares the database with the e2e suite, so the suite now pauses it for the run and restores the previous state afterwards (also a handy owner kill switch).
+**Not done:** price-change notices (see above); the layout was only rendered in Chrome, not Outlook/Gmail dark mode; a received email can only show its body if the Resend key used can read received mail.
+**Owner steps:** receiving address → `INBOUND_REPLY_ADDRESS` on Vercel (Resend → Emails → Receiving), add the `email.received` event to the webhook, optionally `RESEND_RECEIVE_KEY` (a key allowed to read received mail); set the Google review link and the real daily limit in Settings.
+**Verified:** tsc, lint, 56 unit tests, e2e 281 checks (phase 14 added), Playwright desktop + mobile on the new screens.
